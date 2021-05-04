@@ -1,0 +1,27 @@
+# To learn more about .editorconfig see https://aka.ms/editorconfigdocs
+# Remove the line below if you want to inherit .editorconfig settings from higher directories
+root = true
+
+#### Define style ####
+
+# All files
+[*]
+indent_style = space
+
+# C# Project files
+[*.csproj]
+indent_size = 2
+
+#### Suppress warnings ####
+
+# C# files
+[*.cs]
+
+# CA1812: Avoid uninstantiated internal classes
+dotnet_diagnostic.CA1812.severity = none    # Doing extensive use of Dependency Injection
+
+# CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = none    # Not needed with .Net Core. More info https://devblogs.microsoft.com/dotnet/configureawait-faq/
+
+# CS1591: Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CS1591.severity = none    
