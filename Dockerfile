@@ -6,14 +6,12 @@ EXPOSE 80
 
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
-COPY ["BeehiveManager/BeehiveManager.csproj", "BeehiveManager/"]
-RUN dotnet restore "BeehiveManager/BeehiveManager.csproj"
 COPY . .
-WORKDIR "/src/BeehiveManager"
-RUN dotnet build "BeehiveManager.csproj" -c Release -o /app/build
+RUN dotnet restore "BeehiveManager.sln"
+RUN dotnet build "BeehiveManager.sln" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "BeehiveManager.csproj" -c Release -o /app/publish
+RUN dotnet publish "BeehiveManager.sln" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
