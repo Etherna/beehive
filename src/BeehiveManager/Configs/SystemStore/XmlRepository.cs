@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -40,7 +40,7 @@ namespace Etherna.BeehiveManager.Configs.SystemStore
                 bsonDoc.Remove("_id");
 
                 var jsonStr = bsonDoc.ToJson();
-                var xDocument = JsonSerializer.Deserialize<XDocument>(jsonStr)!;
+                var xDocument = JsonConvert.DeserializeXNode(jsonStr)!;
                 return xDocument.Root!;
             }).ToList();
         }
@@ -53,7 +53,7 @@ namespace Etherna.BeehiveManager.Configs.SystemStore
             //remove all comments. Json doesn't support it, but Json.NET serialize them anyway
             element.DescendantNodes().Where(x => x.NodeType == XmlNodeType.Comment).Remove();
 
-            var jsonStr = JsonSerializer.Serialize(element);
+            var jsonStr = JsonConvert.SerializeXNode(element);
             var bsonDoc = BsonDocument.Parse(jsonStr);
             collection.InsertOne(bsonDoc);
         }

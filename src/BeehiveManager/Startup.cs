@@ -11,11 +11,11 @@ using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.IO;
@@ -59,21 +59,6 @@ namespace BeehiveManager
                 options.SubstituteApiVersionInUrl = true;
             });
 
-            // Configure Hangfire services.
-            services.AddHangfire(options =>
-            {
-                options.UseMongoStorage(
-                    Configuration["ConnectionStrings:HangfireDb"],
-                    new MongoStorageOptions
-                    {
-                        MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception
-                        {
-                            MigrationStrategy = new MigrateMongoMigrationStrategy(),
-                            BackupStrategy = new CollectionMongoBackupStrategy()
-                        }
-                    });
-            });
-
             // Configure Swagger services.
             services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
             services.AddSwaggerGen(options =>
@@ -94,12 +79,23 @@ namespace BeehiveManager
                 options.AssemblyVersion = assemblyVersion.Version;
             });
 
-            // Configure persistence.
-            services.AddMongODMWithHangfire<ModelBase>()
+            // Configure Hangfire and persistence.
+            services.AddMongODMWithHangfire<ModelBase>(configureHangfireOptions: options =>
+            {
+                options.ConnectionString = Configuration["ConnectionStrings:HangfireDb"];
+                options.StorageOptions = new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception
+                    {
+                        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                        BackupStrategy = new CollectionMongoBackupStrategy()
+                    }
+                };
+            })
                 .AddDbContext<IBeehiveContext, BeehiveContext>(options =>
                 {
-                    options.ApplicationVersion = assemblyVersion.SimpleVersion;
-                    options.ConnectionString = Configuration["ConnectionStrings:CreditDb"];
+                    options.DocumentSemVer.CurrentVersion = assemblyVersion.SimpleVersion;
+                    options.ConnectionString = Configuration["ConnectionStrings:BeehiveManagerDb"];
                 });
 
             // Configure domain services.
@@ -107,19 +103,34 @@ namespace BeehiveManager
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiProvider)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "BeehiveManager v1"));
             }
 
             app.UseRouting();
 
             app.UseAuthorization();
 
+            // Add Hangfire.
+            app.UseHangfireDashboard("/admin/hangfire");
+            if (!env.IsStaging()) //don't init server in staging
+                app.UseHangfireServer();
+
+            // Add Swagger and SwaggerUI.
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
+            {
+                // build a swagger endpoint for each discovered API version
+                foreach (var description in apiProvider.ApiVersionDescriptions)
+                {
+                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                }
+            });
+
+            // Add controllers.
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
