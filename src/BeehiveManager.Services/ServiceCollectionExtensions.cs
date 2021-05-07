@@ -1,4 +1,5 @@
-﻿using Etherna.DomainEvents;
+﻿using Etherna.BeehiveManager.Services.Utilities;
+using Etherna.DomainEvents;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -33,6 +34,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 return dispatcher;
             });
+
+            // Utilities.
+            services.AddSingleton<IBeeNodesManager, BeeNodesManager>();
         }
     }
 }
