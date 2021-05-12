@@ -12,9 +12,11 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
                 throw new ArgumentNullException(nameof(beeNode));
 
             EthAddress = beeNode.EthAddress;
+            Id = beeNode.Id;
         }
 
         // Properties.
         public string? EthAddress { get; }
+        public string Id { get; }
     }
 }

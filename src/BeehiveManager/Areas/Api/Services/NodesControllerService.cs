@@ -45,7 +45,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
 
-        public async Task RefreshNodeInfoAsync(string id)
+        public async Task<BeeNodeDto> RefreshNodeInfoAsync(string id)
         {
             // Get client.
             var node = await context.BeeNodes.FindOneAsync(id);
@@ -60,6 +60,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             // Save changes.
             await context.SaveChangesAsync();
+
+            return new BeeNodeDto(node);
         }
 
         public async Task RemoveBeeNodeAsync(string id)

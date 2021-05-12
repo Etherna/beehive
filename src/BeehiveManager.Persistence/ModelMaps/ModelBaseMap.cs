@@ -11,7 +11,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            // register class maps.
+            // Register class maps.
             dbContext.SchemaRegister.AddModelMapsSchema<ModelBase>("7653dfab-f715-42d1-8d3d-bbca69755399");
 
             dbContext.SchemaRegister.AddModelMapsSchema<EntityModelBase<string>>("3d7b0f5d-d490-495e-af05-6114e8f8d2f4", modelMap =>
