@@ -39,6 +39,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new BeeNodeDto(node);
         }
 
+        public async Task<BeeNodeDto> FindByIdAsync(string id) =>
+            new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));
+
         public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take) =>
             (await context.BeeNodes.QueryElementsAsync(elements =>
                 elements.PaginateDescending(n => n.CreationDateTime, page, take)

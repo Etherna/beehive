@@ -40,12 +40,27 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Range(1, 100)] int take = 25) =>
             service.GetBeeNodesAsync(page, take);
 
+        /// <summary>
+        /// Get node info by its id
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">Bee node info</response>
+        [HttpGet("{id}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<BeeNodeDto> FindByIdAsync(
+            [Required] string id) =>
+            service.FindByIdAsync(id);
+
         // Post.
 
         /// <summary>
         /// Register a new bee node.
         /// </summary>
         /// <param name="nodeInput">Info of new node</param>
+        /// <response code="200">Bee node info</response>
         [HttpPost]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -59,15 +74,31 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <summary>
         /// Refresh node info from running instance.
         /// </summary>
-        /// <param name="nodeId">Id of the bee node</param>
-        [HttpPut("{nodeId}/refresh")]
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">Bee node info</response>
+        [HttpPut("{id}/refresh")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
         public Task<BeeNodeDto> UpdateAsync(
-            string nodeId) =>
-            service.RefreshNodeInfoAsync(nodeId);
+            [Required] string id) =>
+            service.RefreshNodeInfoAsync(id);
+
+        // Delete.
+
+        /// <summary>
+        /// Remove a bee node.
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        [HttpDelete("{id}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task RemoveAsync(
+            [Required] string id) =>
+            service.RemoveBeeNodeAsync(id);
     }
 }
