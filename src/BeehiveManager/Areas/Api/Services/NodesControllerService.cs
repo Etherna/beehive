@@ -8,6 +8,7 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
@@ -33,7 +34,34 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             if (input is null)
                 throw new ArgumentNullException(nameof(input));
 
-            var node = new BeeNode(new Uri(input.Url), input.GatwayApiPort, input.DebugApiPort);
+            // Normalize and verify url.
+            var inputUrl = input.Url;
+            if (inputUrl.Last() != '/')
+                inputUrl += '/';
+
+            //validate regex
+            var urlRegex = new Regex(@"^((?<proto>\w+)://)?[^/]+?(?<port>:\d+)?/(?<path>.*)",
+                RegexOptions.None, TimeSpan.FromMilliseconds(150));
+            var urlMatch = urlRegex.Match(inputUrl);
+
+            if (!urlMatch.Success)
+                throw new ArgumentException("Url is not valid");
+
+            if (!string.IsNullOrEmpty(urlMatch.Groups["path"].Value))
+                throw new ArgumentException("Url can't have an internal path or query");
+
+            if (!string.IsNullOrEmpty(urlMatch.Groups["port"].Value))
+                throw new ArgumentException("Url can't specify a port");
+
+            //add protocol
+            if (string.IsNullOrEmpty(urlMatch.Groups["proto"].Value))
+                inputUrl = $"{Uri.UriSchemeHttp}://{inputUrl}";
+
+            // Create node.
+            var node = new BeeNode(
+                new Uri(inputUrl, UriKind.Absolute),
+                input.GatwayApiPort,
+                input.DebugApiPort);
             await context.BeeNodes.CreateAsync(node);
 
             return new BeeNodeDto(node);

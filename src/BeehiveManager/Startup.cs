@@ -22,7 +22,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
-namespace BeehiveManager
+namespace Etherna.BeehiveManager
 {
     public class Startup
     {

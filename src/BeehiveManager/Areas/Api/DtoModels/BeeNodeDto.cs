@@ -13,10 +13,12 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 
             EthAddress = beeNode.EthAddress;
             Id = beeNode.Id;
+            Url = beeNode.Url;
         }
 
         // Properties.
         public string? EthAddress { get; }
         public string Id { get; }
+        public Uri Url { get; }
     }
 }
