@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+
+  beehive-manager:
+    image: etherna/beehive-manager:latest-dev
+    environment:
+      - ConnectionStrings__BeehiveManagerDb=mongodb://mongo/beehive     # application db
+      - ConnectionStrings__HangfireDb=mongodb://mongo/beehiveHangfire   # async worker db
+      - ConnectionStrings__SystemDb=mongodb://mongo/beehiveSystem       # system db
+    networks:
+      - mongo-net
+    ports:
+      - 80:80
+    restart: unless-stopped
+
+  mongo:
+    hostname: mongo
+    image: mongo:4.4
+    volumes:
+      - mongo-configdb:/data/configdb
+      - mongo-db:/data/db
+    networks:
+      - mongo-net
+    restart: unless-stopped
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all" ]
+
+networks:
+  mongo-net:
+  
+volumes:
+  mongo-configdb:
+  mongo-db:
