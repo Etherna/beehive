@@ -20,5 +20,4 @@ jobs:
         name: etherna/beehive-manager
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        snapshot: true
         tags: "latest-dev"
