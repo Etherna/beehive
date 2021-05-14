@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net" Version="0.1.0-alpha.14" />
+    <PackageReference Include="Bee.Net" Version="0.1.0-alpha.15" />
   </ItemGroup>
 
   <ItemGroup>

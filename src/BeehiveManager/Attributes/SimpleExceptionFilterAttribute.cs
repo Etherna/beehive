@@ -15,33 +15,28 @@ namespace Etherna.BeehiveManager.Attributes
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
-            switch (context.Exception)
+            context.Result = context.Exception switch
             {
                 // Error code 400.
-                case ArgumentException _:
-                case FormatException _:
-                case InvalidOperationException _:
-                case MongodmInvalidEntityTypeException _:
-                    context.Result = new BadRequestObjectResult(context.Exception.Message);
-                    break;
+                ArgumentException _ or
+                FormatException _ or
+                InvalidOperationException _ or
+                MongodmInvalidEntityTypeException _ => new BadRequestObjectResult(context.Exception.Message),
 
                 // Error code 401.
-                case UnauthorizedAccessException _:
-                    context.Result = new UnauthorizedResult();
-                    break;
+                UnauthorizedAccessException _ => new UnauthorizedResult(),
 
                 // Error code 404.
-                case KeyNotFoundException _:
-                case MongodmEntityNotFoundException _:
-                    context.Result = new NotFoundObjectResult(context.Exception.Message);
-                    break;
+                KeyNotFoundException _ or
+                MongodmEntityNotFoundException _ => new NotFoundObjectResult(context.Exception.Message),
 
                 // Error code 503.
-                case BeeNetDebugApiException _:
-                case BeeNetGatewayApiException _:
-                    context.Result = new StatusCodeResult(503);
-                    break;
-            }
+                BeeNetDebugApiException _ or
+                BeeNetGatewayApiException _ => new StatusCodeResult(503),
+
+                // Error code 500.
+                _ => new StatusCodeResult(500),
+            };
         }
     }
 }

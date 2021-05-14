@@ -17,6 +17,9 @@ indent_size = 2
 # C# files
 [*.cs]
 
+# CA1054: Uri parameters should not be strings
+dotnet_diagnostic.CA1054.severity = none    # Asp.Net Core uses strings natively, and is easier to manipulate strings
+
 # CA1812: Avoid uninstantiated internal classes
 dotnet_diagnostic.CA1812.severity = none    # Doing extensive use of Dependency Injection
 

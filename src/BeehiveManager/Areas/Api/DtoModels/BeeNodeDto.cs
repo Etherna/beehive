@@ -11,14 +11,20 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             if (beeNode is null)
                 throw new ArgumentNullException(nameof(beeNode));
 
-            EthAddress = beeNode.EthAddress;
             Id = beeNode.Id;
+            DebugPort = beeNode.DebugPort;
+            EthAddress = beeNode.EthAddress;
+            GatewayPort = beeNode.GatewayPort;
+            LastRefreshDateTime = beeNode.LastRefreshDateTime;
             Url = beeNode.Url;
         }
 
         // Properties.
-        public string? EthAddress { get; }
         public string Id { get; }
+        public int? DebugPort { get; }
+        public string? EthAddress { get; }
+        public int? GatewayPort { get; }
+        public DateTime? LastRefreshDateTime { get; }
         public Uri Url { get; }
     }
 }

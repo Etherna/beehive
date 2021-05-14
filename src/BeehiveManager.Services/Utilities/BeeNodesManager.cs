@@ -18,7 +18,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             if (_nodeClients.ContainsKey(beeNode.Id))
                 return _nodeClients[beeNode.Id];
 
-            var client = new BeeNodeClient(beeNode.Url.ToString(), beeNode.GatewayPort, beeNode.DebugPort);
+            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
             _nodeClients.Add(beeNode.Id, client);
 
             return client;

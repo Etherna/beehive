@@ -8,7 +8,6 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
@@ -34,34 +33,11 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             if (input is null)
                 throw new ArgumentNullException(nameof(input));
 
-            // Normalize and verify url.
-            var inputUrl = input.Url;
-            if (inputUrl.Last() != '/')
-                inputUrl += '/';
-
-            //validate regex
-            var urlRegex = new Regex(@"^((?<proto>\w+)://)?[^/]+?(?<port>:\d+)?/(?<path>.*)",
-                RegexOptions.None, TimeSpan.FromMilliseconds(150));
-            var urlMatch = urlRegex.Match(inputUrl);
-
-            if (!urlMatch.Success)
-                throw new ArgumentException("Url is not valid");
-
-            if (!string.IsNullOrEmpty(urlMatch.Groups["path"].Value))
-                throw new ArgumentException("Url can't have an internal path or query");
-
-            if (!string.IsNullOrEmpty(urlMatch.Groups["port"].Value))
-                throw new ArgumentException("Url can't specify a port");
-
-            //add protocol
-            if (string.IsNullOrEmpty(urlMatch.Groups["proto"].Value))
-                inputUrl = $"{Uri.UriSchemeHttp}://{inputUrl}";
-
             // Create node.
             var node = new BeeNode(
-                new Uri(inputUrl, UriKind.Absolute),
+                input.DebugApiPort,
                 input.GatwayApiPort,
-                input.DebugApiPort);
+                input.Url);
             await context.BeeNodes.CreateAsync(node);
 
             return new BeeNodeDto(node);
@@ -83,11 +59,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             var nodeClient = beeNodesManager.GetBeeNodeClient(node);
 
             // Get info.
-            //******TODO
-            var ethAddress = "0x371f77a677E4D4CeB15D13DeF48fE4D2c45bf1D3";
+            if (nodeClient.DebugClient is null)
+                throw new InvalidOperationException("Node is not configured for debug api");
+            var response = await nodeClient.DebugClient.AddressesAsync();
 
             // Update node.
-            node.SetInfoFromNodeInstance(ethAddress);
+            node.SetInfoFromNodeInstance(response.Ethereum);
 
             // Save changes.
             await context.SaveChangesAsync();
