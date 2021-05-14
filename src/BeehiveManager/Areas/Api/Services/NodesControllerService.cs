@@ -3,8 +3,10 @@ using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
+using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.MongODM.Core.Extensions;
+using Hangfire;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -16,14 +18,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class NodesControllerService : INodesControllerService
     {
         // Fields.
+        private readonly IBackgroundJobClient backgroundJobClient;
         private readonly IBeeNodesManager beeNodesManager;
         private readonly IBeehiveContext context;
 
         // Constructor.
         public NodesControllerService(
+            IBackgroundJobClient backgroundJobClient,
             IBeeNodesManager beeNodesManager,
             IBeehiveContext context)
         {
+            this.backgroundJobClient = backgroundJobClient;
             this.beeNodesManager = beeNodesManager;
             this.context = context;
         }
@@ -44,6 +49,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new BeeNodeDto(node);
         }
 
+        public void EnqueueRetrieveNodeAddresses(string id) =>
+            backgroundJobClient.Enqueue<IRetrieveBeeNodeAddressesTask>(task => task.RunAsync(id));
+
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
             new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));
 
@@ -60,30 +68,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             beeNodesManager.RemoveBeeNodeClient(id);
             await context.BeeNodes.DeleteAsync(id);
-        }
-
-        public async Task<BeeNodeDto> RetrieveAddressesAsync(string id)
-        {
-            // Get client.
-            var node = await context.BeeNodes.FindOneAsync(id);
-            var nodeClient = beeNodesManager.GetBeeNodeClient(node);
-
-            // Get info.
-            if (nodeClient.DebugClient is null)
-                throw new InvalidOperationException("Node is not configured for debug api");
-            var response = await nodeClient.DebugClient.AddressesAsync();
-
-            // Update node.
-            node.SetAddresses(new BeeNodeAddresses(
-                response.Ethereum,
-                response.Overlay,
-                response.Pss_public_key,
-                response.Public_key));
-
-            // Save changes.
-            await context.SaveChangesAsync();
-
-            return new BeeNodeDto(node);
         }
     }
 }

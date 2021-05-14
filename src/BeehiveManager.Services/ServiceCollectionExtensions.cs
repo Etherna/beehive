@@ -1,4 +1,5 @@
-﻿using Etherna.BeehiveManager.Services.Utilities;
+﻿using Etherna.BeehiveManager.Services.Tasks;
+using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.DomainEvents;
 using System;
 using System.Linq;
@@ -37,6 +38,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             // Utilities.
             services.AddSingleton<IBeeNodesManager, BeeNodesManager>();
+
+            // Tasks.
+            services.AddScoped<IRetrieveBeeNodeAddressesTask, RetrieveBeeNodeAddressesTask>();
         }
     }
 }

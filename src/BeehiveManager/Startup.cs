@@ -117,7 +117,14 @@ namespace Etherna.BeehiveManager
             // Add Hangfire.
             app.UseHangfireDashboard("/admin/hangfire");
             if (!env.IsStaging()) //don't init server in staging
-                app.UseHangfireServer();
+                app.UseHangfireServer(new BackgroundJobServerOptions
+                {
+                    Queues = new[]
+                    {
+                        Services.Tasks.Queues.DOMAIN_MAINTENANCE,
+                        "default"
+                    }
+                });
 
             // Add Swagger and SwaggerUI.
             app.UseSwagger();
