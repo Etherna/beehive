@@ -16,11 +16,7 @@ Docker images
 
 You can get latest stable and unstable releases from our [Docker Hub repository](https://hub.docker.com/repository/docker/etherna/beehive-manager).
 
-How to run with Docker Compose:
-
-```
-<TO_DO>
-```
+You can find a sample on how to run with Docker Compose [here](samples/docker-beehive-sample)
 
 Issue reports
 -------------
