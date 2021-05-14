@@ -13,6 +13,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Bee.Net" Version="0.1.0-alpha.15" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BeehiveManager.Domain\BeehiveManager.Domain.csproj" />
   </ItemGroup>
 
