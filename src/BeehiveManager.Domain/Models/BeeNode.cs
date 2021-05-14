@@ -1,4 +1,5 @@
-﻿using Etherna.MongODM.Core.Attributes;
+﻿using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
+using Etherna.MongODM.Core.Attributes;
 using Nethereum.Util;
 using System;
 using System.Linq;
@@ -30,22 +31,19 @@ namespace Etherna.BeehiveManager.Domain.Models
         protected BeeNode() { }
 
         // Properties.
+        public virtual BeeNodeAddresses? Addresses { get; protected set; }
         public virtual int? DebugPort { get; set; }
-        public virtual string? EthAddress { get; protected set; }
         public virtual int? GatewayPort { get; set; }
-        public virtual DateTime? LastRefreshDateTime { get; protected set; }
         public virtual Uri Url { get; protected set; } = default!;
 
         // Methods.
-        [PropertyAlterer(nameof(EthAddress))]
-        [PropertyAlterer(nameof(LastRefreshDateTime))]
-        public virtual void SetInfoFromNodeInstance(string ethAddress)
+        [PropertyAlterer(nameof(Addresses))]
+        public virtual void SetAddresses(BeeNodeAddresses addresses)
         {
-            if (!ethAddress.IsValidEthereumAddressHexFormat())
-                throw new ArgumentException("The value is not a valid address", nameof(ethAddress));
+            if (Addresses is not null)
+                throw new InvalidOperationException("Addresses already set");
 
-            EthAddress = ethAddress.ConvertToEthereumChecksumAddress();
-            LastRefreshDateTime = DateTime.Now;
+            Addresses = addresses ?? throw new ArgumentNullException(nameof(addresses));
         }
 
         [PropertyAlterer(nameof(Url))]

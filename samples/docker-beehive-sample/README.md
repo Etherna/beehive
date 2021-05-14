@@ -12,6 +12,8 @@ docker-compose up -d
 
 The Swagger Api client will be accessible at http://localhost/swagger/.
 
+The [Hangfire](https://www.hangfire.io/) console (the async engine) is accessible at http://localhost/admin/hangfire/.
+
 Configuration
 -------------
 

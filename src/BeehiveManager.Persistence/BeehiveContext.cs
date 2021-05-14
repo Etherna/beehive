@@ -38,7 +38,7 @@ namespace Etherna.BeehiveManager.Persistence
             {
                 IndexBuilders = new[]
                 {
-                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.EthAddress), new CreateIndexOptions<BeeNode> { Unique = true }),
+                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.Addresses.Ethereum), new CreateIndexOptions<BeeNode> { Sparse = true, Unique = true }),
                 }
             });
 

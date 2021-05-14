@@ -13,18 +13,22 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 
             Id = beeNode.Id;
             DebugPort = beeNode.DebugPort;
-            EthAddress = beeNode.EthAddress;
+            EthereumAddress = beeNode.Addresses?.Ethereum;
             GatewayPort = beeNode.GatewayPort;
-            LastRefreshDateTime = beeNode.LastRefreshDateTime;
+            OverlayAddress = beeNode.Addresses?.Overlay;
+            PssPublicKey = beeNode.Addresses?.PssPublicKey;
+            PublicKey = beeNode.Addresses?.PublicKey;
             Url = beeNode.Url;
         }
 
         // Properties.
         public string Id { get; }
         public int? DebugPort { get; }
-        public string? EthAddress { get; }
+        public string? EthereumAddress { get; }
         public int? GatewayPort { get; }
-        public DateTime? LastRefreshDateTime { get; }
+        public string? OverlayAddress { get; }
+        public string? PssPublicKey { get; }
+        public string? PublicKey { get; }
         public Uri Url { get; }
     }
 }

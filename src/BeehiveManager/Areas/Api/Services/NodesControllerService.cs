@@ -2,6 +2,7 @@
 using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.MongODM.Core.Extensions;
 using MongoDB.Driver;
@@ -52,7 +53,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
 
-        public async Task<BeeNodeDto> RefreshNodeInfoAsync(string id)
+        public async Task RemoveBeeNodeAsync(string id)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+
+            beeNodesManager.RemoveBeeNodeClient(id);
+            await context.BeeNodes.DeleteAsync(id);
+        }
+
+        public async Task<BeeNodeDto> RetrieveAddressesAsync(string id)
         {
             // Get client.
             var node = await context.BeeNodes.FindOneAsync(id);
@@ -64,21 +74,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             var response = await nodeClient.DebugClient.AddressesAsync();
 
             // Update node.
-            node.SetInfoFromNodeInstance(response.Ethereum);
+            node.SetAddresses(new BeeNodeAddresses(
+                response.Ethereum,
+                response.Overlay,
+                response.Pss_public_key,
+                response.Public_key));
 
             // Save changes.
             await context.SaveChangesAsync();
 
             return new BeeNodeDto(node);
-        }
-
-        public async Task RemoveBeeNodeAsync(string id)
-        {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-
-            beeNodesManager.RemoveBeeNodeClient(id);
-            await context.BeeNodes.DeleteAsync(id);
         }
     }
 }
