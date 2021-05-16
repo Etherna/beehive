@@ -4,6 +4,7 @@ using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
+using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.MongODM.Core.Options;
 using Hangfire;
 using Hangfire.Mongo;
@@ -117,6 +118,8 @@ namespace Etherna.BeehiveManager
             // Add Hangfire.
             app.UseHangfireDashboard("/admin/hangfire");
             if (!env.IsStaging()) //don't init server in staging
+            {
+                //register hangfire server
                 app.UseHangfireServer(new BackgroundJobServerOptions
                 {
                     Queues = new[]
@@ -125,6 +128,13 @@ namespace Etherna.BeehiveManager
                         "default"
                     }
                 });
+
+                //register cron tasks
+                RecurringJob.AddOrUpdate<IRefreshClusterNodesStatusTask>(
+                    RefreshClusterNodesStatusTask.TaskId,
+                    task => task.RunAsync(),
+                    "*/15 * * * *"); //every 15 minutes
+            }
 
             // Add Swagger and SwaggerUI.
             app.UseSwagger();

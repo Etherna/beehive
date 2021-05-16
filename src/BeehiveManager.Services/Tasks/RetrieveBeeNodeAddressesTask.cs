@@ -9,9 +9,6 @@ namespace Etherna.BeehiveManager.Services.Tasks
 {
     public class RetrieveBeeNodeAddressesTask : IRetrieveBeeNodeAddressesTask
     {
-        // Consts.
-        public const string TaskId = "retrieveBeeNodeAddressesTask";
-
         // Fields.
         private readonly IBeeNodesManager beeNodesManager;
         private readonly IBeehiveContext context;

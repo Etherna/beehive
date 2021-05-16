@@ -40,7 +40,8 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<IBeeNodesManager, BeeNodesManager>();
 
             // Tasks.
-            services.AddScoped<IRetrieveBeeNodeAddressesTask, RetrieveBeeNodeAddressesTask>();
+            services.AddTransient<IRefreshClusterNodesStatusTask, RefreshClusterNodesStatusTask>();
+            services.AddTransient<IRetrieveBeeNodeAddressesTask, RetrieveBeeNodeAddressesTask>();
         }
     }
 }
