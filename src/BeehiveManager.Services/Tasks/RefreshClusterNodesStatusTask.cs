@@ -56,10 +56,25 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                         foreach (var peer in peers)
                         {
-                            var amountResponse = await nodeClient.DebugClient.ChequebookCashoutGetAsync(peer);
-                            totalUncashed += amountResponse.CumulativePayout;
-                        }
+                            var cumulativePayout = 0L;
+                            var cashedPayout = 0L;
 
+                            try
+                            {
+                                var chequeResponse = await nodeClient.DebugClient.ChequebookChequeGetAsync(peer);
+                                cumulativePayout = chequeResponse.Lastreceived.Payout;
+                            }
+                            catch (BeeNetDebugApiException) { }
+
+                            try
+                            {
+                                var cashoutResponse = await nodeClient.DebugClient.ChequebookCashoutGetAsync(peer);
+                                cashedPayout = cashoutResponse.CumulativePayout;
+                            }
+                            catch (BeeNetDebugApiException) { }
+
+                            totalUncashed += cumulativePayout - cashedPayout;
+                        }
                     }
                     catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api
                     catch (HttpRequestException) { return; }
