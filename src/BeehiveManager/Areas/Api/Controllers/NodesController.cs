@@ -72,19 +72,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         // Put.
 
         /// <summary>
-        /// Refresh node info from running instance.
+        /// Enqueue retrieve node addresses from running instance.
         /// </summary>
         /// <param name="id">Id of the bee node</param>
         /// <response code="200">Bee node info</response>
-        [HttpPut("{id}/refresh")]
+        [HttpPut("{id}/addresses")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
-        public Task<BeeNodeDto> UpdateAsync(
+        public void EnqueueRetrieveNodeAddresses(
             [Required] string id) =>
-            service.RefreshNodeInfoAsync(id);
+            service.EnqueueRetrieveNodeAddresses(id);
 
         // Delete.
 
