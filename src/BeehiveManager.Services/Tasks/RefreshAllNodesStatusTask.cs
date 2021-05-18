@@ -25,10 +25,10 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class RefreshClusterNodesStatusTask : IRefreshClusterNodesStatusTask
+    public class RefreshAllNodesStatusTask : IRefreshAllNodesStatusTask
     {
         // Consts.
-        public const string TaskId = "refreshClusterNodesStatusTask";
+        public const string TaskId = "refreshAllNodesStatusTask";
 
         // Fields.
         private readonly IBackgroundJobClient backgroundJobClient;
@@ -36,7 +36,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
         private readonly IBeehiveContext context;
 
         // Constructors.
-        public RefreshClusterNodesStatusTask(
+        public RefreshAllNodesStatusTask(
             IBackgroundJobClient backgroundJobClient,
             IBeeNodesManager beeNodesManager,
             IBeehiveContext context)
@@ -55,7 +55,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 {
                     // Verify if has addresses.
                     if (node.Addresses is null)
-                        backgroundJobClient.Enqueue<IRetrieveBeeNodeAddressesTask>(task => task.RunAsync(node.Id));
+                        backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(node.Id));
 
                     // Get info.
                     var nodeClient = beeNodesManager.GetBeeNodeClient(node);

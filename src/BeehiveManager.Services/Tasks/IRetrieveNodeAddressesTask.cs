@@ -12,12 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Hangfire;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public interface IRefreshClusterNodesStatusTask
+    public interface IRetrieveNodeAddressesTask
     {
-        Task RunAsync();
+        [Queue(Queues.DOMAIN_MAINTENANCE)]
+        Task RunAsync(string nodeId);
     }
 }
