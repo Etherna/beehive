@@ -54,6 +54,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<IBeeNodesManager, BeeNodesManager>();
 
             // Tasks.
+            services.AddTransient<ICashoutAllNodesTask, CashoutAllNodesTask>();
             services.AddTransient<IRefreshAllNodesStatusTask, RefreshAllNodesStatusTask>();
             services.AddTransient<IRetrieveNodeAddressesTask, RetrieveNodeAddressesTask>();
         }
