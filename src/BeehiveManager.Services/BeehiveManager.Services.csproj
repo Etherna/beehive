@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>Etherna.BeehiveManager.Services</RootNamespace>
+
+    <Authors>Etherna Sagl</Authors>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bee.Net" Version="0.1.0-alpha.17" />
+    <PackageReference Include="MongODM.Hangfire" Version="0.22.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BeehiveManager.Domain\BeehiveManager.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>Etherna.BeehiveManager.Domain</RootNamespace>
+
+    <Authors>Etherna Sagl</Authors>
+    
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Etherna.DomainEvents" Version="1.2.0" />
+    <PackageReference Include="MongODM.Core" Version="0.22.1" />
+    <PackageReference Include="Nethereum.Accounts" Version="3.8.0" />
+  </ItemGroup>
+
+</Project>
