@@ -144,10 +144,15 @@ namespace Etherna.BeehiveManager
                 });
 
                 //register cron tasks
-                RecurringJob.AddOrUpdate<IRefreshClusterNodesStatusTask>(
-                    RefreshClusterNodesStatusTask.TaskId,
+                RecurringJob.AddOrUpdate<IRefreshAllNodesStatusTask>(
+                    RefreshAllNodesStatusTask.TaskId,
                     task => task.RunAsync(),
                     "*/15 * * * *"); //every 15 minutes
+
+                RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
+                    CashoutAllNodesTask.TaskId,
+                    task => task.RunAsync(),
+                    "0 5 * * *"); //at 05:00 every day
             }
 
             // Add Swagger and SwaggerUI.

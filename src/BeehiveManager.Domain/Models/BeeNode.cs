@@ -14,7 +14,6 @@
 
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.MongODM.Core.Attributes;
-using Nethereum.Util;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;

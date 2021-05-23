@@ -67,7 +67,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         }
 
         public void EnqueueRetrieveNodeAddresses(string id) =>
-            backgroundJobClient.Enqueue<IRetrieveBeeNodeAddressesTask>(task => task.RunAsync(id));
+            backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(id));
 
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
             new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));

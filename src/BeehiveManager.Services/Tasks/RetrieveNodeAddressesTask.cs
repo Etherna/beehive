@@ -21,14 +21,14 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class RetrieveBeeNodeAddressesTask : IRetrieveBeeNodeAddressesTask
+    public class RetrieveNodeAddressesTask : IRetrieveNodeAddressesTask
     {
         // Fields.
         private readonly IBeeNodesManager beeNodesManager;
         private readonly IBeehiveContext context;
 
         // Constructors.
-        public RetrieveBeeNodeAddressesTask(
+        public RetrieveNodeAddressesTask(
             IBeeNodesManager beeNodesManager,
             IBeehiveContext context)
         {
