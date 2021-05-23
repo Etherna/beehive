@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="Bee.Net" Version="0.1.0-alpha.17" />
-    <PackageReference Include="MongODM.Hangfire" Version="0.22.0" />
+    <PackageReference Include="MongODM.Hangfire" Version="0.22.1" />
   </ItemGroup>
 
   <ItemGroup>
