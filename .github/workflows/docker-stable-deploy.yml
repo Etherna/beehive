@@ -14,11 +14,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
+    - name: Publish semver tags to Registry
+      uses: elgohr/Publish-Docker-Github-Action@main
       with:
         name: etherna/beehive-manager
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         tag_semver: true
-        tags: "latest"
+
+    - name: Publish latest tag to Registry
+      uses: elgohr/Publish-Docker-Github-Action@main
+      with:
+        name: etherna/beehive-manager
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
