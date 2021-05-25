@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Configs;
+using Etherna.BeehiveManager.Configs.Hangfire;
 using Etherna.BeehiveManager.Configs.Swagger;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
@@ -130,7 +131,10 @@ namespace Etherna.BeehiveManager
             app.UseAuthorization();
 
             // Add Hangfire.
-            app.UseHangfireDashboard("/admin/hangfire");
+            app.UseHangfireDashboard(
+                "/admin/hangfire",
+                new DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
+
             if (!env.IsStaging()) //don't init server in staging
             {
                 //register hangfire server
