@@ -151,7 +151,7 @@ namespace Etherna.BeehiveManager
                 RecurringJob.AddOrUpdate<IRefreshAllNodesStatusTask>(
                     RefreshAllNodesStatusTask.TaskId,
                     task => task.RunAsync(),
-                    "*/15 * * * *"); //every 15 minutes
+                    "0 * * * *"); //at minute 0
 
                 RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
                     CashoutAllNodesTask.TaskId,
