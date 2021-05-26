@@ -76,7 +76,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
                             try
                             {
                                 var chequeResponse = await nodeClient.DebugClient.ChequebookChequeGetAsync(peer);
-                                cumulativePayout = chequeResponse.Lastreceived.Payout;
+                                if (chequeResponse.Lastreceived is not null)
+                                    cumulativePayout = chequeResponse.Lastreceived.Payout;
                             }
                             catch (BeeNetDebugApiException) { }
 
