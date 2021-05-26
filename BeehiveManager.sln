@@ -22,7 +22,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{9297C969-7E18-4B8E-831F-F770DA1805F4}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\docker-stable-deploy.yml = .github\workflows\docker-stable-deploy.yml
-		.github\workflows\docker-unstable-deploy.yml = .github\workflows\docker-unstable-deploy.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "domain", "domain", "{873FF005-8941-4971-A051-55D8434DC8F9}"
