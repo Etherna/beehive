@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net" Version="0.1.0-alpha.17" />
+    <PackageReference Include="Bee.Net" Version="0.1.0-alpha.20" />
     <PackageReference Include="MongODM.Hangfire" Version="0.22.1" />
   </ItemGroup>
 

@@ -66,29 +66,23 @@ namespace Etherna.BeehiveManager.Services.Tasks
                     try
                     {
                         var peersResponse = await nodeClient.DebugClient.ChequebookChequeGetAsync();
+                        if (peersResponse.Lastcheques is null)
+                            return;
+
                         var peers = peersResponse.Lastcheques.Select(c => c.Peer);
 
                         foreach (var peer in peers)
                         {
-                            var cumulativePayout = 0L;
-                            var cashedPayout = 0L;
-
-                            try
-                            {
-                                var chequeResponse = await nodeClient.DebugClient.ChequebookChequeGetAsync(peer);
-                                if (chequeResponse.Lastreceived is not null)
-                                    cumulativePayout = chequeResponse.Lastreceived.Payout;
-                            }
-                            catch (BeeNetDebugApiException) { }
+                            var uncashedAmount = 0L;
 
                             try
                             {
                                 var cashoutResponse = await nodeClient.DebugClient.ChequebookCashoutGetAsync(peer);
-                                cashedPayout = cashoutResponse.CumulativePayout;
+                                uncashedAmount = cashoutResponse.UncashedAmount;
                             }
                             catch (BeeNetDebugApiException) { }
 
-                            totalUncashed += cumulativePayout - cashedPayout;
+                            totalUncashed += uncashedAmount;
                         }
                     }
                     catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api
