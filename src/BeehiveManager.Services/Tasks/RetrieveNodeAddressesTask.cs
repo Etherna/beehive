@@ -61,8 +61,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
             node.SetAddresses(new BeeNodeAddresses(
                 response.Ethereum,
                 response.Overlay,
-                response.Pss_public_key,
-                response.Public_key));
+                response.PssPublicKey,
+                response.PublicKey));
 
             // Save changes.
             await context.SaveChangesAsync();
