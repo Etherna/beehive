@@ -61,7 +61,7 @@ namespace Etherna.BeehiveManager
         {
             // Configure Asp.Net Core framework services.
             services.AddDataProtection()
-                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = Configuration["ConnectionStrings:SystemDb"] });
+                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = Configuration["ConnectionStrings:DataProtectionDb"] });
 
             services.AddCors();
             services.AddControllers()
