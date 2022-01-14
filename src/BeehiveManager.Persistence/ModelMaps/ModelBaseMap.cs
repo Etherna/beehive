@@ -13,11 +13,11 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.MongoDB.Bson;
+using Etherna.MongoDB.Bson.Serialization.IdGenerators;
+using Etherna.MongoDB.Bson.Serialization.Serializers;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Serialization;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.IdGenerators;
-using MongoDB.Bson.Serialization.Serializers;
 
 namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
@@ -25,11 +25,11 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.SchemaRegister.AddModelMapsSchema<ModelBase>("7653dfab-f715-42d1-8d3d-bbca69755399");
+            dbContext.SchemaRegistry.AddModelMapsSchema<ModelBase>("7653dfab-f715-42d1-8d3d-bbca69755399");
 
-            dbContext.SchemaRegister.AddModelMapsSchema<EntityModelBase>("5cddcc0c-1a61-443c-bb72-98d1344cafb4");
+            dbContext.SchemaRegistry.AddModelMapsSchema<EntityModelBase>("5cddcc0c-1a61-443c-bb72-98d1344cafb4");
 
-            dbContext.SchemaRegister.AddModelMapsSchema<EntityModelBase<string>>("3d7b0f5d-d490-495e-af05-6114e8f8d2f4", modelMap =>
+            dbContext.SchemaRegistry.AddModelMapsSchema<EntityModelBase<string>>("3d7b0f5d-d490-495e-af05-6114e8f8d2f4", modelMap =>
             {
                 modelMap.AutoMap();
 

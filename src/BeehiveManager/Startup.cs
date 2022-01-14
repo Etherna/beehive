@@ -16,10 +16,11 @@ using Etherna.BeehiveManager.Configs;
 using Etherna.BeehiveManager.Configs.Hangfire;
 using Etherna.BeehiveManager.Configs.Swagger;
 using Etherna.BeehiveManager.Domain;
-using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
 using Etherna.BeehiveManager.Services.Tasks;
+using Etherna.DomainEvents;
+using Etherna.MongODM;
 using Etherna.MongODM.Core.Options;
 using Hangfire;
 using Hangfire.Mongo;
@@ -89,7 +90,7 @@ namespace Etherna.BeehiveManager
                 {
                     options.Queues = new[]
                     {
-                        Services.Tasks.Queues.DOMAIN_MAINTENANCE,
+                        Queues.DOMAIN_MAINTENANCE,
                         "default"
                     };
                     options.WorkerCount = System.Environment.ProcessorCount * 2;
@@ -117,7 +118,7 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure Hangfire and persistence.
-            services.AddMongODMWithHangfire<ModelBase>(configureHangfireOptions: options =>
+            services.AddMongODMWithHangfire(configureHangfireOptions: options =>
             {
                 options.ConnectionString = Configuration["ConnectionStrings:HangfireDb"];
                 options.StorageOptions = new MongoStorageOptions
@@ -129,7 +130,12 @@ namespace Etherna.BeehiveManager
                     }
                 };
             })
-                .AddDbContext<IBeehiveContext, BeehiveContext>(options =>
+                .AddDbContext<IBeehiveContext, BeehiveContext>(sp =>
+                {
+                    var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
+                    return new BeehiveContext(eventDispatcher);
+                },
+                options =>
                 {
                     options.DocumentSemVer.CurrentVersion = assemblyVersion.SimpleVersion;
                     options.ConnectionString = Configuration["ConnectionStrings:BeehiveManagerDb"];

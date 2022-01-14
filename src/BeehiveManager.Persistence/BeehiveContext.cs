@@ -16,11 +16,10 @@ using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Persistence.Repositories;
 using Etherna.DomainEvents;
+using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Options;
 using Etherna.MongODM.Core.Repositories;
 using Etherna.MongODM.Core.Serialization;
-using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,10 +36,7 @@ namespace Etherna.BeehiveManager.Persistence
 
         // Constructor.
         public BeehiveContext(
-            IDbDependencies dbDependencies,
-            IEventDispatcher eventDispatcher,
-            DbContextOptions<BeehiveContext> options)
-            : base(dbDependencies, options)
+            IEventDispatcher eventDispatcher)
         {
             EventDispatcher = eventDispatcher;
         }

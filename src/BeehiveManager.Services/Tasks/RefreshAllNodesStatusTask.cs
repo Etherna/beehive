@@ -17,8 +17,9 @@ using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Clients.DebugApi;
+using Etherna.MongoDB.Driver;
 using Hangfire;
-using MongoDB.Driver;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -50,7 +51,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
         public async Task RunAsync()
         {
             // List all nodes.
-            await context.BeeNodes.Collection.Find(FilterDefinition<BeeNode>.Empty, new FindOptions { NoCursorTimeout = true })
+            await context.BeeNodes.AccessToCollectionAsync(collection => collection
+                .Find(FilterDefinition<BeeNode>.Empty, new FindOptions { NoCursorTimeout = true })
                 .ForEachAsync(async node =>
                 {
                     // Verify if has addresses.
@@ -65,20 +67,15 @@ namespace Etherna.BeehiveManager.Services.Tasks
                     long totalUncashed = 0;
                     try
                     {
-                        var peersResponse = await nodeClient.DebugClient.ChequebookChequeGetAsync();
-                        if (peersResponse.Lastcheques is null)
-                            return;
-
-                        var peers = peersResponse.Lastcheques.Select(c => c.Peer);
-
-                        foreach (var peer in peers)
+                        var cheques = await nodeClient.DebugClient.ChequeBookChequeGetAsync();
+                        foreach (var peer in cheques.Select(c => c.Peer))
                         {
                             var uncashedAmount = 0L;
 
                             try
                             {
-                                var cashoutResponse = await nodeClient.DebugClient.ChequebookCashoutGetAsync(peer);
-                                uncashedAmount = cashoutResponse.UncashedAmount;
+                                var cashoutResponse = await nodeClient.DebugClient.ChequeBookCashoutGetAsync(peer);
+                                uncashedAmount = long.Parse(cashoutResponse.UncashedAmount, CultureInfo.InvariantCulture);
                             }
                             catch (BeeNetDebugApiException) { }
 
@@ -93,7 +90,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                     // Save changes.
                     await context.SaveChangesAsync();
-                });
+                }));
         }
     }
 }
