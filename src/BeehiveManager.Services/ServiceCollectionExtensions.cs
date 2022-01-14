@@ -15,6 +15,7 @@
 using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.DomainEvents;
+using Etherna.DomainEvents.AspNetCore;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -36,19 +37,8 @@ namespace Microsoft.Extensions.DependencyInjection
                                     where t.IsClass && t.Namespace == eventHandlersNamespace
                                     where t.GetInterfaces().Contains(typeof(IEventHandler))
                                     select t;
-            foreach (var handlerType in eventHandlerTypes)
-                services.AddScoped(handlerType);
 
-            services.AddSingleton<IEventDispatcher>(sp =>
-            {
-                var dispatcher = new EventDispatcher(sp);
-
-                //subscrive handlers to dispatcher
-                foreach (var handlerType in eventHandlerTypes)
-                    dispatcher.AddHandler(handlerType);
-
-                return dispatcher;
-            });
+            services.AddDomainEvents(eventHandlerTypes);
 
             // Utilities.
             services.AddSingleton<IBeeNodesManager, BeeNodesManager>();

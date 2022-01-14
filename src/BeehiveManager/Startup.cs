@@ -42,14 +42,20 @@ namespace Etherna.BeehiveManager
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        // Constructor.
+        public Startup(
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
         {
             Configuration = configuration;
+            Environment = environment;
         }
 
+        // Properties.
         public IConfiguration Configuration { get; }
+        public IWebHostEnvironment Environment { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        // Methods.
         public void ConfigureServices(IServiceCollection services)
         {
             // Configure Asp.Net Core framework services.
@@ -74,6 +80,21 @@ namespace Etherna.BeehiveManager
                 // can also be used to control the format of the API version in route templates
                 options.SubstituteApiVersionInUrl = true;
             });
+
+            // Configure Hangfire server.
+            if (!Environment.IsStaging()) //don't start server in staging
+            {
+                //register hangfire server
+                services.AddHangfireServer(options =>
+                {
+                    options.Queues = new[]
+                    {
+                        Services.Tasks.Queues.DOMAIN_MAINTENANCE,
+                        "default"
+                    };
+                    options.WorkerCount = System.Environment.ProcessorCount * 2;
+                });
+            }
 
             // Configure Swagger services.
             services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
@@ -118,10 +139,9 @@ namespace Etherna.BeehiveManager
             services.AddDomainServices();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiProvider)
+        public void Configure(IApplicationBuilder app, IApiVersionDescriptionProvider apiProvider)
         {
-            if (env.IsDevelopment())
+            if (Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -135,29 +155,16 @@ namespace Etherna.BeehiveManager
                 "/admin/hangfire",
                 new DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
 
-            if (!env.IsStaging()) //don't init server in staging
-            {
-                //register hangfire server
-                app.UseHangfireServer(new BackgroundJobServerOptions
-                {
-                    Queues = new[]
-                    {
-                        Services.Tasks.Queues.DOMAIN_MAINTENANCE,
-                        "default"
-                    }
-                });
+            // Register cron tasks.
+            RecurringJob.AddOrUpdate<IRefreshAllNodesStatusTask>(
+                RefreshAllNodesStatusTask.TaskId,
+                task => task.RunAsync(),
+                "*/15 * * * *"); //every 15 minutes
 
-                //register cron tasks
-                RecurringJob.AddOrUpdate<IRefreshAllNodesStatusTask>(
-                    RefreshAllNodesStatusTask.TaskId,
-                    task => task.RunAsync(),
-                    "*/15 * * * *"); //every 15 minutes
-
-                RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
-                    CashoutAllNodesTask.TaskId,
-                    task => task.RunAsync(),
-                    "0 5 * * *"); //at 05:00 every day
-            }
+            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
+                CashoutAllNodesTask.TaskId,
+                task => task.RunAsync(),
+                "0 5 * * *"); //at 05:00 every day
 
             // Add Swagger and SwaggerUI.
             app.UseSwagger();
