@@ -10,7 +10,7 @@ services:
     networks:
       - mongo-net
     ports:
-      - 80:11261
+      - 80:80
     restart: unless-stopped
 
   mongo:
