@@ -29,13 +29,13 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Persistence
 {
-    public class BeehiveContext : DbContext, IBeehiveContext, IEventDispatcherDbContext
+    public class BeehiveDbContext : DbContext, IBeehiveDbContext, IEventDispatcherDbContext
     {
         // Consts.
         private const string SerializersNamespace = "Etherna.BeehiveManager.Persistence.ModelMaps";
 
         // Constructor.
-        public BeehiveContext(
+        public BeehiveDbContext(
             IEventDispatcher eventDispatcher)
         {
             EventDispatcher = eventDispatcher;
@@ -58,7 +58,7 @@ namespace Etherna.BeehiveManager.Persistence
 
         // Protected properties.
         protected override IEnumerable<IModelMapsCollector> ModelMapsCollectors =>
-            from t in typeof(BeehiveContext).GetTypeInfo().Assembly.GetTypes()
+            from t in typeof(BeehiveDbContext).GetTypeInfo().Assembly.GetTypes()
             where t.IsClass && t.Namespace == SerializersNamespace
             where t.GetInterfaces().Contains(typeof(IModelMapsCollector))
             select Activator.CreateInstance(t) as IModelMapsCollector;

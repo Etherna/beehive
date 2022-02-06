@@ -13,18 +13,17 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeeNet;
-using System.Collections.Generic;
+using Etherna.DomainEvents;
+using Etherna.MongODM.Core;
+using Etherna.MongODM.Core.Repositories;
 
-namespace Etherna.BeehiveManager.Services.Utilities
+namespace Etherna.BeehiveManager.Domain
 {
-    public interface IBeeNodesManager
+    public interface IBeehiveDbContext : IDbContext
     {
-        // Properties.
-        IReadOnlyDictionary<string, BeeNodeClient> NodeClients { get; }
+        ICollectionRepository<BeeNode, string> BeeNodes { get; }
+        ICollectionRepository<NodeLogBase, string> NodeLogs { get; }
 
-        // Methods.
-        BeeNodeClient GetBeeNodeClient(BeeNode beeNode);
-        bool RemoveBeeNodeClient(string id);
+        IEventDispatcher EventDispatcher { get; }
     }
 }
