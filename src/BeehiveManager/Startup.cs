@@ -130,10 +130,10 @@ namespace Etherna.BeehiveManager
                     }
                 };
             })
-                .AddDbContext<IBeehiveContext, BeehiveContext>(sp =>
+                .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
                 {
                     var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
-                    return new BeehiveContext(eventDispatcher);
+                    return new BeehiveDbContext(eventDispatcher);
                 },
                 options =>
                 {

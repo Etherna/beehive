@@ -33,14 +33,14 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
         // Fields.
         private readonly IBackgroundJobClient backgroundJobClient;
-        private readonly IBeeNodesManager beeNodesManager;
-        private readonly IBeehiveContext context;
+        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeehiveDbContext context;
 
         // Constructors.
         public RefreshAllNodesStatusTask(
             IBackgroundJobClient backgroundJobClient,
-            IBeeNodesManager beeNodesManager,
-            IBeehiveContext context)
+            IBeeNodeClientsManager beeNodesManager,
+            IBeehiveDbContext context)
         {
             this.backgroundJobClient = backgroundJobClient;
             this.beeNodesManager = beeNodesManager;
@@ -67,14 +67,14 @@ namespace Etherna.BeehiveManager.Services.Tasks
                     long totalUncashed = 0;
                     try
                     {
-                        var cheques = await nodeClient.DebugClient.ChequeBookChequeGetAsync();
+                        var cheques = await nodeClient.DebugClient.GetAllChequeBookChequesAsync();
                         foreach (var peer in cheques.Select(c => c.Peer))
                         {
                             var uncashedAmount = 0L;
 
                             try
                             {
-                                var cashoutResponse = await nodeClient.DebugClient.ChequeBookCashoutGetAsync(peer);
+                                var cashoutResponse = await nodeClient.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
                                 uncashedAmount = long.Parse(cashoutResponse.UncashedAmount, CultureInfo.InvariantCulture);
                             }
                             catch (BeeNetDebugApiException) { }

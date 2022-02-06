@@ -32,13 +32,13 @@ namespace Etherna.BeehiveManager.Services.Tasks
         public const long MinAmount = 100_000_000_000_000; //10^14, 0.01 BZZ
 
         // Fields.
-        private readonly IBeeNodesManager beeNodesManager;
-        private readonly IBeehiveContext context;
+        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeehiveDbContext context;
 
         // Constructors.
         public CashoutAllNodesTask(
-            IBeeNodesManager beeNodesManager,
-            IBeehiveContext context)
+            IBeeNodeClientsManager beeNodesManager,
+            IBeehiveDbContext context)
         {
             this.beeNodesManager = beeNodesManager;
             this.context = context;
@@ -62,14 +62,14 @@ namespace Etherna.BeehiveManager.Services.Tasks
                     try
                     {
                         // Enumerate peers.
-                        var cheques = await nodeClient.DebugClient.ChequeBookChequeGetAsync();
+                        var cheques = await nodeClient.DebugClient.GetAllChequeBookChequesAsync();
                         foreach (var peer in cheques.Select(c => c.Peer))
                         {
                             var uncashedAmount = 0L;
 
                             try
                             {
-                                var cashoutResponse = await nodeClient.DebugClient.ChequeBookCashoutGetAsync(peer);
+                                var cashoutResponse = await nodeClient.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
                                 uncashedAmount = long.Parse(cashoutResponse.UncashedAmount, CultureInfo.InvariantCulture);
                             }
                             catch (BeeNetDebugApiException) { }
@@ -79,7 +79,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                             {
                                 try
                                 {
-                                    var cashoutResponse = await nodeClient.DebugClient.ChequeBookCashoutPostAsync(peer);
+                                    var cashoutResponse = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
                                     totalCashedout += uncashedAmount;
                                     txs.Add(cashoutResponse.TransactionHash);
                                 }

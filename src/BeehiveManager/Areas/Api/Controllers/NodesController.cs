@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 namespace Etherna.BeehiveManager.Areas.Api.Controllers
 {
     [ApiController]
-    [ApiVersion("0.1")]
+    [ApiVersion("0.3")]
     [Route("api/v{api-version:apiVersion}/[controller]")]
     public class NodesController : ControllerBase
     {

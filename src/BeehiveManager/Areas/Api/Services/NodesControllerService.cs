@@ -33,14 +33,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     {
         // Fields.
         private readonly IBackgroundJobClient backgroundJobClient;
-        private readonly IBeeNodesManager beeNodesManager;
-        private readonly IBeehiveContext context;
+        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeehiveDbContext context;
 
         // Constructor.
         public NodesControllerService(
             IBackgroundJobClient backgroundJobClient,
-            IBeeNodesManager beeNodesManager,
-            IBeehiveContext context)
+            IBeeNodeClientsManager beeNodesManager,
+            IBeehiveDbContext context)
         {
             this.backgroundJobClient = backgroundJobClient;
             this.beeNodesManager = beeNodesManager;

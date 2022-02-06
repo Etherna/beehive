@@ -41,7 +41,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddDomainEvents(eventHandlerTypes);
 
             // Utilities.
-            services.AddSingleton<IBeeNodesManager, BeeNodesManager>();
+            services.AddSingleton<IBeeNodeClientsManager, BeeNodeClientsManager>();
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesTask, CashoutAllNodesTask>();
