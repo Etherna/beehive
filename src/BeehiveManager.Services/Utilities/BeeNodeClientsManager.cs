@@ -12,11 +12,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeeNet;
+using Etherna.BeeNet.Exceptions;
+using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -42,19 +47,20 @@ namespace Etherna.BeehiveManager.Services.Utilities
         }
 
         // Consts.
-        private const int HeartbeatPeriod = 30000; //30s
+        private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
+        private readonly IBeehiveDbContext beehiveDbContext;
         private Timer? heartbeatTimer;
         private BeeNodeStatus? lastNodeRoundRobinSelector;
         private readonly ConcurrentDictionary<string, BeeNodeStatus> nodeClientsStatus = new();
         private readonly Random rand = new();
 
         // Constructor and dispose.
-        public BeeNodeClientsManager(bool startHealthHeartbeat = true)
+        public BeeNodeClientsManager(
+            IBeehiveDbContext beehiveDbContext)
         {
-            if (startHealthHeartbeat)
-                StartHealthHeartbeat();
+            this.beehiveDbContext = beehiveDbContext;
         }
         public void Dispose()
         {
@@ -62,15 +68,21 @@ namespace Etherna.BeehiveManager.Services.Utilities
         }
 
         // Methods.
-        public BeeNodeClient GetBeeNodeClient(BeeNode beeNode)
+        public async Task<BeeNodeClient> GetBeeNodeClientAsync(string nodeId)
         {
-            if (nodeClientsStatus.ContainsKey(beeNode.Id))
-                return nodeClientsStatus[beeNode.Id].Client;
+            if (nodeClientsStatus.ContainsKey(nodeId))
+                return nodeClientsStatus[nodeId].Client;
 
-            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
-            nodeClientsStatus.TryAdd(beeNode.Id, new BeeNodeStatus (beeNode.Id, client));
+            var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(nodeId);
+            return AddNodeClient(beeNode);
+        }
 
-            return client;
+        public async Task LoadAllNodeClientsAsync()
+        {
+            var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
+                elements => elements.ToListAsync());
+            foreach (var node in nodes)
+                AddNodeClient(node);
         }
 
         public bool RemoveBeeNodeClient(string nodeId) =>
@@ -116,7 +128,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                             .FirstOrDefault();
 
                         selectedNode = nodeClientsStatus.Values
-                            .Skip(lastSelectedIndex)
+                            .Skip(lastSelectedIndex + 1)
                             .Where(status => status.IsAlive)
                             .FirstOrDefault();
                     }
@@ -138,12 +150,29 @@ namespace Etherna.BeehiveManager.Services.Utilities
         }
 
         // Helpers.
+        private BeeNodeClient AddNodeClient(BeeNode beeNode)
+        {
+            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
+            nodeClientsStatus.TryAdd(beeNode.Id, new BeeNodeStatus(beeNode.Id, client));
+            return client;
+        }
+
         private async Task HeartbeatCallbackAsync()
         {
             foreach (var clientStatus in nodeClientsStatus.Values)
             {
-                var result = await clientStatus.Client.DebugClient!.GetReadinessAsync();
-                clientStatus.IsAlive = result.Status == "ok";
+                try
+                {
+                    var result = await clientStatus.Client.DebugClient!.GetReadinessAsync();
+                    clientStatus.IsAlive = result.Status == "ok";
+                }
+                catch (Exception e) when (
+                    e is BeeNetDebugApiException ||
+                    e is HttpRequestException ||
+                    e is SocketException)
+                {
+                    clientStatus.IsAlive = false;
+                }
             }
         }
     }
