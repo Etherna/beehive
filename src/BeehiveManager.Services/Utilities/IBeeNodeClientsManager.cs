@@ -12,15 +12,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeeNet;
+using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
     public interface IBeeNodeClientsManager
     {
         // Methods.
-        BeeNodeClient GetBeeNodeClient(BeeNode beeNode);
+        Task<BeeNodeClient> GetBeeNodeClientAsync(string nodeId);
+        Task LoadAllNodeClientsAsync();
         bool RemoveBeeNodeClient(string nodeId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();

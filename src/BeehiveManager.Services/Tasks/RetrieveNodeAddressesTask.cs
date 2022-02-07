@@ -15,8 +15,8 @@
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeehiveManager.Services.Utilities;
-using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.DtoModel;
+using Etherna.BeeNet.Exceptions;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -52,7 +52,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 return; //node is not configured for use debug api
 
             // Get info.
-            var nodeClient = beeNodesManager.GetBeeNodeClient(node);
+            var nodeClient = await beeNodesManager.GetBeeNodeClientAsync(node.Id);
             AddressDetailDto response;
             try { response = await nodeClient.DebugClient!.GetAddressesAsync(); }
             catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api

@@ -188,6 +188,9 @@ namespace Etherna.BeehiveManager
             {
                 endpoints.MapControllers();
             });
+
+            // Startup scripts.
+            app.StartBeeNodeClientsManager();
         }
     }
 }

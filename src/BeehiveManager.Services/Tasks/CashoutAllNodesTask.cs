@@ -15,7 +15,7 @@
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities;
-using Etherna.BeeNet.Clients.DebugApi;
+using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using System.Collections.Generic;
 using System.Globalization;
@@ -53,7 +53,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 .ForEachAsync(async node =>
                 {
                     // Get info.
-                    var nodeClient = beeNodesManager.GetBeeNodeClient(node);
+                    var nodeClient = await beeNodesManager.GetBeeNodeClientAsync(node.Id);
                     if (nodeClient.DebugClient is null) //skip if doesn't have a debug api config
                         return;
 
