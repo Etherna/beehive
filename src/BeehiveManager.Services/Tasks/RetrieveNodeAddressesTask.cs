@@ -25,12 +25,12 @@ namespace Etherna.BeehiveManager.Services.Tasks
     public class RetrieveNodeAddressesTask : IRetrieveNodeAddressesTask
     {
         // Fields.
-        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeeNodesStatusManager beeNodesManager;
         private readonly IBeehiveDbContext context;
 
         // Constructors.
         public RetrieveNodeAddressesTask(
-            IBeeNodeClientsManager beeNodesManager,
+            IBeeNodesStatusManager beeNodesManager,
             IBeehiveDbContext context)
         {
             this.beeNodesManager = beeNodesManager;
@@ -52,9 +52,9 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 return; //node is not configured for use debug api
 
             // Get info.
-            var nodeClient = await beeNodesManager.GetBeeNodeClientAsync(node.Id);
+            var nodeStatus = await beeNodesManager.GetBeeNodeStatusAsync(node.Id);
             AddressDetailDto response;
-            try { response = await nodeClient.DebugClient!.GetAddressesAsync(); }
+            try { response = await nodeStatus.Client.DebugClient!.GetAddressesAsync(); }
             catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api
             catch (HttpRequestException) { return; }
 

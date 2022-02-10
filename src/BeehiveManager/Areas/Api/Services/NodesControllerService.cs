@@ -33,13 +33,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     {
         // Fields.
         private readonly IBackgroundJobClient backgroundJobClient;
-        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeeNodesStatusManager beeNodesManager;
         private readonly IBeehiveDbContext context;
 
         // Constructor.
         public NodesControllerService(
             IBackgroundJobClient backgroundJobClient,
-            IBeeNodeClientsManager beeNodesManager,
+            IBeeNodesStatusManager beeNodesManager,
             IBeehiveDbContext context)
         {
             this.backgroundJobClient = backgroundJobClient;
@@ -72,18 +72,32 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
             new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));
 
+        public async Task<PostageBatchDto> FindPostageBatchOnNodeAsync(string id, string batchId)
+        {
+            var status = await beeNodesManager.GetBeeNodeStatusAsync(id);
+            var postageBatch = await status.Client.DebugClient!.GetPostageBatchAsync(batchId);
+            return new PostageBatchDto(postageBatch, status.EtherAddress);
+        }
+
         public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take) =>
             (await context.BeeNodes.QueryElementsAsync(elements =>
                 elements.PaginateDescending(n => n.CreationDateTime, page, take)
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
 
+        public async Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(string id)
+        {
+            var nodeStatus = await beeNodesManager.GetBeeNodeStatusAsync(id);
+            var batches = await nodeStatus.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+            return batches.Select(b => new PostageBatchDto(b, nodeStatus.EtherAddress));
+        }
+
         public async Task RemoveBeeNodeAsync(string id)
         {
             if (id is null)
                 throw new ArgumentNullException(nameof(id));
 
-            beeNodesManager.RemoveBeeNodeClient(id);
+            beeNodesManager.RemoveBeeNode(id);
             await context.BeeNodes.DeleteAsync(id);
         }
     }

@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.BeehiveManager.Domain.Events;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.MongODM.Core.Attributes;
 using System;
@@ -41,14 +42,16 @@ namespace Etherna.BeehiveManager.Domain.Models
             GatewayPort = gatewayPort;
             Url = NormalizeUrl(url);
         }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         protected BeeNode() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Properties.
         public virtual BeeNodeAddresses? Addresses { get; protected set; }
         public virtual int? DebugPort { get; set; }
         public virtual int? GatewayPort { get; set; }
         public virtual BeeNodeStatus? Status { get; set; }
-        public virtual Uri Url { get; protected set; } = default!;
+        public virtual Uri Url { get; protected set; }
 
         // Methods.
         [PropertyAlterer(nameof(Addresses))]
@@ -58,6 +61,8 @@ namespace Etherna.BeehiveManager.Domain.Models
                 throw new InvalidOperationException("Addresses already set");
 
             Addresses = addresses ?? throw new ArgumentNullException(nameof(addresses));
+
+            AddEvent(new SetBeeNodeAddressesEvent(this));
         }
 
         [PropertyAlterer(nameof(Url))]

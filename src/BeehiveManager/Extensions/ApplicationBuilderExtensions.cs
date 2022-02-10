@@ -12,9 +12,9 @@ namespace Etherna.BeehiveManager.Extensions
             if (appBuilder is null)
                 throw new ArgumentNullException(nameof(appBuilder));
 
-            var nodeClientsManager = appBuilder.ApplicationServices.GetRequiredService<IBeeNodeClientsManager>();
+            var nodeClientsManager = appBuilder.ApplicationServices.GetRequiredService<IBeeNodesStatusManager>();
 
-            var task = nodeClientsManager.LoadAllNodeClientsAsync();
+            var task = nodeClientsManager.LoadAllNodesAsync();
             task.Wait();
 
             nodeClientsManager.StartHealthHeartbeat();

@@ -11,13 +11,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class PostageControllerService : IPostageControllerService
     {
         // Fields.
-        private readonly IBeeNodeClientsManager beeNodeClientsManager;
+        private readonly IBeeNodesStatusManager beeNodeStatusManager;
 
         // Constructor.
         public PostageControllerService(
-            IBeeNodeClientsManager beeNodeClientsManager)
+            IBeeNodesStatusManager beeNodeStatusManager)
         {
-            this.beeNodeClientsManager = beeNodeClientsManager;
+            this.beeNodeStatusManager = beeNodeStatusManager;
         }
 
         // Methods.
@@ -25,25 +25,26 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             int depth, int plurAmount, int? gasPrice, bool immutable, string? label, string? nodeId)
         {
             // Try to select an healthy node.
-            var beeNodeClient = nodeId is null ?
-                beeNodeClientsManager.TrySelectHealthyNodeClientAsync(BeeNodeSelectionMode.RoundRobin) :
-                await beeNodeClientsManager.GetBeeNodeClientAsync(nodeId);
+            var beeNodeStatus = nodeId is null ?
+                beeNodeStatusManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin) :
+                await beeNodeStatusManager.GetBeeNodeStatusAsync(nodeId);
 
-            if (beeNodeClient is null)
+            if (beeNodeStatus is null)
                 throw new InvalidOperationException("No healthy nodes available");
 
             // Buy postage.
-            return await beeNodeClient.DebugClient!.BuyPostageBatchAsync(plurAmount, depth, label, immutable, gasPrice);
+            return await beeNodeStatus.Client.DebugClient!.BuyPostageBatchAsync(plurAmount, depth, label, immutable, gasPrice);
         }
 
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes()
         {
             var batches = new List<PostageBatchDto>();
-            foreach (var client in beeNodeClientsManager.HealthyClients)
+            foreach (var client in beeNodeStatusManager.HealthyClients)
             {
                 try
                 {
-                    batches.AddRange((await client.DebugClient!.GetAllPostageBatchesAsync()).Select(b => new PostageBatchDto(b)));
+                    batches.AddRange((await client.DebugClient!.GetAllValidPostageBatchesFromAllNodesAsync())
+                        .Select(b => new PostageBatchDto(b)));
                 }
                 catch (Exception e) when (e is BeeNetDebugApiException) { }
             }
