@@ -18,6 +18,7 @@ using Etherna.BeehiveManager.Configs.Swagger;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
+using Etherna.BeehiveManager.Services;
 using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.DomainEvents;
 using Etherna.MongODM;

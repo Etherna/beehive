@@ -14,9 +14,11 @@
 
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
+using Hangfire;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -37,6 +39,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
+        private readonly IBackgroundJobClient backgroundJobClient;
         private readonly IBeehiveDbContext beehiveDbContext;
         private Timer? heartbeatTimer;
         private BeeNodeStatus? lastSelectedNodeRoundRobin;
@@ -45,8 +48,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         // Constructor and dispose.
         public BeeNodesStatusManager(
+            IBackgroundJobClient backgroundJobClient,
             IBeehiveDbContext beehiveDbContext)
         {
+            this.backgroundJobClient = backgroundJobClient;
             this.beehiveDbContext = beehiveDbContext;
         }
         public void Dispose()
@@ -60,13 +65,22 @@ namespace Etherna.BeehiveManager.Services.Utilities
                                     .Select(s => s.Client);
 
         // Methods.
+        public BeeNodeStatus AddBeeNode(BeeNode beeNode)
+        {
+            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
+            var status = new BeeNodeStatus(beeNode, client);
+            beeNodesStatus.TryAdd(beeNode.Id, status);
+
+            return beeNodesStatus[beeNode.Id];
+        }
+
         public async Task<BeeNodeStatus> GetBeeNodeStatusAsync(string nodeId)
         {
             if (beeNodesStatus.ContainsKey(nodeId))
                 return beeNodesStatus[nodeId];
 
             var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(nodeId);
-            return TryAddBeeNodeStatus(beeNode);
+            return AddBeeNode(beeNode);
         }
 
         public async Task LoadAllNodesAsync()
@@ -74,7 +88,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
-                TryAddBeeNodeStatus(node);
+                AddBeeNode(node);
         }
 
         public bool RemoveBeeNode(string nodeId) =>
@@ -146,22 +160,13 @@ namespace Etherna.BeehiveManager.Services.Utilities
         public void UpdateNodeInfo(BeeNode node)
         {
             // Try add. If already exists, original is kept.
-            TryAddBeeNodeStatus(node);
+            AddBeeNode(node);
 
             // Update info.
             beeNodesStatus[node.Id].UpdateInfo(node);
         }
 
         // Helpers.
-        private BeeNodeStatus TryAddBeeNodeStatus(BeeNode beeNode)
-        {
-            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
-            var status = new BeeNodeStatus(beeNode, client);
-            beeNodesStatus.TryAdd(beeNode.Id, status);
-
-            return status;
-        }
-
         private async Task HeartbeatCallbackAsync()
         {
             foreach (var clientStatus in beeNodesStatus.Values)
@@ -170,6 +175,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
                 {
                     var result = await clientStatus.Client.DebugClient!.GetReadinessAsync();
                     clientStatus.IsAlive = result.Status == "ok";
+
+                    //if alive and don't have an address, try to get it
+                    if (clientStatus.IsAlive && clientStatus.EtherAddress is null)
+                        backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(clientStatus.Id));
                 }
                 catch (Exception e) when (
                     e is BeeNetDebugApiException ||

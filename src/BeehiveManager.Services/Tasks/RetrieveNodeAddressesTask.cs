@@ -15,9 +15,6 @@
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeehiveManager.Services.Utilities;
-using Etherna.BeeNet.DtoModels;
-using Etherna.BeeNet.Exceptions;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
@@ -53,10 +50,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
             // Get info.
             var nodeStatus = await beeNodesManager.GetBeeNodeStatusAsync(node.Id);
-            AddressDetailDto response;
-            try { response = await nodeStatus.Client.DebugClient!.GetAddressesAsync(); }
-            catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api
-            catch (HttpRequestException) { return; }
+            var response = await nodeStatus.Client.DebugClient!.GetAddressesAsync();
 
             // Update node.
             node.SetAddresses(new BeeNodeAddresses(

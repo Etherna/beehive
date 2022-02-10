@@ -60,9 +60,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 input.Url);
             await context.BeeNodes.CreateAsync(node);
 
-            // Try immediatly to retrive node info from instance.
-            EnqueueRetrieveNodeAddresses(node.Id);
-
             return new BeeNodeDto(node);
         }
 
@@ -97,7 +94,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             if (id is null)
                 throw new ArgumentNullException(nameof(id));
 
-            beeNodesManager.RemoveBeeNode(id);
             await context.BeeNodes.DeleteAsync(id);
         }
     }

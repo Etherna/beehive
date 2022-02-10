@@ -25,6 +25,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         IEnumerable<BeeNodeClient> HealthyClients { get; }
 
         // Methods.
+        BeeNodeStatus AddBeeNode(BeeNode beeNode);
         Task<BeeNodeStatus> GetBeeNodeStatusAsync(string nodeId);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
