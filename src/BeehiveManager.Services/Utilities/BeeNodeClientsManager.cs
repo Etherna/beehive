@@ -19,6 +19,7 @@ using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -66,6 +67,11 @@ namespace Etherna.BeehiveManager.Services.Utilities
         {
             heartbeatTimer?.Dispose();
         }
+
+        // Properties.
+        public IEnumerable<BeeNodeClient> HealthyClients =>
+            nodeClientsStatus.Values.Where(status => status.IsAlive)
+                                    .Select(s => s.Client);
 
         // Methods.
         public async Task<BeeNodeClient> GetBeeNodeClientAsync(string nodeId)

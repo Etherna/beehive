@@ -1,5 +1,9 @@
-﻿using Etherna.BeehiveManager.Services.Utilities;
+﻿using Etherna.BeehiveManager.Areas.Api.DtoModels;
+using Etherna.BeehiveManager.Services.Utilities;
+using Etherna.BeeNet.Exceptions;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
@@ -29,9 +33,22 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new InvalidOperationException("No healthy nodes available");
 
             // Buy postage.
-            var batchDto = await beeNodeClient.DebugClient!.BuyPostageBatchAsync(plurAmount, depth, label, immutable, gasPrice);
+            return await beeNodeClient.DebugClient!.BuyPostageBatchAsync(plurAmount, depth, label, immutable, gasPrice);
+        }
 
-            return batchDto.BatchId;
+        public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes()
+        {
+            var batches = new List<PostageBatchDto>();
+            foreach (var client in beeNodeClientsManager.HealthyClients)
+            {
+                try
+                {
+                    batches.AddRange((await client.DebugClient!.GetAllPostageBatchesAsync()).Select(b => new PostageBatchDto(b)));
+                }
+                catch (Exception e) when (e is BeeNetDebugApiException) { }
+            }
+
+            return batches;
         }
     }
 }

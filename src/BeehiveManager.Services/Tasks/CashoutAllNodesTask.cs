@@ -79,9 +79,9 @@ namespace Etherna.BeehiveManager.Services.Tasks
                             {
                                 try
                                 {
-                                    var cashoutResponse = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
+                                    var txHash = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
                                     totalCashedout += uncashedAmount;
-                                    txs.Add(cashoutResponse.TransactionHash);
+                                    txs.Add(txHash);
                                 }
                                 catch (BeeNetDebugApiException) { }
                             }

@@ -13,12 +13,16 @@
 //   limitations under the License.
 
 using Etherna.BeeNet;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
     public interface IBeeNodeClientsManager
     {
+        // Properties.
+        IEnumerable<BeeNodeClient> HealthyClients { get; }
+
         // Methods.
         Task<BeeNodeClient> GetBeeNodeClientAsync(string nodeId);
         Task LoadAllNodeClientsAsync();

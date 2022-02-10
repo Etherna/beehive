@@ -15,7 +15,7 @@
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeehiveManager.Services.Utilities;
-using Etherna.BeeNet.DtoModel;
+using Etherna.BeeNet.DtoModels;
 using Etherna.BeeNet.Exceptions;
 using System.Net.Http;
 using System.Threading.Tasks;

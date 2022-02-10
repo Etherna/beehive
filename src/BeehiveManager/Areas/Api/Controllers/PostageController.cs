@@ -1,7 +1,9 @@
-﻿using Etherna.BeehiveManager.Areas.Api.Services;
+﻿using Etherna.BeehiveManager.Areas.Api.DtoModels;
+using Etherna.BeehiveManager.Areas.Api.Services;
 using Etherna.BeehiveManager.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Controllers
@@ -23,6 +25,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
         // Get.
 
+        /// <summary>
+        /// Get all postage batches from all healthy nodes
+        /// </summary>
+        /// <returns>Postage batches list</returns>
+        [HttpGet("batches")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes() =>
+            service.GetPostageBatchesFromAllNodes();
+
         // Post.
 
         /// <summary>
@@ -40,7 +52,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public Task<string> BuyPostageBatchAsync(
             int depth,
             int plurAmount,
