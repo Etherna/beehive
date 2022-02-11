@@ -5,13 +5,13 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
     public class PostageBatchDto
     {
         // Constructors.
-        public PostageBatchDto(BeeNet.DtoModels.PostageBatchDto postageBatch, string? ownerAddress)
+        public PostageBatchDto(BeeNet.DtoModels.PostageBatchDto postageBatch)
         {
             if (postageBatch is null)
                 throw new ArgumentNullException(nameof(postageBatch));
 
             Id = postageBatch.Id;
-            AmountPaid = postageBatch.PlurAmount;
+            AmountPaid = postageBatch.AmountPaid;
             BatchTTL = postageBatch.BatchTTL;
             BlockNumber = postageBatch.BlockNumber;
             BucketDepth = postageBatch.BucketDepth;
@@ -19,29 +19,14 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             Exists = postageBatch.Exists;
             ImmutableFlag = postageBatch.ImmutableFlag;
             Label = postageBatch.Label;
-            OwnerAddress = ownerAddress;
+            OwnerAddress = postageBatch.OwnerAddress;
             Usable = postageBatch.Usable;
             Utilization = postageBatch.Utilization;
         }
 
-        public PostageBatchDto(BeeNet.DtoModels.ValidPostageBatchDto postageBatch)
-        {
-            if (postageBatch is null)
-                throw new ArgumentNullException(nameof(postageBatch));
-
-            Id = postageBatch.Id;
-            BatchTTL = postageBatch.BatchTTL;
-            BlockNumber = postageBatch.BlockNumber;
-            BucketDepth = postageBatch.BucketDepth;
-            Depth = postageBatch.Depth;
-            ImmutableFlag = postageBatch.ImmutableFlag;
-            NormalisedBalance = postageBatch.NormalisedBalance;
-            OwnerAddress = postageBatch.Owner;
-        }
-
         // Properties.
         public string Id { get; }
-        public long AmountPaid { get; }
+        public long? AmountPaid { get; }
         public int BatchTTL { get; }
         public int BlockNumber { get; }
         public int BucketDepth { get; }
@@ -52,6 +37,6 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public long NormalisedBalance { get; }
         public string? OwnerAddress { get; }
         public bool Usable { get; }
-        public int Utilization { get; }
+        public int? Utilization { get; }
     }
 }

@@ -73,7 +73,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         {
             var status = await beeNodesManager.GetBeeNodeStatusAsync(id);
             var postageBatch = await status.Client.DebugClient!.GetPostageBatchAsync(batchId);
-            return new PostageBatchDto(postageBatch, status.EtherAddress);
+            return new PostageBatchDto(postageBatch);
         }
 
         public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take) =>
@@ -86,7 +86,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         {
             var nodeStatus = await beeNodesManager.GetBeeNodeStatusAsync(id);
             var batches = await nodeStatus.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
-            return batches.Select(b => new PostageBatchDto(b, nodeStatus.EtherAddress));
+            return batches.Select(b => new PostageBatchDto(b));
         }
 
         public async Task RemoveBeeNodeAsync(string id)

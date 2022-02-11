@@ -22,7 +22,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
     public interface IBeeNodesStatusManager
     {
         // Properties.
-        IEnumerable<BeeNodeClient> HealthyClients { get; }
+        IEnumerable<BeeNodeStatus> HealthyNodes { get; }
 
         // Methods.
         BeeNodeStatus AddBeeNode(BeeNode beeNode);

@@ -60,9 +60,8 @@ namespace Etherna.BeehiveManager.Services.Utilities
         }
 
         // Properties.
-        public IEnumerable<BeeNodeClient> HealthyClients =>
-            beeNodesStatus.Values.Where(status => status.IsAlive)
-                                    .Select(s => s.Client);
+        public IEnumerable<BeeNodeStatus> HealthyNodes =>
+            beeNodesStatus.Values.Where(status => status.IsAlive);
 
         // Methods.
         public BeeNodeStatus AddBeeNode(BeeNode beeNode)

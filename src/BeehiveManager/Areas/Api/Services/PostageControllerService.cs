@@ -39,11 +39,11 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes()
         {
             var batches = new List<PostageBatchDto>();
-            foreach (var client in beeNodeStatusManager.HealthyClients)
+            foreach (var nodeStatus in beeNodeStatusManager.HealthyNodes)
             {
                 try
                 {
-                    batches.AddRange((await client.DebugClient!.GetAllValidPostageBatchesFromAllNodesAsync())
+                    batches.AddRange((await nodeStatus.Client.DebugClient!.GetAllValidPostageBatchesFromAllNodesAsync())
                         .Select(b => new PostageBatchDto(b)));
                 }
                 catch (Exception e) when (e is BeeNetDebugApiException) { }
