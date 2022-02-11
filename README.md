@@ -9,12 +9,12 @@ Beehive Manager is an utility for manage a cluster of [Bee Swarm](https://github
 This manager exposes a REST Api that permits to register and interact programmatically with different Bee nodes.  
 It runs also an async task engine that can run cron operations, like automatic scheduled cashout.
 
-It uses a MongoDB instance for keep cluster configuration and logs.
+It uses a MongoDB instance for keep cluster configuration.
 
 Docker images
 -------------
 
-You can get latest stable and unstable releases from our [Docker Hub repository](https://hub.docker.com/repository/docker/etherna/beehive-manager).
+You can get latest stable and unstable releases from our [Docker Hub repository](https://hub.docker.com/r/etherna/beehive-manager).
 
 You can find a sample on how to run with Docker Compose [here](samples/docker-beehive-sample)
 
