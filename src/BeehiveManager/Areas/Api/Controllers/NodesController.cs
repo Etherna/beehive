@@ -115,19 +115,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
         // Put.
 
-        /// <summary>
-        /// Enqueue retrieve node addresses from running instance.
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        /// <response code="200">Bee node info</response>
-        [HttpPut("{id}/addresses")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public void EnqueueRetrieveNodeAddresses(
-            [Required] string id) =>
-            service.EnqueueRetrieveNodeAddresses(id);
-
         // Delete.
 
         /// <summary>

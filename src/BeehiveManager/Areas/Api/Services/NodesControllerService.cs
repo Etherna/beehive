@@ -32,17 +32,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class NodesControllerService : INodesControllerService
     {
         // Fields.
-        private readonly IBackgroundJobClient backgroundJobClient;
         private readonly IBeeNodesStatusManager beeNodesManager;
         private readonly IBeehiveDbContext context;
 
         // Constructor.
         public NodesControllerService(
-            IBackgroundJobClient backgroundJobClient,
             IBeeNodesStatusManager beeNodesManager,
             IBeehiveDbContext context)
         {
-            this.backgroundJobClient = backgroundJobClient;
             this.beeNodesManager = beeNodesManager;
             this.context = context;
         }
@@ -62,9 +59,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             return new BeeNodeDto(node);
         }
-
-        public void EnqueueRetrieveNodeAddresses(string id) =>
-            backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(id));
 
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
             new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));
