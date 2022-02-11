@@ -50,7 +50,6 @@ namespace Etherna.BeehiveManager.Domain.Models
         public virtual BeeNodeAddresses? Addresses { get; protected set; }
         public virtual int? DebugPort { get; set; }
         public virtual int? GatewayPort { get; set; }
-        public virtual BeeNodeStatus? Status { get; set; }
         public virtual Uri Url { get; protected set; }
 
         // Methods.

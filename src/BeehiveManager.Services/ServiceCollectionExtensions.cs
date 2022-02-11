@@ -46,7 +46,6 @@ namespace Etherna.BeehiveManager.Services
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesTask, CashoutAllNodesTask>();
-            services.AddTransient<IRefreshAllNodesStatusTask, RefreshAllNodesStatusTask>();
             services.AddTransient<IRetrieveNodeAddressesTask, RetrieveNodeAddressesTask>();
         }
     }
