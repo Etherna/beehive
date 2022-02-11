@@ -14,11 +14,14 @@
 
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
+using Hangfire;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -30,36 +33,25 @@ namespace Etherna.BeehiveManager.Services.Utilities
     /// <summary>
     /// Keep singleton instances of BeeNodeClients for performance optimization
     /// </summary>
-    class BeeNodeClientsManager : IBeeNodeClientsManager, IDisposable
+    class BeeNodesStatusManager : IBeeNodesStatusManager, IDisposable
     {
-        // Internal models.
-        private class BeeNodeStatus
-        {
-            public BeeNodeStatus(string id, BeeNodeClient client)
-            {
-                Id = id;
-                Client = client;
-            }
-
-            public string Id { get; }
-            public BeeNodeClient Client { get; }
-            public bool IsAlive { get; set; }
-        }
-
         // Consts.
         private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
+        private readonly IBackgroundJobClient backgroundJobClient;
         private readonly IBeehiveDbContext beehiveDbContext;
         private Timer? heartbeatTimer;
-        private BeeNodeStatus? lastNodeRoundRobinSelector;
-        private readonly ConcurrentDictionary<string, BeeNodeStatus> nodeClientsStatus = new();
+        private BeeNodeStatus? lastSelectedNodeRoundRobin;
+        private readonly ConcurrentDictionary<string, BeeNodeStatus> beeNodesStatus = new(); //Id -> Status
         private readonly Random rand = new();
 
         // Constructor and dispose.
-        public BeeNodeClientsManager(
+        public BeeNodesStatusManager(
+            IBackgroundJobClient backgroundJobClient,
             IBeehiveDbContext beehiveDbContext)
         {
+            this.backgroundJobClient = backgroundJobClient;
             this.beehiveDbContext = beehiveDbContext;
         }
         public void Dispose()
@@ -67,26 +59,40 @@ namespace Etherna.BeehiveManager.Services.Utilities
             heartbeatTimer?.Dispose();
         }
 
-        // Methods.
-        public async Task<BeeNodeClient> GetBeeNodeClientAsync(string nodeId)
-        {
-            if (nodeClientsStatus.ContainsKey(nodeId))
-                return nodeClientsStatus[nodeId].Client;
+        // Properties.
+        public IEnumerable<BeeNodeClient> HealthyClients =>
+            beeNodesStatus.Values.Where(status => status.IsAlive)
+                                    .Select(s => s.Client);
 
-            var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(nodeId);
-            return AddNodeClient(beeNode);
+        // Methods.
+        public BeeNodeStatus AddBeeNode(BeeNode beeNode)
+        {
+            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
+            var status = new BeeNodeStatus(beeNode, client);
+            beeNodesStatus.TryAdd(beeNode.Id, status);
+
+            return beeNodesStatus[beeNode.Id];
         }
 
-        public async Task LoadAllNodeClientsAsync()
+        public async Task<BeeNodeStatus> GetBeeNodeStatusAsync(string nodeId)
+        {
+            if (beeNodesStatus.ContainsKey(nodeId))
+                return beeNodesStatus[nodeId];
+
+            var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(nodeId);
+            return AddBeeNode(beeNode);
+        }
+
+        public async Task LoadAllNodesAsync()
         {
             var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
-                AddNodeClient(node);
+                AddBeeNode(node);
         }
 
-        public bool RemoveBeeNodeClient(string nodeId) =>
-            nodeClientsStatus.TryRemove(nodeId, out _);
+        public bool RemoveBeeNode(string nodeId) =>
+            beeNodesStatus.TryRemove(nodeId, out _);
 
         public void StartHealthHeartbeat() =>
             heartbeatTimer = new Timer(async _ => await HeartbeatCallbackAsync(), null, 0, HeartbeatPeriod);
@@ -94,7 +100,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
 
-        public BeeNodeClient? TrySelectHealthyNodeClientAsync(BeeNodeSelectionMode mode)
+        public BeeNodeStatus? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode)
         {
 
             switch (mode)
@@ -102,12 +108,12 @@ namespace Etherna.BeehiveManager.Services.Utilities
 #pragma warning disable CA5394 // Do not use insecure randomness
 
                 case BeeNodeSelectionMode.Random:
-                    var healthyNodes = nodeClientsStatus.Values.Where(status => status.IsAlive);
+                    var healthyNodes = beeNodesStatus.Values.Where(status => status.IsAlive);
                     if (!healthyNodes.Any())
                         return null;
 
                     int takeIndex = rand.Next(0, healthyNodes.Count());
-                    return healthyNodes.ElementAt(takeIndex).Client;
+                    return healthyNodes.ElementAt(takeIndex);
 
 #pragma warning restore CA5394 // Do not use insecure randomness
 
@@ -115,19 +121,19 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     BeeNodeStatus? selectedNode = null;
 
                     //take first node if last selected was null
-                    if (lastNodeRoundRobinSelector is null)
-                        selectedNode = nodeClientsStatus.Values.Where(status => status.IsAlive).FirstOrDefault();
+                    if (lastSelectedNodeRoundRobin is null)
+                        selectedNode = beeNodesStatus.Values.Where(status => status.IsAlive).FirstOrDefault();
 
                     //take next on list if already selected one previously
                     if (selectedNode is null)
                     {
-                        var lastSelectedIndex = nodeClientsStatus.Values
+                        var lastSelectedIndex = beeNodesStatus.Values
                             .Select((node, index) => new { index, node })
-                            .Where(o => o.node == lastNodeRoundRobinSelector)
+                            .Where(o => o.node == lastSelectedNodeRoundRobin)
                             .Select(o => o.index)
                             .FirstOrDefault();
 
-                        selectedNode = nodeClientsStatus.Values
+                        selectedNode = beeNodesStatus.Values
                             .Skip(lastSelectedIndex + 1)
                             .Where(status => status.IsAlive)
                             .FirstOrDefault();
@@ -136,35 +142,43 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     //or try from beginning
                     if (selectedNode is null)
                     {
-                        selectedNode = nodeClientsStatus.Values
+                        selectedNode = beeNodesStatus.Values
                             .Where(status => status.IsAlive)
                             .FirstOrDefault();
                     }
 
-                    lastNodeRoundRobinSelector = selectedNode;
-                    return lastNodeRoundRobinSelector?.Client;
+                    //update last selected
+                    lastSelectedNodeRoundRobin = selectedNode;
+
+                    return selectedNode;
 
                 default:
                     throw new InvalidOperationException();
             }
         }
 
-        // Helpers.
-        private BeeNodeClient AddNodeClient(BeeNode beeNode)
+        public void UpdateNodeInfo(BeeNode node)
         {
-            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
-            nodeClientsStatus.TryAdd(beeNode.Id, new BeeNodeStatus(beeNode.Id, client));
-            return client;
+            // Try add. If already exists, original is kept.
+            AddBeeNode(node);
+
+            // Update info.
+            beeNodesStatus[node.Id].UpdateInfo(node);
         }
 
+        // Helpers.
         private async Task HeartbeatCallbackAsync()
         {
-            foreach (var clientStatus in nodeClientsStatus.Values)
+            foreach (var clientStatus in beeNodesStatus.Values)
             {
                 try
                 {
                     var result = await clientStatus.Client.DebugClient!.GetReadinessAsync();
                     clientStatus.IsAlive = result.Status == "ok";
+
+                    //if alive and don't have an address, try to get it
+                    if (clientStatus.IsAlive && clientStatus.EtherAddress is null)
+                        backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(clientStatus.Id));
                 }
                 catch (Exception e) when (
                     e is BeeNetDebugApiException ||

@@ -32,15 +32,15 @@ namespace Etherna.BeehiveManager.Services.Tasks
         public const long MinAmount = 100_000_000_000_000; //10^14, 0.01 BZZ
 
         // Fields.
-        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeeNodesStatusManager beeNodesStatusManager;
         private readonly IBeehiveDbContext context;
 
         // Constructors.
         public CashoutAllNodesTask(
-            IBeeNodeClientsManager beeNodesManager,
+            IBeeNodesStatusManager beeNodesStatusManager,
             IBeehiveDbContext context)
         {
-            this.beeNodesManager = beeNodesManager;
+            this.beeNodesStatusManager = beeNodesStatusManager;
             this.context = context;
         }
 
@@ -53,7 +53,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 .ForEachAsync(async node =>
                 {
                     // Get info.
-                    var nodeClient = await beeNodesManager.GetBeeNodeClientAsync(node.Id);
+                    var nodeStatus = await beeNodesStatusManager.GetBeeNodeStatusAsync(node.Id);
+                    var nodeClient = nodeStatus.Client;
                     if (nodeClient.DebugClient is null) //skip if doesn't have a debug api config
                         return;
 
@@ -79,9 +80,9 @@ namespace Etherna.BeehiveManager.Services.Tasks
                             {
                                 try
                                 {
-                                    var cashoutResponse = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
+                                    var txHash = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
                                     totalCashedout += uncashedAmount;
-                                    txs.Add(cashoutResponse.TransactionHash);
+                                    txs.Add(txHash);
                                 }
                                 catch (BeeNetDebugApiException) { }
                             }

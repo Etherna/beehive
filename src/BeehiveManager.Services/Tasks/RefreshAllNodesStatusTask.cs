@@ -33,17 +33,17 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
         // Fields.
         private readonly IBackgroundJobClient backgroundJobClient;
-        private readonly IBeeNodeClientsManager beeNodesManager;
+        private readonly IBeeNodesStatusManager beeNodesStatusManager;
         private readonly IBeehiveDbContext context;
 
         // Constructors.
         public RefreshAllNodesStatusTask(
             IBackgroundJobClient backgroundJobClient,
-            IBeeNodeClientsManager beeNodesManager,
+            IBeeNodesStatusManager beeNodesStatusManager,
             IBeehiveDbContext context)
         {
             this.backgroundJobClient = backgroundJobClient;
-            this.beeNodesManager = beeNodesManager;
+            this.beeNodesStatusManager = beeNodesStatusManager;
             this.context = context;
         }
 
@@ -60,7 +60,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
                         backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(node.Id));
 
                     // Get info.
-                    var nodeClient = await beeNodesManager.GetBeeNodeClientAsync(node.Id);
+                    var nodeStatus = await beeNodesStatusManager.GetBeeNodeStatusAsync(node.Id);
+                    var nodeClient = nodeStatus.Client;
                     if (nodeClient.DebugClient is null) //skip if doesn't have a debug api config
                         return;
 
@@ -86,7 +87,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                     catch (HttpRequestException) { return; }
 
                     // Update node.
-                    node.Status = new BeeNodeStatus(totalUncashed);
+                    node.Status = new Domain.Models.BeeNodeAgg.BeeNodeStatus(totalUncashed);
 
                     // Save changes.
                     await context.SaveChangesAsync();

@@ -68,6 +68,36 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required] string id) =>
             service.FindByIdAsync(id);
 
+        /// <summary>
+        /// Get all postage batches owned by a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <returns>List of owned postage batches</returns>
+        [HttpGet("{id}/batches")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(
+            [Required] string id) =>
+            service.GetOwnedPostageBatchesByNodeAsync(id);
+
+        /// <summary>
+        /// Find details of a postage batch owned by a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <param name="batchId">Postage Batch Id</param>
+        /// <returns>Selected postage batch</returns>
+        [HttpGet("{id}/batches/{batchId}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<PostageBatchDto> FindPostageBatchOnNodeAsync(
+            [Required] string id,
+            [Required] string batchId) =>
+            service.FindPostageBatchOnNodeAsync(id, batchId);
+
         // Post.
 
         /// <summary>
