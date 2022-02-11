@@ -40,8 +40,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <summary>
         /// Buy a new postage batch
         /// </summary>
+        /// <param name="amount">Amount of BZZ in Plur added that the postage batch will have</param>
         /// <param name="depth">Batch depth</param>
-        /// <param name="plurAmount">Amount of BZZ in Plur added that the postage batch will have</param>
         /// <param name="gasPrice">Gas price for transaction</param>
         /// <param name="immutable">Is batch immutable</param>
         /// <param name="label">An optional label for this batch</param>
@@ -53,13 +53,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<string> BuyPostageBatchAsync(
+            int amount,
             int depth,
-            int plurAmount,
             int? gasPrice = null,
             bool immutable = false,
             string? label = null,
             string? nodeId = null) =>
-            service.BuyPostageBatchAsync(depth, plurAmount, gasPrice, immutable, label, nodeId);
+            service.BuyPostageBatchAsync(amount, depth, gasPrice, immutable, label, nodeId);
 
         // Put.
 

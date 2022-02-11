@@ -53,7 +53,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             // Create node.
             var node = new BeeNode(
                 input.DebugApiPort,
-                input.GatwayApiPort,
+                input.GatewayApiPort,
                 input.Url);
             await context.BeeNodes.CreateAsync(node);
 
