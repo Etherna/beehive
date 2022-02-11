@@ -22,6 +22,7 @@ using Etherna.BeehiveManager.Services;
 using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
+using Etherna.MongODM.AspNetCore.UI;
 using Etherna.MongODM.Core.Options;
 using Hangfire;
 using Hangfire.Mongo;
@@ -65,6 +66,7 @@ namespace Etherna.BeehiveManager
                 .PersistKeysToDbContext(new DbContextOptions { ConnectionString = Configuration["ConnectionStrings:DataProtectionDb"] });
 
             services.AddCors();
+            services.AddRazorPages();
             services.AddControllers()
                 .AddJsonOptions(options =>
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -142,6 +144,11 @@ namespace Etherna.BeehiveManager
                     options.ConnectionString = Configuration["ConnectionStrings:BeehiveManagerDb"];
                 });
 
+            services.AddMongODMAdminDashboard(new MongODM.AspNetCore.UI.DashboardOptions
+            {
+                BasePath = CommonConsts.DatabaseAdminPath
+            });
+
             // Configure domain services.
             services.AddDomainServices();
         }
@@ -159,8 +166,8 @@ namespace Etherna.BeehiveManager
 
             // Add Hangfire.
             app.UseHangfireDashboard(
-                "/admin/hangfire",
-                new DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
+                CommonConsts.HangfireAdminPath,
+                new Hangfire.DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
 
             // Register cron tasks.
             RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
@@ -183,6 +190,7 @@ namespace Etherna.BeehiveManager
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapRazorPages();
             });
 
             // Startup scripts.
