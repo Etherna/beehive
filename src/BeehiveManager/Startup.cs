@@ -163,11 +163,6 @@ namespace Etherna.BeehiveManager
                 new DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
 
             // Register cron tasks.
-            RecurringJob.AddOrUpdate<IRefreshAllNodesStatusTask>(
-                RefreshAllNodesStatusTask.TaskId,
-                task => task.RunAsync(),
-                "*/15 * * * *"); //every 15 minutes
-
             RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
                 CashoutAllNodesTask.TaskId,
                 task => task.RunAsync(),

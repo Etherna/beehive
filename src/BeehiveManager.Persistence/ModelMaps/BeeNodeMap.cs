@@ -30,7 +30,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
 
             // Aggregate models.
             dbContext.SchemaRegistry.AddModelMapsSchema<BeeNodeAddresses>("b4fc3145-6864-43d0-8ba5-c43f36877519");
-            dbContext.SchemaRegistry.AddModelMapsSchema<BeeNodeStatus>("e86940fb-0eee-4cea-bf01-187738325976");
         }
 
         /// <summary>
