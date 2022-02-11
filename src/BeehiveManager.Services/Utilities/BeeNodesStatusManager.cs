@@ -177,25 +177,28 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     var result = await clientStatus.Client.DebugClient!.GetReadinessAsync();
                     clientStatus.IsAlive = result.Status == "ok";
 
-                    // Verify and update api version.
-                    var currentGatewayApiVersion = result.ApiVersion switch
+                    if (clientStatus.IsAlive)
                     {
-                        _ => GatewayApiVersion.v2_0_0
-                    };
-                    var currentDebugApiVersion = result.DebugApiVersion switch
-                    {
-                        "1.2.1" => DebugApiVersion.v1_2_1,
-                        _ => DebugApiVersion.v1_2_0
-                    };
+                        // Verify and update api version.
+                        var currentGatewayApiVersion = result.ApiVersion switch
+                        {
+                            _ => GatewayApiVersion.v2_0_0
+                        };
+                        var currentDebugApiVersion = result.DebugApiVersion switch
+                        {
+                            "1.2.1" => DebugApiVersion.v1_2_1,
+                            _ => DebugApiVersion.v1_2_0
+                        };
 
-                    if (clientStatus.Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
-                        clientStatus.Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
-                    if (clientStatus.Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
-                        clientStatus.Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
+                        if (clientStatus.Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
+                            clientStatus.Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
+                        if (clientStatus.Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
+                            clientStatus.Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
 
-                    // If alive and don't have an address, try to get it.
-                    if (clientStatus.IsAlive && clientStatus.EtherAddress is null)
-                        backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(clientStatus.Id));
+                        // If don't have an address, try to get it.
+                        if (clientStatus.EtherAddress is null)
+                            backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(clientStatus.Id));
+                    }
                 }
                 catch (Exception e) when (
                     e is BeeNetDebugApiException ||
