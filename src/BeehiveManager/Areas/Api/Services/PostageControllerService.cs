@@ -22,7 +22,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         // Methods.
         public async Task<string> BuyPostageBatchAsync(
-            int amount, int depth, int? gasPrice, bool immutable, string? label, string? nodeId)
+            long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId)
         {
             // Try to select an healthy node.
             var beeNodeStatus = nodeId is null ?

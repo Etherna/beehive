@@ -53,9 +53,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<string> BuyPostageBatchAsync(
-            int amount,
+            long amount,
             int depth,
-            int? gasPrice = null,
+            long? gasPrice = null,
             bool immutable = false,
             string? label = null,
             string? nodeId = null) =>
