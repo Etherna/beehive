@@ -6,7 +6,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 {
     public interface IPostageControllerService
     {
-        Task<string> BuyPostageBatchAsync(long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId);
+        Task<PostageBatchRefDto> BuyPostageBatchAsync(long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId);
         Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes();
     }
 }

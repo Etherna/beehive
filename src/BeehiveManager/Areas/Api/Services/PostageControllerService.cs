@@ -21,7 +21,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         }
 
         // Methods.
-        public async Task<string> BuyPostageBatchAsync(
+        public async Task<PostageBatchRefDto> BuyPostageBatchAsync(
             long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId)
         {
             // Try to select an healthy node.
@@ -33,7 +33,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new InvalidOperationException("No healthy nodes available");
 
             // Buy postage.
-            return await beeNodeStatus.Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
+            var batchId = await beeNodeStatus.Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
+
+            return new PostageBatchRefDto(batchId, beeNodeStatus.Id);
         }
 
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes()
