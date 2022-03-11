@@ -53,7 +53,7 @@ namespace Etherna.BeehiveManager.Domain.Models
             if (ReferenceEquals(this, obj)) return true;
             if (obj is null) return false;
             if (EqualityComparer<TKey>.Default.Equals(Id, default) ||
-                !(obj is IEntityModel<TKey>) ||
+                obj is not IEntityModel<TKey> ||
                 EqualityComparer<TKey>.Default.Equals((obj as IEntityModel<TKey>)!.Id, default)) return false;
             return GetType() == obj.GetType() &&
                 EqualityComparer<TKey>.Default.Equals(Id, (obj as IEntityModel<TKey>)!.Id);
