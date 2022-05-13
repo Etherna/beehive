@@ -11,7 +11,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
                 throw new ArgumentNullException(nameof(postageBatch));
 
             Id = postageBatch.Id;
-            AmountPaid = postageBatch.AmountPaid;
+            Value = postageBatch.AmountPaid;
             BatchTTL = postageBatch.BatchTTL;
             BlockNumber = postageBatch.BlockNumber;
             BucketDepth = postageBatch.BucketDepth;
@@ -24,9 +24,24 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             Utilization = postageBatch.Utilization;
         }
 
+        public PostageBatchDto(BeeNet.DtoModels.BatchDto postageBatch)
+        {
+            if (postageBatch is null)
+                throw new ArgumentNullException(nameof(postageBatch));
+
+            Id = postageBatch.BatchID;
+            if (long.TryParse(postageBatch.Value, out var value))
+                Value = value;
+            BatchTTL = postageBatch.BatchTTL;
+            BlockNumber = postageBatch.BlockNumber;
+            BucketDepth = postageBatch.BucketDepth;
+            Depth = postageBatch.Depth;
+            ImmutableFlag = postageBatch.ImmutableFlag;
+            OwnerAddress = postageBatch.Owner;
+        }
+
         // Properties.
         public string Id { get; }
-        public long? AmountPaid { get; }
         public int BatchTTL { get; }
         public int BlockNumber { get; }
         public int BucketDepth { get; }
@@ -38,5 +53,6 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public string? OwnerAddress { get; }
         public bool Usable { get; }
         public int? Utilization { get; }
+        public long? Value { get; }
     }
 }
