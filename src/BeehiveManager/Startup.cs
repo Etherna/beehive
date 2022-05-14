@@ -194,7 +194,7 @@ namespace Etherna.BeehiveManager
             });
 
             // Startup scripts.
-            app.StartBeeNodeClientsManager();
+            app.StartBeeNodeLiveManager();
         }
     }
 }

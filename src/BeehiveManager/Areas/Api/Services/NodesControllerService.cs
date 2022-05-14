@@ -16,11 +16,9 @@ using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
-using Hangfire;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -32,15 +30,15 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class NodesControllerService : INodesControllerService
     {
         // Fields.
-        private readonly IBeeNodesStatusManager beeNodesManager;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
         private readonly IBeehiveDbContext context;
 
         // Constructor.
         public NodesControllerService(
-            IBeeNodesStatusManager beeNodesManager,
+            IBeeNodeLiveManager beeNodeLiveManager,
             IBeehiveDbContext context)
         {
-            this.beeNodesManager = beeNodesManager;
+            this.beeNodeLiveManager = beeNodeLiveManager;
             this.context = context;
         }
 
@@ -65,8 +63,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         public async Task<PostageBatchDto> FindPostageBatchOnNodeAsync(string id, string batchId)
         {
-            var status = await beeNodesManager.GetBeeNodeStatusAsync(id);
-            var postageBatch = await status.Client.DebugClient!.GetPostageBatchAsync(batchId);
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
             return new PostageBatchDto(postageBatch);
         }
 
@@ -78,8 +76,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         public async Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(string id)
         {
-            var nodeStatus = await beeNodesManager.GetBeeNodeStatusAsync(id);
-            var batches = await nodeStatus.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var batches = await beeNodeInstance.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
             return batches.Select(b => new PostageBatchDto(b));
         }
 

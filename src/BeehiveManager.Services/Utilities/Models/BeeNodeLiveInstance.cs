@@ -2,23 +2,25 @@
 using Etherna.BeeNet;
 using System;
 
-namespace Etherna.BeehiveManager.Services.Utilities
+namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
-    public class BeeNodeStatus
+    public class BeeNodeLiveInstance
     {
         // Constructor.
-        internal BeeNodeStatus(BeeNode beeNode, BeeNodeClient client)
+        internal BeeNodeLiveInstance(
+            BeeNode beeNode)
         {
             Id = beeNode.Id;
-            Client = client;
+            Client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
             EtherAddress = beeNode.Addresses?.Ethereum;
+            Status = new BeeNodeStatus();
         }
 
         // Properties.
         public string Id { get; }
         public BeeNodeClient Client { get; }
         public string? EtherAddress { get; private set; }
-        public bool IsAlive { get; set; }
+        public BeeNodeStatus Status { get; }
 
         // Internal methods.
         internal void UpdateInfo(BeeNode node)

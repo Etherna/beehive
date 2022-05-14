@@ -42,7 +42,7 @@ namespace Etherna.BeehiveManager.Services
             services.AddDomainEvents(eventHandlerTypes);
 
             // Utilities.
-            services.AddSingleton<IBeeNodesStatusManager, BeeNodesStatusManager>();
+            services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesTask, CashoutAllNodesTask>();

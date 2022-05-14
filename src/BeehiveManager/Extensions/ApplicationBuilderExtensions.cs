@@ -7,17 +7,17 @@ namespace Etherna.BeehiveManager.Extensions
 {
     public static class ApplicationBuilderExtensions
     {
-        public static void StartBeeNodeClientsManager(this IApplicationBuilder appBuilder)
+        public static void StartBeeNodeLiveManager(this IApplicationBuilder appBuilder)
         {
             if (appBuilder is null)
                 throw new ArgumentNullException(nameof(appBuilder));
 
-            var nodeClientsManager = appBuilder.ApplicationServices.GetRequiredService<IBeeNodesStatusManager>();
+            var beeNodeLiveManager = appBuilder.ApplicationServices.GetRequiredService<IBeeNodeLiveManager>();
 
-            var task = nodeClientsManager.LoadAllNodesAsync();
+            var task = beeNodeLiveManager.LoadAllNodesAsync();
             task.Wait();
 
-            nodeClientsManager.StartHealthHeartbeat();
+            beeNodeLiveManager.StartHealthHeartbeat();
         }
     }
 }

@@ -8,19 +8,19 @@ namespace Etherna.BeehiveManager.Services.EventHandlers
     class OnSetBeeNodeAddressesThenUpdateNodeStatusHandler : EventHandlerBase<SetBeeNodeAddressesEvent>
     {
         // Fields.
-        private readonly IBeeNodesStatusManager nodeStatusManager;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
 
         // Constructor.
         public OnSetBeeNodeAddressesThenUpdateNodeStatusHandler(
-            IBeeNodesStatusManager nodeStatusManager)
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
-            this.nodeStatusManager = nodeStatusManager;
+            this.beeNodeLiveManager = beeNodeLiveManager;
         }
 
         // Methods.
         public override Task HandleAsync(SetBeeNodeAddressesEvent @event)
         {
-            nodeStatusManager.UpdateNodeInfo(@event.Node);
+            beeNodeLiveManager.UpdateNodeInfo(@event.Node);
             return Task.CompletedTask;
         }
     }
