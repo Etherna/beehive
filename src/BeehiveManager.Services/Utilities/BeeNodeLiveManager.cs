@@ -14,19 +14,12 @@
 
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeehiveManager.Services.Utilities.Models;
-using Etherna.BeeNet.Clients.DebugApi;
-using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
-using Hangfire;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,7 +34,6 @@ namespace Etherna.BeehiveManager.Services.Utilities
         private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
-        private readonly IBackgroundJobClient backgroundJobClient;
         private readonly IBeehiveDbContext beehiveDbContext;
         private Timer? heartbeatTimer;
         private BeeNodeLiveInstance? lastSelectedNodeRoundRobin;
@@ -50,10 +42,8 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         // Constructor and dispose.
         public BeeNodeLiveManager(
-            IBackgroundJobClient backgroundJobClient,
             IBeehiveDbContext beehiveDbContext)
         {
-            this.backgroundJobClient = backgroundJobClient;
             this.beehiveDbContext = beehiveDbContext;
         }
         public void Dispose()
@@ -66,14 +56,15 @@ namespace Etherna.BeehiveManager.Services.Utilities
             beeNodeInstances.Values.Where(i => i.Status.IsAlive);
 
         // Methods.
-        public BeeNodeLiveInstance AddBeeNode(BeeNode beeNode)
+        public async Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode)
         {
             // Add node.
-            var liveInstance = new BeeNodeLiveInstance(beeNode);
-            beeNodeInstances.TryAdd(beeNode.Id, liveInstance);
+            var liveInstance = new BeeNodeLiveInstance(beeNode, beehiveDbContext);
+            var result = beeNodeInstances.TryAdd(beeNode.Id, liveInstance);
 
-            // Get postage stamps.
-            //TODO
+            // Refresh live status (if necessary).
+            if (result)
+                await liveInstance.TryRefreshStatusAsync();
 
             return beeNodeInstances[beeNode.Id];
         }
@@ -84,7 +75,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                 return beeNodeInstances[nodeId];
 
             var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(nodeId);
-            return AddBeeNode(beeNode);
+            return await AddBeeNodeAsync(beeNode);
         }
 
         public async Task LoadAllNodesAsync()
@@ -92,7 +83,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
-                AddBeeNode(node);
+                await AddBeeNodeAsync(node);
         }
 
         public bool RemoveBeeNode(string nodeId) =>
@@ -106,7 +97,6 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         public BeeNodeLiveInstance? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode)
         {
-
             switch (mode)
             {
 #pragma warning disable CA5394 // Do not use insecure randomness
@@ -161,56 +151,15 @@ namespace Etherna.BeehiveManager.Services.Utilities
             }
         }
 
-        public void UpdateNodeInfo(BeeNode node)
-        {
-            // Try add. If already exists, original is kept.
-            AddBeeNode(node);
-
-            // Update info.
-            beeNodeInstances[node.Id].UpdateInfo(node);
-        }
-
         // Helpers.
         private async Task HeartbeatCallbackAsync()
         {
+            var tasks = new List<Task>();
+
             foreach (var instance in beeNodeInstances.Values)
-            {
-                try
-                {
-                    var result = await instance.Client.DebugClient!.GetReadinessAsync();
-                    instance.Status.IsAlive = result.Status == "ok";
+                tasks.Add(instance.TryRefreshStatusAsync());
 
-                    if (instance.Status.IsAlive)
-                    {
-                        // Verify and update api version.
-                        var currentGatewayApiVersion = result.ApiVersion switch
-                        {
-                            _ => GatewayApiVersion.v2_0_0
-                        };
-                        var currentDebugApiVersion = result.DebugApiVersion switch
-                        {
-                            "1.2.1" => DebugApiVersion.v1_2_1,
-                            _ => DebugApiVersion.v1_2_0
-                        };
-
-                        if (instance.Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
-                            instance.Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
-                        if (instance.Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
-                            instance.Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
-
-                        // If don't have an address, try to get it.
-                        if (instance.EtherAddress is null)
-                            backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(instance.Id));
-                    }
-                }
-                catch (Exception e) when (
-                    e is BeeNetDebugApiException ||
-                    e is HttpRequestException ||
-                    e is SocketException)
-                {
-                    instance.Status.IsAlive = false;
-                }
-            }
+            await Task.WhenAll(tasks);
         }
     }
 }

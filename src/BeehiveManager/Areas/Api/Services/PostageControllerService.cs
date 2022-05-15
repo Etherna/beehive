@@ -34,7 +34,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new InvalidOperationException("No healthy nodes available");
 
             // Buy postage.
-            var batchId = await beeNodeInstance.Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
+            var batchId = await beeNodeInstance.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
 
             return new PostageBatchRefDto(batchId, beeNodeInstance.Id);
         }

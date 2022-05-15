@@ -25,13 +25,12 @@ namespace Etherna.BeehiveManager.Services.Utilities
         IEnumerable<BeeNodeLiveInstance> HealthyNodes { get; }
 
         // Methods.
-        BeeNodeLiveInstance AddBeeNode(BeeNode beeNode);
+        Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
         Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
         BeeNodeLiveInstance? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode);
-        void UpdateNodeInfo(BeeNode node);
     }
 }

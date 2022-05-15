@@ -19,10 +19,9 @@ namespace Etherna.BeehiveManager.Services.EventHandlers
         }
 
         // Methods.
-        public override Task HandleAsync(EntityCreatedEvent<BeeNode> @event)
+        public override async Task HandleAsync(EntityCreatedEvent<BeeNode> @event)
         {
-            beeNodeLiveManager.AddBeeNode(@event.Entity);
-            return Task.CompletedTask;
+            await beeNodeLiveManager.AddBeeNodeAsync(@event.Entity);
         }
     }
 }
