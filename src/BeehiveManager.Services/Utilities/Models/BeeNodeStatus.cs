@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
-    public class BeeNodeStatus
+    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Status comparison is not a required function")]
+    public struct BeeNodeStatus
     {
         // Properties.
-        public IEnumerable<string> Errors { get; internal set; } = Array.Empty<string>();
-        public bool IsAlive { get; internal set; }
-        public bool IsInitialized { get; internal set; }
-        public IEnumerable<PostageBatch> PostageBatches { get; internal set; } = Array.Empty<PostageBatch>();
+        public IEnumerable<string>? Errors { get; internal init; }
+        public bool IsAlive { get; internal init; }
+        public IEnumerable<string>? PostageBatchesId { get; internal init; }
     }
 }
