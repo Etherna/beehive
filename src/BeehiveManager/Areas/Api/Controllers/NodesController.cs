@@ -112,6 +112,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required] string id) =>
             service.GetBeeNodeLiveStatusAsync(id);
 
+        /// <summary>
+        /// Get live status of all Bee node
+        /// </summary>
+        /// <response code="200">Live status of all nodes</response>
+        [HttpGet("status")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus() =>
+            service.GetAllBeeNodeLiveStatus();
+
         // Post.
 
         /// <summary>

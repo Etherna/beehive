@@ -74,10 +74,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return await beeNodeInstance.TryRefreshStatusAsync(true);
         }
 
+        public IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus() =>
+            beeNodeLiveManager.AllNodes.Select(n => new BeeNodeStatusDto(n.Id, n.Status));
+
         public async Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            return new BeeNodeStatusDto(beeNodeInstance.Status);
+            return new BeeNodeStatusDto(beeNodeInstance.Id, beeNodeInstance.Status);
         }
 
         public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take) =>
