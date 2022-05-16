@@ -12,12 +12,18 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.Threading.Tasks;
+using Etherna.BeehiveManager.Domain.Models;
+using Etherna.DomainEvents;
 
-namespace Etherna.BeehiveManager.Services.Tasks
+namespace Etherna.BeehiveManager.Domain.Events
 {
-    public interface IRefreshAllNodesStatusTask
+    public class SetBeeNodeAddressesEvent : IDomainEvent
     {
-        Task RunAsync();
+        public SetBeeNodeAddressesEvent(BeeNode node)
+        {
+            Node = node;
+        }
+
+        public BeeNode Node { get; }
     }
 }

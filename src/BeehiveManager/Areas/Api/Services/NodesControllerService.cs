@@ -16,11 +16,9 @@ using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
-using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeehiveManager.Services.Utilities;
+using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
-using Hangfire;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -32,19 +30,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class NodesControllerService : INodesControllerService
     {
         // Fields.
-        private readonly IBackgroundJobClient backgroundJobClient;
-        private readonly IBeeNodesManager beeNodesManager;
-        private readonly IBeehiveContext context;
+        private readonly IBeehiveDbContext beehiveDbContext;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
 
         // Constructor.
         public NodesControllerService(
-            IBackgroundJobClient backgroundJobClient,
-            IBeeNodesManager beeNodesManager,
-            IBeehiveContext context)
+            IBeehiveDbContext beehiveDbContext,
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
-            this.backgroundJobClient = backgroundJobClient;
-            this.beeNodesManager = beeNodesManager;
-            this.context = context;
+            this.beehiveDbContext = beehiveDbContext;
+            this.beeNodeLiveManager = beeNodeLiveManager;
         }
 
         // Methods.
@@ -56,35 +51,57 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             // Create node.
             var node = new BeeNode(
                 input.DebugApiPort,
-                input.GatwayApiPort,
+                input.GatewayApiPort,
                 input.Url);
-            await context.BeeNodes.CreateAsync(node);
-
-            // Try immediatly to retrive node info from instance.
-            EnqueueRetrieveNodeAddresses(node.Id);
+            await beehiveDbContext.BeeNodes.CreateAsync(node);
 
             return new BeeNodeDto(node);
         }
 
-        public void EnqueueRetrieveNodeAddresses(string id) =>
-            backgroundJobClient.Enqueue<IRetrieveNodeAddressesTask>(task => task.RunAsync(id));
-
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
-            new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));
+            new BeeNodeDto(await beehiveDbContext.BeeNodes.FindOneAsync(id));
+
+        public async Task<PostageBatchDto> FindPostageBatchOnNodeAsync(string id, string batchId)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
+            return new PostageBatchDto(postageBatch);
+        }
+
+        public async Task<bool> ForceFullStatusRefreshAsync(string id)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            return await beeNodeInstance.TryRefreshStatusAsync(true);
+        }
+
+        public IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus() =>
+            beeNodeLiveManager.AllNodes.Select(n => new BeeNodeStatusDto(n.Id, n.Status));
+
+        public async Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            return new BeeNodeStatusDto(beeNodeInstance.Id, beeNodeInstance.Status);
+        }
 
         public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take) =>
-            (await context.BeeNodes.QueryElementsAsync(elements =>
+            (await beehiveDbContext.BeeNodes.QueryElementsAsync(elements =>
                 elements.PaginateDescending(n => n.CreationDateTime, page, take)
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
+
+        public async Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(string id)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var batches = await beeNodeInstance.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+            return batches.Select(b => new PostageBatchDto(b));
+        }
 
         public async Task RemoveBeeNodeAsync(string id)
         {
             if (id is null)
                 throw new ArgumentNullException(nameof(id));
 
-            beeNodesManager.RemoveBeeNodeClient(id);
-            await context.BeeNodes.DeleteAsync(id);
+            await beehiveDbContext.BeeNodes.DeleteAsync(id);
         }
     }
 }

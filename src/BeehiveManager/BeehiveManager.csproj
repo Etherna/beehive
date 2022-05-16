@@ -16,15 +16,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GitVersion.MsBuild" Version="5.6.10">
+    <PackageReference Include="GitVersion.MsBuild" Version="5.10.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.23" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.28" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.13" />
-    <PackageReference Include="MongODM" Version="0.22.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
+    <PackageReference Include="MongODM" Version="0.23.0-alpha.106" />
+    <PackageReference Include="MongODM.AspNetCore.UI" Version="0.23.0-alpha.106" />
+    <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="2.2.0" />
+    <PackageReference Include="Serilog.Exceptions" Version="8.1.0" />
+    <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="8.4.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -16,10 +16,13 @@ using Etherna.BeehiveManager.Configs;
 using Etherna.BeehiveManager.Configs.Hangfire;
 using Etherna.BeehiveManager.Configs.Swagger;
 using Etherna.BeehiveManager.Domain;
-using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
+using Etherna.BeehiveManager.Services;
 using Etherna.BeehiveManager.Services.Tasks;
+using Etherna.DomainEvents;
+using Etherna.MongODM;
+using Etherna.MongODM.AspNetCore.UI;
 using Etherna.MongODM.Core.Options;
 using Hangfire;
 using Hangfire.Mongo;
@@ -42,21 +45,28 @@ namespace Etherna.BeehiveManager
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        // Constructor.
+        public Startup(
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
         {
             Configuration = configuration;
+            Environment = environment;
         }
 
+        // Properties.
         public IConfiguration Configuration { get; }
+        public IWebHostEnvironment Environment { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        // Methods.
         public void ConfigureServices(IServiceCollection services)
         {
             // Configure Asp.Net Core framework services.
             services.AddDataProtection()
-                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = Configuration["ConnectionStrings:SystemDb"] });
+                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = Configuration["ConnectionStrings:DataProtectionDb"] });
 
             services.AddCors();
+            services.AddRazorPages();
             services.AddControllers()
                 .AddJsonOptions(options =>
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -75,10 +85,27 @@ namespace Etherna.BeehiveManager
                 options.SubstituteApiVersionInUrl = true;
             });
 
+            // Configure Hangfire server.
+            if (!Environment.IsStaging()) //don't start server in staging
+            {
+                //register hangfire server
+                services.AddHangfireServer(options =>
+                {
+                    options.Queues = new[]
+                    {
+                        Queues.DOMAIN_MAINTENANCE,
+                        "default"
+                    };
+                    options.WorkerCount = System.Environment.ProcessorCount * 2;
+                });
+            }
+
             // Configure Swagger services.
             services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
             services.AddSwaggerGen(options =>
             {
+                options.SupportNonNullableReferenceTypes();
+
                 //add a custom operation filter which sets default values
                 options.OperationFilter<SwaggerDefaultValues>();
 
@@ -96,7 +123,7 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure Hangfire and persistence.
-            services.AddMongODMWithHangfire<ModelBase>(configureHangfireOptions: options =>
+            services.AddMongODMWithHangfire(configureHangfireOptions: options =>
             {
                 options.ConnectionString = Configuration["ConnectionStrings:HangfireDb"];
                 options.StorageOptions = new MongoStorageOptions
@@ -108,20 +135,29 @@ namespace Etherna.BeehiveManager
                     }
                 };
             })
-                .AddDbContext<IBeehiveContext, BeehiveContext>(options =>
+                .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
+                {
+                    var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
+                    return new BeehiveDbContext(eventDispatcher);
+                },
+                options =>
                 {
                     options.DocumentSemVer.CurrentVersion = assemblyVersion.SimpleVersion;
                     options.ConnectionString = Configuration["ConnectionStrings:BeehiveManagerDb"];
                 });
 
+            services.AddMongODMAdminDashboard(new MongODM.AspNetCore.UI.DashboardOptions
+            {
+                BasePath = CommonConsts.DatabaseAdminPath
+            });
+
             // Configure domain services.
             services.AddDomainServices();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiProvider)
+        public void Configure(IApplicationBuilder app, IApiVersionDescriptionProvider apiProvider)
         {
-            if (env.IsDevelopment())
+            if (Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -132,32 +168,14 @@ namespace Etherna.BeehiveManager
 
             // Add Hangfire.
             app.UseHangfireDashboard(
-                "/admin/hangfire",
-                new DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
+                CommonConsts.HangfireAdminPath,
+                new Hangfire.DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
 
-            if (!env.IsStaging()) //don't init server in staging
-            {
-                //register hangfire server
-                app.UseHangfireServer(new BackgroundJobServerOptions
-                {
-                    Queues = new[]
-                    {
-                        Services.Tasks.Queues.DOMAIN_MAINTENANCE,
-                        "default"
-                    }
-                });
-
-                //register cron tasks
-                RecurringJob.AddOrUpdate<IRefreshAllNodesStatusTask>(
-                    RefreshAllNodesStatusTask.TaskId,
-                    task => task.RunAsync(),
-                    "0 * * * *"); //at minute 0
-
-                RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
-                    CashoutAllNodesTask.TaskId,
-                    task => task.RunAsync(),
-                    "0 5 * * *"); //at 05:00 every day
-            }
+            // Register cron tasks.
+            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
+                CashoutAllNodesTask.TaskId,
+                task => task.RunAsync(),
+                "0 5 * * *"); //at 05:00 every day
 
             // Add Swagger and SwaggerUI.
             app.UseSwagger();
@@ -174,7 +192,11 @@ namespace Etherna.BeehiveManager
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapRazorPages();
             });
+
+            // Startup scripts.
+            app.StartBeeNodeLiveManager();
         }
     }
 }

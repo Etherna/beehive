@@ -22,7 +22,7 @@ namespace Etherna.BeehiveManager.Areas.Api.InputModels
         public int? DebugApiPort { get; set; }
 
         [Range(1, 65535)]
-        public int? GatwayApiPort { get; set; }
+        public int? GatewayApiPort { get; set; }
 
         [Required]
         public string Url { get; set; } = default!;

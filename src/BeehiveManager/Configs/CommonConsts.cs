@@ -12,13 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Hangfire.Annotations;
-using Hangfire.Dashboard;
-
-namespace Etherna.BeehiveManager.Configs.Hangfire
+namespace Etherna.BeehiveManager.Configs
 {
-    public class AllowAllFilter : IDashboardAuthorizationFilter
+    public static class CommonConsts
     {
-        public bool Authorize([NotNull] DashboardContext context) => true;
+        public const string DatabaseAdminPath = "/admin/db";
+        public const string HangfireAdminPath = "/admin/hangfire";
     }
 }

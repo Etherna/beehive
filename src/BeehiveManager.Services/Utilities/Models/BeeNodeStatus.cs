@@ -12,23 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Etherna.BeehiveManager.Domain.Models.BeeNodeAgg
+namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
-    public class BeeNodeStatus : ModelBase
+    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Status comparison is not a required function")]
+    public struct BeeNodeStatus
     {
-        // Constructors.
-        public BeeNodeStatus(
-            long uncashedTotal)
-        {
-            ReadTime = DateTime.Now;
-            UncashedTotal = uncashedTotal;
-        }
-        protected BeeNodeStatus() { }
-
         // Properties.
-        public virtual DateTime ReadTime { get; protected set; }
-        public virtual long UncashedTotal { get; protected set; }
+        public IEnumerable<string>? Errors { get; internal init; }
+        public bool IsAlive { get; internal init; }
+        public IEnumerable<string>? PostageBatchesId { get; internal init; }
     }
 }

@@ -13,32 +13,25 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeeNet;
+using Etherna.BeehiveManager.Services.Utilities.Models;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
-    class BeeNodesManager : IBeeNodesManager
+    public interface IBeeNodeLiveManager
     {
-        // Fields.
-        private readonly Dictionary<string, BeeNodeClient> _nodeClients = new();
-
         // Properties.
-        public IReadOnlyDictionary<string, BeeNodeClient> NodeClients => _nodeClients;
+        IEnumerable<BeeNodeLiveInstance> AllNodes { get; }
+        IEnumerable<BeeNodeLiveInstance> HealthyNodes { get; }
 
         // Methods.
-        public BeeNodeClient GetBeeNodeClient(BeeNode beeNode)
-        {
-            if (_nodeClients.ContainsKey(beeNode.Id))
-                return _nodeClients[beeNode.Id];
-
-            var client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
-            _nodeClients.Add(beeNode.Id, client);
-
-            return client;
-        }
-
-        public bool RemoveBeeNodeClient(string id) =>
-            _nodeClients.Remove(id);
+        Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
+        Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
+        Task LoadAllNodesAsync();
+        bool RemoveBeeNode(string nodeId);
+        void StartHealthHeartbeat();
+        void StopHealthHeartbeat();
+        BeeNodeLiveInstance? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode);
     }
 }

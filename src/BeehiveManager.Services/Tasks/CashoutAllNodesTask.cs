@@ -15,9 +15,10 @@
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities;
-using Etherna.BeeNet.Clients.DebugApi;
-using MongoDB.Driver;
+using Etherna.BeeNet.Exceptions;
+using Etherna.MongoDB.Driver;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -31,15 +32,15 @@ namespace Etherna.BeehiveManager.Services.Tasks
         public const long MinAmount = 1_000_000_000_000; //10^12 = 0.0001 BZZ
 
         // Fields.
-        private readonly IBeeNodesManager beeNodesManager;
-        private readonly IBeehiveContext context;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly IBeehiveDbContext context;
 
         // Constructors.
         public CashoutAllNodesTask(
-            IBeeNodesManager beeNodesManager,
-            IBeehiveContext context)
+            IBeeNodeLiveManager beeNodeLiveManager,
+            IBeehiveDbContext context)
         {
-            this.beeNodesManager = beeNodesManager;
+            this.beeNodeLiveManager = beeNodeLiveManager;
             this.context = context;
         }
 
@@ -47,11 +48,13 @@ namespace Etherna.BeehiveManager.Services.Tasks
         public async Task RunAsync()
         {
             // List all nodes.
-            await context.BeeNodes.Collection.Find(FilterDefinition<BeeNode>.Empty, new FindOptions { NoCursorTimeout = true })
+            await context.BeeNodes.AccessToCollectionAsync(collection => collection
+                .Find(FilterDefinition<BeeNode>.Empty, new FindOptions { NoCursorTimeout = true })
                 .ForEachAsync(async node =>
                 {
                     // Get info.
-                    var nodeClient = beeNodesManager.GetBeeNodeClient(node);
+                    var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(node.Id);
+                    var nodeClient = beeNodeInstance.Client;
                     if (nodeClient.DebugClient is null) //skip if doesn't have a debug api config
                         return;
 
@@ -60,19 +63,14 @@ namespace Etherna.BeehiveManager.Services.Tasks
                     try
                     {
                         // Enumerate peers.
-                        var peersResponse = await nodeClient.DebugClient.ChequebookChequeGetAsync();
-                        if (peersResponse.Lastcheques is null)
-                            return;
-
-                        var peers = peersResponse.Lastcheques.Select(c => c.Peer);
-
-                        foreach (var peer in peers)
+                        var cheques = await nodeClient.DebugClient.GetAllChequeBookChequesAsync();
+                        foreach (var peer in cheques.Select(c => c.Peer))
                         {
                             var uncashedAmount = 0L;
 
                             try
                             {
-                                var cashoutResponse = await nodeClient.DebugClient.ChequebookCashoutGetAsync(peer);
+                                var cashoutResponse = await nodeClient.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
                                 uncashedAmount = cashoutResponse.UncashedAmount;
                             }
                             catch (BeeNetDebugApiException) { }
@@ -82,9 +80,9 @@ namespace Etherna.BeehiveManager.Services.Tasks
                             {
                                 try
                                 {
-                                    var cashoutResponse = await nodeClient.DebugClient.ChequebookCashoutPostAsync(peer);
+                                    var txHash = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
                                     totalCashedout += uncashedAmount;
-                                    txs.Add(cashoutResponse.TransactionHash);
+                                    txs.Add(txHash);
                                 }
                                 catch (BeeNetDebugApiException) { }
                             }
@@ -99,7 +97,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                         var log = new CashoutNodeLog(node, txs, totalCashedout);
                         await context.NodeLogs.CreateAsync(log);
                     }
-                });
+                }));
         }
     }
 }

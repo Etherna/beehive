@@ -4,9 +4,9 @@ services:
   beehive-manager:
     image: etherna/beehive-manager:latest
     environment:
-      - ConnectionStrings__BeehiveManagerDb=mongodb://mongo/beehive     # application db
-      - ConnectionStrings__HangfireDb=mongodb://mongo/beehiveHangfire   # async worker db
-      - ConnectionStrings__SystemDb=mongodb://mongo/beehiveSystem       # system db
+      - ConnectionStrings__BeehiveManagerDb=mongodb://mongo/beehive                 # application db
+      - ConnectionStrings__DataProtectionDb=mongodb://mongo/beehiveDataProtection   # system db
+      - ConnectionStrings__HangfireDb=mongodb://mongo/beehiveHangfire               # async worker db
     networks:
       - mongo-net
     ports:
@@ -15,7 +15,7 @@ services:
 
   mongo:
     hostname: mongo
-    image: mongo:4.4
+    image: mongo:5.0
     volumes:
       - mongo-configdb:/data/configdb
       - mongo-db:/data/db

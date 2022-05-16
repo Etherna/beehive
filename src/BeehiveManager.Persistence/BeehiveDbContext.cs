@@ -16,11 +16,10 @@ using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Persistence.Repositories;
 using Etherna.DomainEvents;
+using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Options;
 using Etherna.MongODM.Core.Repositories;
 using Etherna.MongODM.Core.Serialization;
-using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,17 +29,14 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Persistence
 {
-    public class BeehiveContext : DbContext, IBeehiveContext, IEventDispatcherDbContext
+    public class BeehiveDbContext : DbContext, IBeehiveDbContext, IEventDispatcherDbContext
     {
         // Consts.
         private const string SerializersNamespace = "Etherna.BeehiveManager.Persistence.ModelMaps";
 
         // Constructor.
-        public BeehiveContext(
-            IDbDependencies dbDependencies,
-            IEventDispatcher eventDispatcher,
-            DbContextOptions<BeehiveContext> options)
-            : base(dbDependencies, options)
+        public BeehiveDbContext(
+            IEventDispatcher eventDispatcher)
         {
             EventDispatcher = eventDispatcher;
         }
@@ -53,6 +49,8 @@ namespace Etherna.BeehiveManager.Persistence
                 IndexBuilders = new[]
                 {
                     (Builders<BeeNode>.IndexKeys.Ascending(n => n.Addresses.Ethereum), new CreateIndexOptions<BeeNode> { Sparse = true, Unique = true }),
+                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.DebugPort)
+                                                .Ascending(n => n.Url), new CreateIndexOptions<BeeNode> { Unique = true })
                 }
             });
         public ICollectionRepository<NodeLogBase, string> NodeLogs { get; } = new DomainCollectionRepository<NodeLogBase, string>("nodeLogs");
@@ -62,7 +60,7 @@ namespace Etherna.BeehiveManager.Persistence
 
         // Protected properties.
         protected override IEnumerable<IModelMapsCollector> ModelMapsCollectors =>
-            from t in typeof(BeehiveContext).GetTypeInfo().Assembly.GetTypes()
+            from t in typeof(BeehiveDbContext).GetTypeInfo().Assembly.GetTypes()
             where t.IsClass && t.Namespace == SerializersNamespace
             where t.GetInterfaces().Contains(typeof(IModelMapsCollector))
             select Activator.CreateInstance(t) as IModelMapsCollector;

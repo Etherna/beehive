@@ -40,7 +40,7 @@ namespace Etherna.BeehiveManager.Persistence.Repositories
 
         public override void Initialize(IDbContext dbContext)
         {
-            if (!(dbContext is IEventDispatcherDbContext))
+            if (dbContext is not IEventDispatcherDbContext)
                 throw new InvalidOperationException($"DbContext needs to implement {nameof(IEventDispatcherDbContext)}");
 
             base.Initialize(dbContext);

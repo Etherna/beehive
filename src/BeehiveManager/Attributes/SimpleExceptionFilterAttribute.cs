@@ -12,8 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeeNet.Clients.DebugApi;
-using Etherna.BeeNet.Clients.GatewayApi;
+using Etherna.BeeNet.Exceptions;
 using Etherna.MongODM.Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;

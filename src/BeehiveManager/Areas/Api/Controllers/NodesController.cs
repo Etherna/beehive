@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 namespace Etherna.BeehiveManager.Areas.Api.Controllers
 {
     [ApiController]
-    [ApiVersion("0.1")]
+    [ApiVersion("0.3")]
     [Route("api/v{api-version:apiVersion}/[controller]")]
     public class NodesController : ControllerBase
     {
@@ -68,6 +68,60 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required] string id) =>
             service.FindByIdAsync(id);
 
+        /// <summary>
+        /// Get all postage batches owned by a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">List of owned postage batches</response>
+        [HttpGet("{id}/batches")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(
+            [Required] string id) =>
+            service.GetOwnedPostageBatchesByNodeAsync(id);
+
+        /// <summary>
+        /// Find details of a postage batch owned by a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <param name="batchId">Postage Batch Id</param>
+        /// <response code="200">Selected postage batch</response>
+        [HttpGet("{id}/batches/{batchId}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<PostageBatchDto> FindPostageBatchOnNodeAsync(
+            [Required] string id,
+            [Required] string batchId) =>
+            service.FindPostageBatchOnNodeAsync(id, batchId);
+
+        /// <summary>
+        /// Get live status of a Bee node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">Live status of the node</response>
+        [HttpGet("{id}/status")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(
+            [Required] string id) =>
+            service.GetBeeNodeLiveStatusAsync(id);
+
+        /// <summary>
+        /// Get live status of all Bee node
+        /// </summary>
+        /// <response code="200">Live status of all nodes</response>
+        [HttpGet("status")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus() =>
+            service.GetAllBeeNodeLiveStatus();
+
         // Post.
 
         /// <summary>
@@ -86,17 +140,18 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         // Put.
 
         /// <summary>
-        /// Enqueue retrieve node addresses from running instance.
+        /// Force full status refresh on a Bee node
         /// </summary>
         /// <param name="id">Id of the bee node</param>
-        /// <response code="200">Bee node info</response>
-        [HttpPut("{id}/addresses")]
+        /// <response code="200">True if node was alive</response>
+        [HttpPut("{id}/status")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public void EnqueueRetrieveNodeAddresses(
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<bool> ForceFullStatusRefreshAsync(
             [Required] string id) =>
-            service.EnqueueRetrieveNodeAddresses(id);
+            service.ForceFullStatusRefreshAsync(id);
 
         // Delete.
 

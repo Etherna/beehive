@@ -12,19 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeeNet;
-using System.Collections.Generic;
-
-namespace Etherna.BeehiveManager.Services.Utilities
+namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
-    public interface IBeeNodesManager
+    public enum BeeNodeSelectionMode
     {
-        // Properties.
-        IReadOnlyDictionary<string, BeeNodeClient> NodeClients { get; }
-
-        // Methods.
-        BeeNodeClient GetBeeNodeClient(BeeNode beeNode);
-        bool RemoveBeeNodeClient(string id);
+        Random,
+        RoundRobin
     }
 }

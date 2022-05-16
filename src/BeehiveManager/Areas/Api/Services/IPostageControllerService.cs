@@ -12,14 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Hangfire;
+using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using System.Threading.Tasks;
 
-namespace Etherna.BeehiveManager.Services.Tasks
+namespace Etherna.BeehiveManager.Areas.Api.Services
 {
-    public interface IRetrieveNodeAddressesTask
+    public interface IPostageControllerService
     {
-        [Queue(Queues.DOMAIN_MAINTENANCE)]
-        Task RunAsync(string nodeId);
+        Task<PostageBatchRefDto> BuyPostageBatchAsync(long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId);
+        Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId);
     }
 }

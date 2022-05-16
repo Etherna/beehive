@@ -1,9 +1,11 @@
-name: Stable release on Docker Hub
+name: Unstable release on Docker Hub
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+    - dev
+    - 'hotfix/**'
+    - 'release/**'
 
 jobs:
   build:
@@ -21,9 +23,7 @@ jobs:
       with:
         images: etherna/beehive-manager
         tags: |
-          type=semver,pattern=v{{major}}
-          type=semver,pattern=v{{major}}.{{minor}}
-          type=semver,pattern=v{{version}}
+          type=ref,event=branch
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1

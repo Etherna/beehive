@@ -12,13 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Hangfire.Annotations;
-using Hangfire.Dashboard;
+using System;
 
-namespace Etherna.BeehiveManager.Configs.Hangfire
+namespace Etherna.BeehiveManager.Exceptions
 {
-    public class AllowAllFilter : IDashboardAuthorizationFilter
+    public class ServiceConfigurationException : Exception
     {
-        public bool Authorize([NotNull] DashboardContext context) => true;
+        public ServiceConfigurationException()
+        { }
+        public ServiceConfigurationException(string message) : base(message)
+        { }
+        public ServiceConfigurationException(string message, Exception innerException) : base(message, innerException)
+        { }
     }
 }

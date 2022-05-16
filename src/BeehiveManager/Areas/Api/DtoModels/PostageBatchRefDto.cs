@@ -12,18 +12,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Domain.Models;
-using Etherna.DomainEvents;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
-
-namespace Etherna.BeehiveManager.Domain
+namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
-    public interface IBeehiveContext : IDbContext
+    public class PostageBatchRefDto
     {
-        ICollectionRepository<BeeNode, string> BeeNodes { get; }
-        ICollectionRepository<NodeLogBase, string> NodeLogs { get; }
+        public PostageBatchRefDto(
+            string batchId,
+            string nodeId)
+        {
+            BatchId = batchId;
+            NodeId = nodeId;
+        }
 
-        IEventDispatcher EventDispatcher { get; }
+        public string BatchId { get; }
+        public string NodeId { get; }
     }
 }
