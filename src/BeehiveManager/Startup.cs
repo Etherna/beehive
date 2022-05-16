@@ -104,6 +104,8 @@ namespace Etherna.BeehiveManager
             services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
             services.AddSwaggerGen(options =>
             {
+                options.SupportNonNullableReferenceTypes();
+
                 //add a custom operation filter which sets default values
                 options.OperationFilter<SwaggerDefaultValues>();
 
