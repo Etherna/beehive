@@ -3,7 +3,7 @@ using Etherna.BeehiveManager.Areas.Api.Services;
 using Etherna.BeehiveManager.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Controllers
@@ -26,14 +26,18 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         // Get.
 
         /// <summary>
-        /// Get all postage batches from all healthy nodes
+        /// Find bee node info by an owned postage batch Id
         /// </summary>
-        /// <returns>Postage batches list</returns>
-        [HttpGet("batches")]
+        /// <param name="id">Id of the postage batch</param>
+        /// <response code="200">Bee node info</response>
+        [HttpGet("batches/{id}/node")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes() =>
-            service.GetPostageBatchesFromAllNodes();
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(
+            [Required] string id) =>
+            service.FindBeeNodeOwnerOfPostageBatchAsync(id);
 
         // Post.
 
@@ -46,7 +50,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <param name="immutable">Is batch immutable</param>
         /// <param name="label">An optional label for this batch</param>
         /// <param name="nodeId">Bee node Id</param>
-        /// <returns>Postage batch id</returns>
+        /// <response code="200">Postage batch id</response>
         [HttpPost("batches")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]

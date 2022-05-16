@@ -52,8 +52,8 @@ namespace Etherna.BeehiveManager.Services.Utilities
         }
 
         // Properties.
-        public IEnumerable<BeeNodeLiveInstance> HealthyNodes =>
-            beeNodeInstances.Values.Where(i => i.Status.IsAlive);
+        public IEnumerable<BeeNodeLiveInstance> AllNodes => beeNodeInstances.Values;
+        public IEnumerable<BeeNodeLiveInstance> HealthyNodes => AllNodes.Where(i => i.Status.IsAlive);
 
         // Methods.
         public async Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode)

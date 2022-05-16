@@ -24,6 +24,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput input);
         Task<BeeNodeDto> FindByIdAsync(string id);
         Task<PostageBatchDto> FindPostageBatchOnNodeAsync(string id, string batchId);
+        Task<bool> ForceFullStatusRefreshAsync(string id);
+        Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id);
         Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take);
         Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(string id);
         Task RemoveBeeNodeAsync(string id);

@@ -1,7 +1,7 @@
 ﻿using Etherna.BeehiveManager.Areas.Api.DtoModels;
+using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
-using Etherna.BeeNet.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,12 +12,15 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class PostageControllerService : IPostageControllerService
     {
         // Fields.
+        private readonly IBeehiveDbContext beehiveDbContext;
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
 
         // Constructor.
         public PostageControllerService(
+            IBeehiveDbContext beehiveDbContext,
             IBeeNodeLiveManager beeNodeLiveManager)
         {
+            this.beehiveDbContext = beehiveDbContext;
             this.beeNodeLiveManager = beeNodeLiveManager;
         }
 
@@ -39,20 +42,15 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new PostageBatchRefDto(batchId, beeNodeInstance.Id);
         }
 
-        public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesFromAllNodes()
+        public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
         {
-            var batches = new List<PostageBatchDto>();
-            foreach (var nodeStatus in beeNodeLiveManager.HealthyNodes)
-            {
-                try
-                {
-                    batches.AddRange((await nodeStatus.Client.DebugClient!.GetAllValidPostageBatchesFromAllNodesAsync())
-                        .Select(b => new PostageBatchDto(b)));
-                }
-                catch (Exception e) when (e is BeeNetDebugApiException) { }
-            }
+            var beeNodeLiveInstance = beeNodeLiveManager.AllNodes.FirstOrDefault(n => n.Status.PostageBatchesId?.Contains(batchId) ?? false);
+            if (beeNodeLiveInstance is null)
+                throw new KeyNotFoundException();
 
-            return batches;
+            var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
+
+            return new BeeNodeDto(beeNode);
         }
     }
 }

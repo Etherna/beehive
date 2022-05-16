@@ -22,6 +22,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
     public interface IBeeNodeLiveManager
     {
         // Properties.
+        IEnumerable<BeeNodeLiveInstance> AllNodes { get; }
         IEnumerable<BeeNodeLiveInstance> HealthyNodes { get; }
 
         // Methods.

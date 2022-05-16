@@ -30,16 +30,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class NodesControllerService : INodesControllerService
     {
         // Fields.
+        private readonly IBeehiveDbContext beehiveDbContext;
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
-        private readonly IBeehiveDbContext context;
 
         // Constructor.
         public NodesControllerService(
-            IBeeNodeLiveManager beeNodeLiveManager,
-            IBeehiveDbContext context)
+            IBeehiveDbContext beehiveDbContext,
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
+            this.beehiveDbContext = beehiveDbContext;
             this.beeNodeLiveManager = beeNodeLiveManager;
-            this.context = context;
         }
 
         // Methods.
@@ -53,13 +53,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 input.DebugApiPort,
                 input.GatewayApiPort,
                 input.Url);
-            await context.BeeNodes.CreateAsync(node);
+            await beehiveDbContext.BeeNodes.CreateAsync(node);
 
             return new BeeNodeDto(node);
         }
 
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
-            new BeeNodeDto(await context.BeeNodes.FindOneAsync(id));
+            new BeeNodeDto(await beehiveDbContext.BeeNodes.FindOneAsync(id));
 
         public async Task<PostageBatchDto> FindPostageBatchOnNodeAsync(string id, string batchId)
         {
@@ -68,8 +68,20 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new PostageBatchDto(postageBatch);
         }
 
+        public async Task<bool> ForceFullStatusRefreshAsync(string id)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            return await beeNodeInstance.TryRefreshStatusAsync(true);
+        }
+
+        public async Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            return new BeeNodeStatusDto(beeNodeInstance.Status);
+        }
+
         public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take) =>
-            (await context.BeeNodes.QueryElementsAsync(elements =>
+            (await beehiveDbContext.BeeNodes.QueryElementsAsync(elements =>
                 elements.PaginateDescending(n => n.CreationDateTime, page, take)
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
@@ -86,7 +98,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             if (id is null)
                 throw new ArgumentNullException(nameof(id));
 
-            await context.BeeNodes.DeleteAsync(id);
+            await beehiveDbContext.BeeNodes.DeleteAsync(id);
         }
     }
 }
