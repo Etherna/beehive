@@ -32,15 +32,15 @@ namespace Etherna.BeehiveManager.Services.Tasks
         public const long MinAmount = 100_000_000_000_000; //10^14, 0.01 BZZ
 
         // Fields.
-        private readonly IBeeNodesStatusManager beeNodesStatusManager;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
         private readonly IBeehiveDbContext context;
 
         // Constructors.
         public CashoutAllNodesTask(
-            IBeeNodesStatusManager beeNodesStatusManager,
+            IBeeNodeLiveManager beeNodeLiveManager,
             IBeehiveDbContext context)
         {
-            this.beeNodesStatusManager = beeNodesStatusManager;
+            this.beeNodeLiveManager = beeNodeLiveManager;
             this.context = context;
         }
 
@@ -53,8 +53,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 .ForEachAsync(async node =>
                 {
                     // Get info.
-                    var nodeStatus = await beeNodesStatusManager.GetBeeNodeStatusAsync(node.Id);
-                    var nodeClient = nodeStatus.Client;
+                    var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(node.Id);
+                    var nodeClient = beeNodeInstance.Client;
                     if (nodeClient.DebugClient is null) //skip if doesn't have a debug api config
                         return;
 

@@ -13,25 +13,25 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeeNet;
+using Etherna.BeehiveManager.Services.Utilities.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
-    public interface IBeeNodesStatusManager
+    public interface IBeeNodeLiveManager
     {
         // Properties.
-        IEnumerable<BeeNodeStatus> HealthyNodes { get; }
+        IEnumerable<BeeNodeLiveInstance> AllNodes { get; }
+        IEnumerable<BeeNodeLiveInstance> HealthyNodes { get; }
 
         // Methods.
-        BeeNodeStatus AddBeeNode(BeeNode beeNode);
-        Task<BeeNodeStatus> GetBeeNodeStatusAsync(string nodeId);
+        Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
+        Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
-        BeeNodeStatus? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode);
-        void UpdateNodeInfo(BeeNode node);
+        BeeNodeLiveInstance? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode);
     }
 }

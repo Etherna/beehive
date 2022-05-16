@@ -9,19 +9,19 @@ namespace Etherna.BeehiveManager.Services.EventHandlers
     class OnBeeNodeDeletedThenRemoveNodeStatusHandler : EventHandlerBase<EntityDeletedEvent<BeeNode>>
     {
         // Fields.
-        private readonly IBeeNodesStatusManager nodeStatusManager;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
 
         // Constructor.
         public OnBeeNodeDeletedThenRemoveNodeStatusHandler(
-            IBeeNodesStatusManager nodeStatusManager)
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
-            this.nodeStatusManager = nodeStatusManager;
+            this.beeNodeLiveManager = beeNodeLiveManager;
         }
 
         // Methods.
         public override Task HandleAsync(EntityDeletedEvent<BeeNode> @event)
         {
-            nodeStatusManager.RemoveBeeNode(@event.Entity.Id);
+            beeNodeLiveManager.RemoveBeeNode(@event.Entity.Id);
             return Task.CompletedTask;
         }
     }

@@ -9,20 +9,19 @@ namespace Etherna.BeehiveManager.Services.EventHandlers
     class OnBeeNodeCreatedThenAddNodeStatusHandler : EventHandlerBase<EntityCreatedEvent<BeeNode>>
     {
         // Fields.
-        private readonly IBeeNodesStatusManager nodeStatusManager;
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
 
         // Constructor.
         public OnBeeNodeCreatedThenAddNodeStatusHandler(
-            IBeeNodesStatusManager nodeStatusManager)
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
-            this.nodeStatusManager = nodeStatusManager;
+            this.beeNodeLiveManager = beeNodeLiveManager;
         }
 
         // Methods.
-        public override Task HandleAsync(EntityCreatedEvent<BeeNode> @event)
+        public override async Task HandleAsync(EntityCreatedEvent<BeeNode> @event)
         {
-            nodeStatusManager.AddBeeNode(@event.Entity);
-            return Task.CompletedTask;
+            await beeNodeLiveManager.AddBeeNodeAsync(@event.Entity);
         }
     }
 }

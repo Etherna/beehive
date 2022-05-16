@@ -72,7 +72,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// Get all postage batches owned by a node
         /// </summary>
         /// <param name="id">Id of the bee node</param>
-        /// <returns>List of owned postage batches</returns>
+        /// <response code="200">List of owned postage batches</response>
         [HttpGet("{id}/batches")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -87,7 +87,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// </summary>
         /// <param name="id">Id of the bee node</param>
         /// <param name="batchId">Postage Batch Id</param>
-        /// <returns>Selected postage batch</returns>
+        /// <response code="200">Selected postage batch</response>
         [HttpGet("{id}/batches/{batchId}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -97,6 +97,20 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required] string id,
             [Required] string batchId) =>
             service.FindPostageBatchOnNodeAsync(id, batchId);
+
+        /// <summary>
+        /// Get live status of a Bee node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">Live status of the node</response>
+        [HttpGet("{id}/status")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(
+            [Required] string id) =>
+            service.GetBeeNodeLiveStatusAsync(id);
 
         // Post.
 
@@ -114,6 +128,20 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             service.AddBeeNodeAsync(nodeInput);
 
         // Put.
+
+        /// <summary>
+        /// Force full status refresh on a Bee node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">True if node was alive</response>
+        [HttpPut("{id}/status")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<bool> ForceFullStatusRefreshAsync(
+            [Required] string id) =>
+            service.ForceFullStatusRefreshAsync(id);
 
         // Delete.
 
