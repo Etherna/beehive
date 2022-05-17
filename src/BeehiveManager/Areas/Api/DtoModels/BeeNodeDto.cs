@@ -26,23 +26,25 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
                 throw new ArgumentNullException(nameof(beeNode));
 
             Id = beeNode.Id;
+            ConnectionScheme = beeNode.ConnectionScheme;
             DebugPort = beeNode.DebugPort;
             EthereumAddress = beeNode.Addresses?.Ethereum;
             GatewayPort = beeNode.GatewayPort;
+            Hostname = beeNode.Hostname;
             OverlayAddress = beeNode.Addresses?.Overlay;
             PssPublicKey = beeNode.Addresses?.PssPublicKey;
             PublicKey = beeNode.Addresses?.PublicKey;
-            Url = beeNode.Url;
         }
 
         // Properties.
         public string Id { get; }
-        public int? DebugPort { get; }
+        public string ConnectionScheme { get; }
+        public int DebugPort { get; }
         public string? EthereumAddress { get; }
-        public int? GatewayPort { get; }
+        public int GatewayPort { get; }
+        public string Hostname { get; }
         public string? OverlayAddress { get; }
         public string? PssPublicKey { get; }
         public string? PublicKey { get; }
-        public Uri Url { get; }
     }
 }
