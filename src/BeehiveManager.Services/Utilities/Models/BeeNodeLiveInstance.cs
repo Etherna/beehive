@@ -42,7 +42,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             IBeehiveDbContext beehiveDbContext)
         {
             Id = beeNode.Id;
-            Client = new BeeNodeClient(beeNode.Url.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
+            Client = new BeeNodeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
             RequireFullStatusRefresh = true;
             Status = new BeeNodeStatus();
             this.beehiveDbContext = beehiveDbContext;

@@ -16,8 +16,6 @@ using Etherna.BeehiveManager.Domain.Events;
 using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.MongODM.Core.Attributes;
 using System;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace Etherna.BeehiveManager.Domain.Models
 {
@@ -25,22 +23,22 @@ namespace Etherna.BeehiveManager.Domain.Models
     {
         // Constructors.
         public BeeNode(
-            int? debugPort,
-            int? gatewayPort,
-            string url)
+            string connectionScheme,
+            int debugPort,
+            int gatewayPort,
+            string hostname)
         {
-            if (debugPort is not null and (< 1 or > 65535))
+            if (debugPort is < 1 or > 65535)
                 throw new ArgumentOutOfRangeException(nameof(debugPort), "Debug port is not a valid port");
-            if (gatewayPort is not null and (< 1 or > 65535))
+            if (gatewayPort is < 1 or > 65535)
                 throw new ArgumentOutOfRangeException(nameof(gatewayPort), "Gateway port is not a valid port");
-            if (gatewayPort is not null && gatewayPort == debugPort)
+            if (gatewayPort == debugPort)
                 throw new ArgumentException("Gateway and debug ports can't be the same");
-            if (url is null)
-                throw new ArgumentNullException(nameof(url));
 
+            ConnectionScheme = connectionScheme;
             DebugPort = debugPort;
             GatewayPort = gatewayPort;
-            Url = NormalizeUrl(url);
+            Hostname = hostname;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         protected BeeNode() { }
@@ -48,9 +46,13 @@ namespace Etherna.BeehiveManager.Domain.Models
 
         // Properties.
         public virtual BeeNodeAddresses? Addresses { get; protected set; }
-        public virtual int? DebugPort { get; set; }
-        public virtual int? GatewayPort { get; set; }
-        public virtual Uri Url { get; protected set; }
+        public virtual string ConnectionScheme { get; set; }
+        public virtual Uri BaseUrl => new($"{ConnectionScheme}://{Hostname}");
+        public virtual int DebugPort { get; set; }
+        public virtual Uri DebugUrl => new($"{ConnectionScheme}://{Hostname}:{DebugPort}");
+        public virtual int GatewayPort { get; set; }
+        public virtual Uri GatewayUrl => new($"{ConnectionScheme}://{Hostname}:{GatewayPort}");
+        public virtual string Hostname { get; set; }
 
         // Methods.
         [PropertyAlterer(nameof(Addresses))]
@@ -62,41 +64,6 @@ namespace Etherna.BeehiveManager.Domain.Models
             Addresses = addresses ?? throw new ArgumentNullException(nameof(addresses));
 
             AddEvent(new SetBeeNodeAddressesEvent(this));
-        }
-
-        [PropertyAlterer(nameof(Url))]
-        public virtual void SetUrl(string url)
-        {
-            if (url is null)
-                throw new ArgumentNullException(nameof(url));
-
-            Url = NormalizeUrl(url);
-        }
-
-        // Helpers.
-        private static Uri NormalizeUrl(string url)
-        {
-            var normalizedUrl = url;
-            if (normalizedUrl.Last() != '/')
-                normalizedUrl += '/';
-
-            var urlRegex = new Regex(@"^((?<proto>\w+)://)?[^/]+?(?<port>:\d+)?/(?<path>.*)",
-                RegexOptions.None, TimeSpan.FromMilliseconds(150));
-            var urlMatch = urlRegex.Match(normalizedUrl);
-
-            if (!urlMatch.Success)
-                throw new ArgumentException("Url is not valid", nameof(url));
-
-            if (string.IsNullOrEmpty(urlMatch.Groups["proto"].Value))
-                normalizedUrl = $"{Uri.UriSchemeHttp}://{normalizedUrl}";
-
-            if (!string.IsNullOrEmpty(urlMatch.Groups["path"].Value))
-                throw new ArgumentException("Url can't have an internal path or query", nameof(url));
-
-            if (!string.IsNullOrEmpty(urlMatch.Groups["port"].Value))
-                throw new ArgumentException("Url can't specify a port", nameof(url));
-
-            return new Uri(normalizedUrl, UriKind.Absolute);
         }
     }
 }
