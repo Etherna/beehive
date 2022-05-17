@@ -53,6 +53,31 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required] string id) =>
             service.FindBeeNodeOwnerOfPostageBatchAsync(id);
 
+        /// <summary>
+        /// Find bee node url by an owned postage batch Id (this simplify need of json parse by nginx calls)
+        /// </summary>
+        /// <param name="id">Id of the postage batch</param>
+        /// <param name="useHeader">True if response is wanted in header</param>
+        /// <response code="200">Bee node url</response>
+        [HttpGet("batches/{id}/node/url")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> FindBeeNodeUrlOwnerOfPostageBatchAsync(
+            [Required] string id,
+            bool useHeader = false)
+        {
+            var url = (await service.FindBeeNodeOwnerOfPostageBatchAsync(id)).Url.ToString();
+            if (useHeader)
+            {
+                HttpContext.Response.Headers.Add("bee-node-url", url);
+                return new OkResult();
+            }
+            else
+                return new ContentResult() { Content = url, StatusCode = 200 };
+        }
+
         // Post.
 
         /// <summary>
