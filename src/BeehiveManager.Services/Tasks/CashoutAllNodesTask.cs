@@ -29,7 +29,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
     {
         // Consts.
         public const string TaskId = "cashoutAllNodesTask";
-        public const long MinAmount = 100_000_000_000_000; //10^14, 0.01 BZZ
+        public const long MinAmount = 1_000_000_000_000; //10^12 = 0.0001 BZZ
 
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
