@@ -18,13 +18,15 @@ namespace Etherna.BeehiveManager.Areas.Api.InputModels
 {
     public class BeeNodeInput
     {
-        [Range(1, 65535)]
-        public int? DebugApiPort { get; set; }
+        public string ConnectionScheme { get; set; } = "http";
 
         [Range(1, 65535)]
-        public int? GatewayApiPort { get; set; }
+        public int DebugApiPort { get; set; }
+
+        [Range(1, 65535)]
+        public int GatewayApiPort { get; set; }
 
         [Required]
-        public string Url { get; set; } = default!;
+        public string Hostname { get; set; } = default!;
     }
 }
