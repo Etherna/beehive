@@ -51,7 +51,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> FindBeeNodeOwnerOfPostageBatchAsync(
+        public async Task<BeeNodeDto?> FindBeeNodeOwnerOfPostageBatchAsync(
             [Required] string id,
             bool useHeader = false)
         {
@@ -67,10 +67,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
                 HttpContext.Response.Headers.Add("bee-node-overlay-address", beeNodeInfo.OverlayAddress);
                 HttpContext.Response.Headers.Add("bee-node-pss-public-key", beeNodeInfo.PssPublicKey);
                 HttpContext.Response.Headers.Add("bee-node-public-key", beeNodeInfo.PublicKey);
-                return new OkResult();
+                return null;
             }
             else
-                return new JsonResult(beeNodeInfo);
+                return beeNodeInfo;
         }
 
         // Post.
