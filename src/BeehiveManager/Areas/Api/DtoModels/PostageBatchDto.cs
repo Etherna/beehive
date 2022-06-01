@@ -40,7 +40,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 
         // Properties.
         public string Id { get; }
-        public int BatchTTL { get; }
+        public long BatchTTL { get; }
         public int BlockNumber { get; }
         public int BucketDepth { get; }
         public int Depth { get; }
