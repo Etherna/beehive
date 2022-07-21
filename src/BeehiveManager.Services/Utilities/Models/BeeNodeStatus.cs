@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -20,9 +21,22 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Status comparison is not a required function")]
     public struct BeeNodeStatus
     {
+        public BeeNodeStatus(
+            IEnumerable<string>? errors,
+            DateTime heartbeatTimeStamp,
+            bool isAlive,
+            IEnumerable<string>? postageBatchesId)
+        {
+            Errors = errors;
+            HeartbeatTimeStamp = heartbeatTimeStamp;
+            IsAlive = isAlive;
+            PostageBatchesId = postageBatchesId;
+        }
+
         // Properties.
-        public IEnumerable<string>? Errors { get; internal init; }
-        public bool IsAlive { get; internal init; }
-        public IEnumerable<string>? PostageBatchesId { get; internal init; }
+        public IEnumerable<string>? Errors { get; }
+        public DateTime HeartbeatTimeStamp { get; }
+        public bool IsAlive { get; }
+        public IEnumerable<string>? PostageBatchesId { get; }
     }
 }

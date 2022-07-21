@@ -24,6 +24,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public BeeNodeStatusDto(string id, BeeNodeStatus status)
         {
             Errors = status.Errors ?? Array.Empty<string>();
+            HeartbeatTimeStamp = status.HeartbeatTimeStamp;
             IsAlive = status.IsAlive;
             PostageBatchesId = status.PostageBatchesId ?? Array.Empty<string>();
             Id = id;
@@ -32,6 +33,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         // Properties.
         public string Id { get; }
         public IEnumerable<string> Errors { get; }
+        public DateTime HeartbeatTimeStamp { get; }
         public bool IsAlive { get; }
         public IEnumerable<string> PostageBatchesId { get; }
     }
