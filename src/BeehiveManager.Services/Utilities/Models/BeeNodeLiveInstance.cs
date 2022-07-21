@@ -75,6 +75,8 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             await statusRefreshSemaphore.WaitAsync();
 
+            var heartbeatTimeStamp = DateTime.UtcNow;
+
             try
             {
                 // Check if node is alive.
@@ -85,12 +87,11 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
                     if (!isAlive)
                     {
-                        Status = new BeeNodeStatus
-                        {
-                            Errors = new[] { "Node is not ready" },
-                            IsAlive = false,
-                            PostageBatchesId = Status.PostageBatchesId
-                        };
+                        Status = new BeeNodeStatus(
+                            new[] { "Node is not ready" },
+                            heartbeatTimeStamp,
+                            false,
+                            Status.PostageBatchesId);
                         return false;
                     }
 
@@ -124,12 +125,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     e is HttpRequestException ||
                     e is SocketException)
                 {
-                    Status = new BeeNodeStatus
-                    {
-                        Errors = new[] { "Exception invoking node API" },
-                        IsAlive = false,
-                        PostageBatchesId = Status.PostageBatchesId
-                    };
+                    Status = new BeeNodeStatus(
+                        new[] { "Exception invoking node API" },
+                        heartbeatTimeStamp,
+                        false,
+                        Status.PostageBatchesId
+                    );
                     return false;
                 }
 
@@ -166,12 +167,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
 #pragma warning restore CA1031 // Do not catch general exception types
 
-                Status = new BeeNodeStatus
-                {
-                    Errors = errors,
-                    IsAlive = true,
-                    PostageBatchesId = postageBatchesId
-                };
+                Status = new BeeNodeStatus(
+                    errors,
+                    heartbeatTimeStamp,
+                    true,
+                    postageBatchesId
+                );
                 RequireFullStatusRefresh &= errors.Any();
 
                 return true;
