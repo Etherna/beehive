@@ -15,11 +15,14 @@
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities.Models;
+using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -53,6 +56,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         // Properties.
         public IEnumerable<BeeNodeLiveInstance> AllNodes => beeNodeInstances.Values;
+        public ChainState? ChainState { get; private set; }
         public IEnumerable<BeeNodeLiveInstance> HealthyNodes => AllNodes.Where(i => i.Status.IsAlive);
 
         // Methods.
@@ -95,7 +99,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
 
-        public BeeNodeLiveInstance? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode)
+        public BeeNodeLiveInstance? TrySelectHealthyNode(BeeNodeSelectionMode mode)
         {
             switch (mode)
             {
@@ -156,10 +160,25 @@ namespace Etherna.BeehiveManager.Services.Utilities
         {
             var tasks = new List<Task>();
 
+            //update nodes
             foreach (var instance in beeNodeInstances.Values)
                 tasks.Add(instance.TryRefreshStatusAsync());
-
             await Task.WhenAll(tasks);
+
+            //update chain state
+            var node = TrySelectHealthyNode(BeeNodeSelectionMode.RoundRobin);
+            if (node is not null)
+            {
+                try
+                {
+                    ChainState = new ChainState(node.Id, await node.Client.DebugClient!.GetChainStateAsync());
+                }
+                catch (Exception e) when (
+                    e is BeeNetDebugApiException ||
+                    e is HttpRequestException ||
+                    e is SocketException)
+                { }
+            }
         }
     }
 }
