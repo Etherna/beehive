@@ -44,7 +44,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         {
             // Try to select an healthy node.
             var beeNodeInstance = nodeId is null ?
-                beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin) :
+                beeNodeLiveManager.TrySelectHealthyNode(BeeNodeSelectionMode.RoundRobin) :
                 await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
 
             if (beeNodeInstance is null)

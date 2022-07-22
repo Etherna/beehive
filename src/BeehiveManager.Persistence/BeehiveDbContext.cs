@@ -34,11 +34,16 @@ namespace Etherna.BeehiveManager.Persistence
         // Consts.
         private const string SerializersNamespace = "Etherna.BeehiveManager.Persistence.ModelMaps";
 
+        // Fields.
+        private readonly IEnumerable<BeeNode>? seedDbBeeNodes;
+
         // Constructor.
         public BeehiveDbContext(
-            IEventDispatcher eventDispatcher)
+            IEventDispatcher eventDispatcher,
+            IEnumerable<BeeNode>? seedDbBeeNodes)
         {
             EventDispatcher = eventDispatcher;
+            this.seedDbBeeNodes = seedDbBeeNodes;
         }
 
         // Properties.
@@ -67,7 +72,7 @@ namespace Etherna.BeehiveManager.Persistence
             where t.GetInterfaces().Contains(typeof(IModelMapsCollector))
             select Activator.CreateInstance(t) as IModelMapsCollector;
 
-        // Methods.
+        // Public methods.
         public override Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             // Dispatch events.
@@ -79,6 +84,16 @@ namespace Etherna.BeehiveManager.Persistence
             }
 
             return base.SaveChangesAsync(cancellationToken);
+        }
+
+        // Protected methods.
+        protected override async Task SeedAsync()
+        {
+            if (seedDbBeeNodes is null)
+                return;
+
+            foreach (var node in seedDbBeeNodes)
+                await BeeNodes.CreateAsync(node);
         }
     }
 }

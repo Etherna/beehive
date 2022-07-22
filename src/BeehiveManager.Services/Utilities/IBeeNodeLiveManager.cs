@@ -23,6 +23,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
     {
         // Properties.
         IEnumerable<BeeNodeLiveInstance> AllNodes { get; }
+        ChainState? ChainState { get; }
         IEnumerable<BeeNodeLiveInstance> HealthyNodes { get; }
 
         // Methods.
@@ -32,6 +33,6 @@ namespace Etherna.BeehiveManager.Services.Utilities
         bool RemoveBeeNode(string nodeId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
-        BeeNodeLiveInstance? TrySelectHealthyNodeAsync(BeeNodeSelectionMode mode);
+        BeeNodeLiveInstance? TrySelectHealthyNode(BeeNodeSelectionMode mode);
     }
 }

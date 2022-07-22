@@ -16,6 +16,7 @@ using Etherna.BeehiveManager.Configs;
 using Etherna.BeehiveManager.Configs.Hangfire;
 using Etherna.BeehiveManager.Configs.Swagger;
 using Etherna.BeehiveManager.Domain;
+using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
 using Etherna.BeehiveManager.Services;
@@ -38,6 +39,7 @@ using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -121,6 +123,7 @@ namespace Etherna.BeehiveManager
             {
                 options.AssemblyVersion = assemblyVersion.Version;
             });
+            services.Configure<SeedDbSettings>(Configuration.GetSection(SeedDbSettings.ConfigPosition));
 
             // Configure Hangfire and persistence.
             services.AddMongODMWithHangfire(configureHangfireOptions: options =>
@@ -138,7 +141,11 @@ namespace Etherna.BeehiveManager
                 .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
                 {
                     var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
-                    return new BeehiveDbContext(eventDispatcher);
+                    var seedDbSettings = sp.GetRequiredService<IOptions<SeedDbSettings>>().Value;
+                    return new BeehiveDbContext(
+                        eventDispatcher,
+                        seedDbSettings.BeeNodes.Where(n => n is not null)
+                                               .Select(n => new BeeNode(n.Scheme, n.DebugPort, n.GatewayPort, n.Hostname)));
                 },
                 options =>
                 {
@@ -194,6 +201,9 @@ namespace Etherna.BeehiveManager
                 endpoints.MapControllers();
                 endpoints.MapRazorPages();
             });
+
+            // Seed db.
+            app.SeedDbContexts();
 
             // Startup scripts.
             app.StartBeeNodeLiveManager();

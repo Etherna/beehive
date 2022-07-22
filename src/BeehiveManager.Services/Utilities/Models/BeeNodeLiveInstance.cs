@@ -75,6 +75,8 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             await statusRefreshSemaphore.WaitAsync();
 
+            var heartbeatTimeStamp = DateTime.UtcNow;
+
             try
             {
                 // Check if node is alive.
@@ -85,12 +87,11 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
                     if (!isAlive)
                     {
-                        Status = new BeeNodeStatus
-                        {
-                            Errors = new[] { "Node is not ready" },
-                            IsAlive = false,
-                            PostageBatchesId = Status.PostageBatchesId
-                        };
+                        Status = new BeeNodeStatus(
+                            new[] { "Node is not ready" },
+                            heartbeatTimeStamp,
+                            false,
+                            Status.PostageBatchesId);
                         return false;
                     }
 
@@ -104,14 +105,16 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     {
                         "2.0.0" => GatewayApiVersion.v2_0_0,
                         "3.0.0" => GatewayApiVersion.v3_0_0,
-                        _ => GatewayApiVersion.v3_0_0
+                        "3.0.1" => GatewayApiVersion.v3_0_1,
+                        _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
                     var currentDebugApiVersion = result.DebugApiVersion switch
                     {
                         "1.2.0" => DebugApiVersion.v1_2_0,
                         "1.2.1" => DebugApiVersion.v1_2_1,
                         "2.0.0" => DebugApiVersion.v2_0_0,
-                        _ => DebugApiVersion.v2_0_0
+                        "2.0.1" => DebugApiVersion.v2_0_1,
+                        _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
 
                     if (Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
@@ -124,12 +127,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     e is HttpRequestException ||
                     e is SocketException)
                 {
-                    Status = new BeeNodeStatus
-                    {
-                        Errors = new[] { "Exception invoking node API" },
-                        IsAlive = false,
-                        PostageBatchesId = Status.PostageBatchesId
-                    };
+                    Status = new BeeNodeStatus(
+                        new[] { "Exception invoking node API" },
+                        heartbeatTimeStamp,
+                        false,
+                        Status.PostageBatchesId
+                    );
                     return false;
                 }
 
@@ -166,12 +169,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
 #pragma warning restore CA1031 // Do not catch general exception types
 
-                Status = new BeeNodeStatus
-                {
-                    Errors = errors,
-                    IsAlive = true,
-                    PostageBatchesId = postageBatchesId
-                };
+                Status = new BeeNodeStatus(
+                    errors,
+                    heartbeatTimeStamp,
+                    true,
+                    postageBatchesId
+                );
                 RequireFullStatusRefresh &= errors.Any();
 
                 return true;
