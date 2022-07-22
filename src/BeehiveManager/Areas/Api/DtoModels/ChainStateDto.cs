@@ -11,18 +11,16 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
                 throw new ArgumentNullException(nameof(chainState));
 
             Block = chainState.Block;
-            ChainTip = chainState.ChainTip;
             CurrentPrice = chainState.CurrentPrice;
             SourceNodeId = chainState.SourceNodeId;
             TimeStamp = chainState.TimeStamp;
             TotalAmount = chainState.TotalAmount;
         }
 
-        public int Block { get; }
-        public int ChainTip { get; }
-        public int CurrentPrice { get; }
+        public long Block { get; }
+        public string CurrentPrice { get; }
         public string SourceNodeId { get; }
         public DateTime TimeStamp { get; }
-        public int TotalAmount { get; }
+        public string TotalAmount { get; }
     }
 }

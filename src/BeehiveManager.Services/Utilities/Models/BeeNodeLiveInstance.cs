@@ -105,14 +105,16 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     {
                         "2.0.0" => GatewayApiVersion.v2_0_0,
                         "3.0.0" => GatewayApiVersion.v3_0_0,
-                        _ => GatewayApiVersion.v3_0_0
+                        "3.0.1" => GatewayApiVersion.v3_0_1,
+                        _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
                     var currentDebugApiVersion = result.DebugApiVersion switch
                     {
                         "1.2.0" => DebugApiVersion.v1_2_0,
                         "1.2.1" => DebugApiVersion.v1_2_1,
                         "2.0.0" => DebugApiVersion.v2_0_0,
-                        _ => DebugApiVersion.v2_0_0
+                        "2.0.1" => DebugApiVersion.v2_0_1,
+                        _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
 
                     if (Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
