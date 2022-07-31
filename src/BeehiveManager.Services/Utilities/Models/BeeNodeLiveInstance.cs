@@ -66,6 +66,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             return batchId;
         }
 
+        public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
+            Client.DebugClient!.TopUpPostageBatchAsync(batchId, amount);
+
         /// <summary>
         /// Try to refresh node live status
         /// </summary>

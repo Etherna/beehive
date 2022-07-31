@@ -82,6 +82,9 @@ namespace Etherna.BeehiveManager.Services.Utilities
             return await AddBeeNodeAsync(beeNode);
         }
 
+        public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId) =>
+            AllNodes.First(n => n.Status.PostageBatchesId?.Contains(batchId) ?? false);
+
         public async Task LoadAllNodesAsync()
         {
             var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
