@@ -54,6 +54,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new PostageBatchRefDto(batchId, beeNodeInstance.Id);
         }
 
+        public async Task<string> DilutePostageBatchAsync(string batchId, int depth)
+        {
+            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+
+            // Top up.
+            return await beeNodeLiveInstance.DilutePostageBatchAsync(batchId, depth);
+        }
+
         public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
         {
             var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
