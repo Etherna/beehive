@@ -17,8 +17,6 @@ using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
@@ -56,15 +54,28 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new PostageBatchRefDto(batchId, beeNodeInstance.Id);
         }
 
+        public async Task<string> DilutePostageBatchAsync(string batchId, int depth)
+        {
+            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+
+            // Top up.
+            return await beeNodeLiveInstance.DilutePostageBatchAsync(batchId, depth);
+        }
+
         public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
         {
-            var beeNodeLiveInstance = beeNodeLiveManager.AllNodes.FirstOrDefault(n => n.Status.PostageBatchesId?.Contains(batchId) ?? false);
-            if (beeNodeLiveInstance is null)
-                throw new KeyNotFoundException();
-
+            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
             var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
 
             return new BeeNodeDto(beeNode);
+        }
+
+        public async Task<string> TopUpPostageBatchAsync(string batchId, long amount)
+        {
+            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+
+            // Top up.
+            return await beeNodeLiveInstance.TopUpPostageBatchAsync(batchId, amount);
         }
     }
 }
