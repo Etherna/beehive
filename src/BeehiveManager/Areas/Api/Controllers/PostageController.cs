@@ -103,6 +103,26 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
         // Patch.
 
+        [HttpPatch("batches/{id}/dilute/{depth}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<string> DilutePostageBatchAsync(
+            [Required] string id,
+            [Required] int depth) =>
+            service.DilutePostageBatchAsync(id, depth);
+
+        [HttpPatch("batches/{id}/topup/{amount}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<string> TopUpPostageBatchAsync(
+            [Required] string id,
+            [Required] long amount) =>
+            service.TopUpPostageBatchAsync(id, amount);
+
         // Delete.
     }
 }
