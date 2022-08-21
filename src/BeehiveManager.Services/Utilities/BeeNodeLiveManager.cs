@@ -141,12 +141,9 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     }
 
                     //or try from beginning
-                    if (selectedNode is null)
-                    {
-                        selectedNode = beeNodeInstances.Values
-                            .Where(instance => instance.Status.IsAlive)
-                            .FirstOrDefault();
-                    }
+                    selectedNode ??= beeNodeInstances.Values
+                        .Where(instance => instance.Status.IsAlive)
+                        .FirstOrDefault();
 
                     //update last selected
                     lastSelectedNodeRoundRobin = selectedNode;
