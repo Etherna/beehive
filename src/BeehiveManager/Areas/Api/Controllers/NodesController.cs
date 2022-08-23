@@ -78,12 +78,26 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(
+        public Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(
             [Required] string id) =>
-            service.GetOwnedPostageBatchesByNodeAsync(id);
+            service.GetPostageBatchesByNodeAsync(id);
 
         /// <summary>
-        /// Find details of a postage batch owned by a node
+        /// Get all pinned resources by a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <response code="200">List of pinned resources</response>
+        [HttpGet("{id}/pins")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IEnumerable<string>> GetPinsByNodeAsync(
+            [Required] string id) =>
+            service.GetPinsByNodeAsync(id);
+
+        /// <summary>
+        /// Get details of a postage batch owned by a node
         /// </summary>
         /// <param name="id">Id of the bee node</param>
         /// <param name="batchId">Postage Batch Id</param>
@@ -93,10 +107,26 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<PostageBatchDto> FindPostageBatchOnNodeAsync(
+        public Task<PostageBatchDto> GetPostageBatchDetailsAsync(
             [Required] string id,
             [Required] string batchId) =>
-            service.FindPostageBatchOnNodeAsync(id, batchId);
+            service.GetPostageBatchDetailsAsync(id, batchId);
+
+        /// <summary>
+        /// Get details of a pinned resource on a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <param name="hash">Resource hash</param>
+        /// <returns>Pinned resource info</returns>
+        [HttpGet("{id}/pins/{hash}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<PinnedResourceDto> GetPinDetailsAsync(
+            [Required] string id,
+            [Required] string hash) =>
+            service.GetPinDetailsAsync(id, hash);
 
         /// <summary>
         /// Get live status of a Bee node

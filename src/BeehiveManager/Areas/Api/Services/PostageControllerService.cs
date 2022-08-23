@@ -24,16 +24,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public class PostageControllerService : IPostageControllerService
     {
         // Fields.
-        private readonly IBeehiveDbContext beehiveDbContext;
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly IBeehiveDbContext dbContext;
 
         // Constructor.
         public PostageControllerService(
-            IBeehiveDbContext beehiveDbContext,
-            IBeeNodeLiveManager beeNodeLiveManager)
+            IBeeNodeLiveManager beeNodeLiveManager,
+            IBeehiveDbContext dbContext)
         {
-            this.beehiveDbContext = beehiveDbContext;
             this.beeNodeLiveManager = beeNodeLiveManager;
+            this.dbContext = dbContext;
         }
 
         // Methods.
@@ -42,7 +42,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         {
             // Try to select an healthy node.
             var beeNodeInstance = nodeId is null ?
-                beeNodeLiveManager.TrySelectHealthyNode(BeeNodeSelectionMode.RoundRobin) :
+                await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "buyPostageBatch") :
                 await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
 
             if (beeNodeInstance is null)
@@ -65,7 +65,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
         {
             var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
-            var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
+            var beeNode = await dbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
 
             return new BeeNodeDto(beeNode);
         }

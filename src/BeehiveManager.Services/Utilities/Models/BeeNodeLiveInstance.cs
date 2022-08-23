@@ -69,6 +69,22 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public Task<string> DilutePostageBatchAsync(string batchId, int depth) =>
             Client.DebugClient!.DilutePostageBatchAsync(batchId, depth);
 
+        public async Task<bool> IsPinningResourceAsync(string hash)
+        {
+            try
+            {
+                await Client.GatewayClient!.GetPinStatusAsync(hash);
+                return true;
+            }
+            catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
+            {
+                return false;
+            }
+        }
+
+        public Task PinResourceAsync(string hash) =>
+            Client.GatewayClient!.CreatePinAsync(hash);
+
         public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
             Client.DebugClient!.TopUpPostageBatchAsync(batchId, amount);
 
