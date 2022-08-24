@@ -18,9 +18,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         }
 
         public long Block { get; }
-        public string CurrentPrice { get; }
+        public long CurrentPrice { get; }
         public string SourceNodeId { get; }
         public DateTime TimeStamp { get; }
-        public string TotalAmount { get; }
+        public long TotalAmount { get; }
     }
 }

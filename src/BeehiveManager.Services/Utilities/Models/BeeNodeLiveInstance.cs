@@ -125,17 +125,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                      */
                     var currentGatewayApiVersion = result.ApiVersion switch
                     {
-                        "2.0.0" => GatewayApiVersion.v2_0_0,
-                        "3.0.0" => GatewayApiVersion.v3_0_0,
-                        "3.0.1" => GatewayApiVersion.v3_0_1,
+                        "3.0.2" => GatewayApiVersion.v3_0_2,
                         _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
                     var currentDebugApiVersion = result.DebugApiVersion switch
                     {
-                        "1.2.0" => DebugApiVersion.v1_2_0,
-                        "1.2.1" => DebugApiVersion.v1_2_1,
-                        "2.0.0" => DebugApiVersion.v2_0_0,
-                        "2.0.1" => DebugApiVersion.v2_0_1,
+                        "3.0.2" => DebugApiVersion.v3_0_2,
                         _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
 
@@ -183,7 +178,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     //postage batches
                     try
                     {
-                        var batches = await Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+                        var batches = await Client.DebugClient!.GetPostageBatchesAsync();
                         postageBatchesId = batches.Select(b => b.Id);
                     }
                     catch { errors.Add("Can't initialize postage batches"); }
