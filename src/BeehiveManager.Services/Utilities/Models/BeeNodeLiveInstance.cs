@@ -21,6 +21,7 @@ using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.BeeNet.Exceptions;
 using Etherna.ExecContext.AsyncLocal;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -33,6 +34,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     public class BeeNodeLiveInstance
     {
         // Fields.
+        private readonly ConcurrentDictionary<string, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
         private readonly IBeehiveDbContext beehiveDbContext;
         private readonly SemaphoreSlim statusRefreshSemaphore = new(1, 1);
 
@@ -52,6 +54,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public string Id { get; }
         public BeeNodeClient Client { get; }
         public bool DomainModelIsInitialized { get; private set; }
+        public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
         public bool RequireFullStatusRefresh { get; private set; }
         public BeeNodeStatus Status { get; private set; }
 
@@ -82,8 +85,19 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             }
         }
 
-        public Task PinResourceAsync(string hash) =>
-            Client.GatewayClient!.CreatePinAsync(hash);
+        public async Task PinResourceAsync(string hash)
+        {
+            _inProgressPins.TryAdd(hash, false);
+
+            try
+            {
+                await Client.GatewayClient!.CreatePinAsync(hash);
+            }
+            finally
+            {
+                _inProgressPins.TryRemove(hash, out _);
+            }
+        }
 
         public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
             Client.DebugClient!.TopUpPostageBatchAsync(batchId, amount);

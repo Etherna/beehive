@@ -12,12 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Hangfire;
+using System.Threading.Tasks;
+
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public static class Queues
+    public interface IPinContentInNodeTask
     {
-        public const string DOMAIN_MAINTENANCE = "domain_maintenance";
-        public const string NODE_MAINTENANCE = "node_maintenance";
-        public const string PIN_CONTENTS = "pin_contents";
+        [Queue(Queues.PIN_CONTENTS)]
+        Task RunAsync(string contentHash, string nodeId);
     }
 }

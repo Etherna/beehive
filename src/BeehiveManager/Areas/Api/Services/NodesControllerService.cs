@@ -86,15 +86,21 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, string hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var isPinned = await beeNodeInstance.IsPinningResourceAsync(hash);
-            return new PinnedResourceDto(hash, isPinned, id);
+
+            if (await beeNodeInstance.IsPinningResourceAsync(hash))
+                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.Pinned);
+            else if (beeNodeInstance.InProgressPins.Contains(hash))
+                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.InProgress);
+            else
+                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.NotPinned);
         }
 
         public async Task<IEnumerable<string>> GetPinsByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var pins = await beeNodeInstance.Client.GatewayClient!.GetAllPinsAsync();
-            return pins;
+            var readyPins = await beeNodeInstance.Client.GatewayClient!.GetAllPinsAsync();
+            var inProgressPins = beeNodeInstance.InProgressPins;
+            return readyPins.Union(inProgressPins);
         }
 
         public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, string batchId)

@@ -1,19 +1,26 @@
 ﻿namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
+    public enum PinnedResourceStatusDto
+    {
+        NotPinned,
+        InProgress,
+        Pinned
+    }
+
     public class PinnedResourceDto
     {
         public PinnedResourceDto(
             string hash,
-            bool isPinned,
-            string nodeId)
+            string nodeId,
+            PinnedResourceStatusDto status)
         {
             Hash = hash;
-            IsPinned = isPinned;
             NodeId = nodeId;
+            Status = status;
         }
 
         public string Hash { get; }
-        public bool IsPinned { get; }
         public string NodeId { get; }
+        public PinnedResourceStatusDto Status { get; }
     }
 }

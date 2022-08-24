@@ -18,7 +18,6 @@ using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
