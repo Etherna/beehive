@@ -197,5 +197,21 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         public Task RemoveAsync(
             [Required] string id) =>
             service.RemoveBeeNodeAsync(id);
+
+        /// <summary>
+        /// Delete a pinned resource from a node
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <param name="hash">Resource hash</param>
+        /// <returns>Pinned resource info</returns>
+        [HttpDelete("{id}/pins/{hash}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task DeletePinAsync(
+            [Required] string id,
+            [Required] string hash) =>
+            service.DeletePinAsync(id, hash);
     }
 }

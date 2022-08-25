@@ -99,6 +99,18 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             }
         }
 
+        public async Task RemovePinnedResourceAsync(string hash)
+        {
+            try
+            {
+                await Client.GatewayClient!.DeletePinAsync(hash);
+            }
+            catch (BeeNetGatewayApiException e) when(e.StatusCode == 404)
+            {
+                throw new KeyNotFoundException();
+            }
+        }
+
         public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
             Client.DebugClient!.TopUpPostageBatchAsync(batchId, amount);
 

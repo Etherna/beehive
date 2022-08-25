@@ -59,6 +59,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new BeeNodeDto(node);
         }
 
+        public async Task DeletePinAsync(string id, string hash)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            await beeNodeInstance.RemovePinnedResourceAsync(hash);
+        }
+
         public async Task<BeeNodeDto> FindByIdAsync(string id) =>
             new BeeNodeDto(await beehiveDbContext.BeeNodes.FindOneAsync(id));
 
