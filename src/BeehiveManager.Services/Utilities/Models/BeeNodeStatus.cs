@@ -25,11 +25,13 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             IEnumerable<string>? errors,
             DateTime heartbeatTimeStamp,
             bool isAlive,
+            IEnumerable<string>? pinnedHashes,
             IEnumerable<string>? postageBatchesId)
         {
             Errors = errors;
             HeartbeatTimeStamp = heartbeatTimeStamp;
             IsAlive = isAlive;
+            PinnedHashes = pinnedHashes;
             PostageBatchesId = postageBatchesId;
         }
 
@@ -37,6 +39,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public IEnumerable<string>? Errors { get; }
         public DateTime HeartbeatTimeStamp { get; }
         public bool IsAlive { get; }
+        public IEnumerable<string>? PinnedHashes { get; }
         public IEnumerable<string>? PostageBatchesId { get; }
     }
 }

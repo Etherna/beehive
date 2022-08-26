@@ -92,6 +92,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 await Client.GatewayClient!.CreatePinAsync(hash);
+
+                //add pinned hash with full status refresh
+                RequireFullStatusRefresh = true;
             }
             finally
             {
@@ -104,6 +107,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 await Client.GatewayClient!.DeletePinAsync(hash);
+
+                //remove pinned hash with full status refresh
+                RequireFullStatusRefresh = true;
             }
             catch (BeeNetGatewayApiException e) when(e.StatusCode == 404)
             {
@@ -139,6 +145,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                             new[] { "Node is not ready" },
                             heartbeatTimeStamp,
                             false,
+                            Status.PinnedHashes,
                             Status.PostageBatchesId);
                         return false;
                     }
@@ -174,6 +181,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                         new[] { "Exception invoking node API" },
                         heartbeatTimeStamp,
                         false,
+                        Status.PinnedHashes,
                         Status.PostageBatchesId
                     );
                     return false;
@@ -197,17 +205,25 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
                 // Full refresh if is required (or if is forced).
                 var errors = new List<string>();
+                var pinnedHashes = Status.PinnedHashes;
                 var postageBatchesId = Status.PostageBatchesId;
 
                 if (RequireFullStatusRefresh || forceFullRefresh)
                 {
+                    //pinned hashes
+                    try
+                    {
+                        pinnedHashes = await Client.GatewayClient!.GetAllPinsAsync();
+                    }
+                    catch { errors.Add("Can't read pinned hashes"); }
+
                     //postage batches
                     try
                     {
                         var batches = await Client.DebugClient!.GetPostageBatchesAsync();
                         postageBatchesId = batches.Select(b => b.Id);
                     }
-                    catch { errors.Add("Can't initialize postage batches"); }
+                    catch { errors.Add("Can't read postage batches"); }
                 }
 
 #pragma warning restore CA1031 // Do not catch general exception types
@@ -216,6 +232,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     errors,
                     heartbeatTimeStamp,
                     true,
+                    pinnedHashes,
                     postageBatchesId
                 );
                 RequireFullStatusRefresh &= errors.Any();

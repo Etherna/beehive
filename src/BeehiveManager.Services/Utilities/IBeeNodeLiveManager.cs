@@ -31,6 +31,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
         Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
         BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId);
+        IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
         void StartHealthHeartbeat();
