@@ -26,6 +26,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             Errors = status.Errors ?? Array.Empty<string>();
             HeartbeatTimeStamp = status.HeartbeatTimeStamp;
             IsAlive = status.IsAlive;
+            PinnedHashes = status.PinnedHashes ?? Array.Empty<string>();
             PostageBatchesId = status.PostageBatchesId ?? Array.Empty<string>();
             Id = id;
         }
@@ -35,6 +36,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public IEnumerable<string> Errors { get; }
         public DateTime HeartbeatTimeStamp { get; }
         public bool IsAlive { get; }
+        public IEnumerable<string> PinnedHashes { get; }
         public IEnumerable<string> PostageBatchesId { get; }
     }
 }

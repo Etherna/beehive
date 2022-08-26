@@ -96,6 +96,8 @@ namespace Etherna.BeehiveManager
                     options.Queues = new[]
                     {
                         Queues.DOMAIN_MAINTENANCE,
+                        Queues.PIN_CONTENTS,
+                        Queues.NODE_MAINTENANCE,
                         "default"
                     };
                     options.WorkerCount = System.Environment.ProcessorCount * 2;

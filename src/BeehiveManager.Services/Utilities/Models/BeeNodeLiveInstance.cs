@@ -21,6 +21,7 @@ using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.BeeNet.Exceptions;
 using Etherna.ExecContext.AsyncLocal;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -33,6 +34,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     public class BeeNodeLiveInstance
     {
         // Fields.
+        private readonly ConcurrentDictionary<string, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
         private readonly IBeehiveDbContext beehiveDbContext;
         private readonly SemaphoreSlim statusRefreshSemaphore = new(1, 1);
 
@@ -52,6 +54,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public string Id { get; }
         public BeeNodeClient Client { get; }
         public bool DomainModelIsInitialized { get; private set; }
+        public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
         public bool RequireFullStatusRefresh { get; private set; }
         public BeeNodeStatus Status { get; private set; }
 
@@ -68,6 +71,51 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
         public Task<string> DilutePostageBatchAsync(string batchId, int depth) =>
             Client.DebugClient!.DilutePostageBatchAsync(batchId, depth);
+
+        public async Task<bool> IsPinningResourceAsync(string hash)
+        {
+            try
+            {
+                await Client.GatewayClient!.GetPinStatusAsync(hash);
+                return true;
+            }
+            catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
+            {
+                return false;
+            }
+        }
+
+        public async Task PinResourceAsync(string hash)
+        {
+            _inProgressPins.TryAdd(hash, false);
+
+            try
+            {
+                await Client.GatewayClient!.CreatePinAsync(hash);
+
+                //add pinned hash with full status refresh
+                RequireFullStatusRefresh = true;
+            }
+            finally
+            {
+                _inProgressPins.TryRemove(hash, out _);
+            }
+        }
+
+        public async Task RemovePinnedResourceAsync(string hash)
+        {
+            try
+            {
+                await Client.GatewayClient!.DeletePinAsync(hash);
+
+                //remove pinned hash with full status refresh
+                RequireFullStatusRefresh = true;
+            }
+            catch (BeeNetGatewayApiException e) when(e.StatusCode == 404)
+            {
+                throw new KeyNotFoundException();
+            }
+        }
 
         public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
             Client.DebugClient!.TopUpPostageBatchAsync(batchId, amount);
@@ -97,6 +145,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                             new[] { "Node is not ready" },
                             heartbeatTimeStamp,
                             false,
+                            Status.PinnedHashes,
                             Status.PostageBatchesId);
                         return false;
                     }
@@ -109,17 +158,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                      */
                     var currentGatewayApiVersion = result.ApiVersion switch
                     {
-                        "2.0.0" => GatewayApiVersion.v2_0_0,
-                        "3.0.0" => GatewayApiVersion.v3_0_0,
-                        "3.0.1" => GatewayApiVersion.v3_0_1,
+                        "3.0.2" => GatewayApiVersion.v3_0_2,
                         _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
                     var currentDebugApiVersion = result.DebugApiVersion switch
                     {
-                        "1.2.0" => DebugApiVersion.v1_2_0,
-                        "1.2.1" => DebugApiVersion.v1_2_1,
-                        "2.0.0" => DebugApiVersion.v2_0_0,
-                        "2.0.1" => DebugApiVersion.v2_0_1,
+                        "3.0.2" => DebugApiVersion.v3_0_2,
                         _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                     };
 
@@ -137,6 +181,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                         new[] { "Exception invoking node API" },
                         heartbeatTimeStamp,
                         false,
+                        Status.PinnedHashes,
                         Status.PostageBatchesId
                     );
                     return false;
@@ -160,17 +205,25 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
                 // Full refresh if is required (or if is forced).
                 var errors = new List<string>();
+                var pinnedHashes = Status.PinnedHashes;
                 var postageBatchesId = Status.PostageBatchesId;
 
                 if (RequireFullStatusRefresh || forceFullRefresh)
                 {
+                    //pinned hashes
+                    try
+                    {
+                        pinnedHashes = await Client.GatewayClient!.GetAllPinsAsync();
+                    }
+                    catch { errors.Add("Can't read pinned hashes"); }
+
                     //postage batches
                     try
                     {
-                        var batches = await Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+                        var batches = await Client.DebugClient!.GetPostageBatchesAsync();
                         postageBatchesId = batches.Select(b => b.Id);
                     }
-                    catch { errors.Add("Can't initialize postage batches"); }
+                    catch { errors.Add("Can't read postage batches"); }
                 }
 
 #pragma warning restore CA1031 // Do not catch general exception types
@@ -179,6 +232,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     errors,
                     heartbeatTimeStamp,
                     true,
+                    pinnedHashes,
                     postageBatchesId
                 );
                 RequireFullStatusRefresh &= errors.Any();

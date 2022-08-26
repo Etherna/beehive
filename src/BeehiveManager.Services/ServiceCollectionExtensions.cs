@@ -46,6 +46,7 @@ namespace Etherna.BeehiveManager.Services
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesTask, CashoutAllNodesTask>();
+            services.AddTransient<IPinContentInNodeTask, PinContentInNodeTask>();
         }
     }
 }

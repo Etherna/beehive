@@ -14,6 +14,7 @@
 
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities.Models;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -30,10 +31,14 @@ namespace Etherna.BeehiveManager.Services.Utilities
         Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
         Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
         BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId);
+        IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
-        BeeNodeLiveInstance? TrySelectHealthyNode(BeeNodeSelectionMode mode);
+        Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
+            BeeNodeSelectionMode mode,
+            string selectionContext,
+            Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null);
     }
 }
