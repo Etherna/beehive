@@ -119,7 +119,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var batches = await beeNodeInstance.Client.DebugClient!.GetPostageBatchesAsync();
+            var batches = await beeNodeInstance.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
             return batches.Select(b => new PostageBatchDto(b));
         }
 
