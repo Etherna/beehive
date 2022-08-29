@@ -33,7 +33,6 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             Exists = postageBatch.Exists;
             ImmutableFlag = postageBatch.ImmutableFlag;
             Label = postageBatch.Label;
-            OwnerAddress = postageBatch.OwnerAddress;
             Usable = postageBatch.Usable;
             Utilization = postageBatch.Utilization;
         }
@@ -48,7 +47,6 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public bool ImmutableFlag { get; }
         public string? Label { get; }
         public long NormalisedBalance { get; }
-        public string? OwnerAddress { get; }
         public bool Usable { get; }
         public int? Utilization { get; }
         public long? Value { get; }

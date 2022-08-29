@@ -12,12 +12,29 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.BeehiveManager.Services.Tasks
+namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
-    public static class Queues
+    public enum PinnedResourceStatusDto
     {
-        public const string DOMAIN_MAINTENANCE = "domain_maintenance";
-        public const string NODE_MAINTENANCE = "node_maintenance";
-        public const string PIN_CONTENTS = "pin_contents";
+        NotPinned,
+        InProgress,
+        Pinned
+    }
+
+    public class PinnedResourceDto
+    {
+        public PinnedResourceDto(
+            string hash,
+            string nodeId,
+            PinnedResourceStatusDto status)
+        {
+            Hash = hash;
+            NodeId = nodeId;
+            Status = status;
+        }
+
+        public string Hash { get; }
+        public string NodeId { get; }
+        public PinnedResourceStatusDto Status { get; }
     }
 }

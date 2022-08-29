@@ -14,6 +14,7 @@
 
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
@@ -39,9 +40,8 @@ namespace Etherna.BeehiveManager.Services.Utilities
         // Fields.
         private readonly IBeehiveDbContext beehiveDbContext;
         private Timer? heartbeatTimer;
-        private BeeNodeLiveInstance? lastSelectedNodeRoundRobin;
+        private readonly Dictionary<string, BeeNodeLiveInstance?> lastSelectedNodesRoundRobin = new(); //selectionContext -> lastSelectedNodeRoundRobin
         private readonly ConcurrentDictionary<string, BeeNodeLiveInstance> beeNodeInstances = new(); //Id -> Live instance
-        private readonly Random rand = new();
 
         // Constructor and dispose.
         public BeeNodeLiveManager(
@@ -85,6 +85,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
         public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId) =>
             AllNodes.First(n => n.Status.PostageBatchesId?.Contains(batchId) ?? false);
 
+        public IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes) =>
+            AllNodes.Where(n => (n.Status.PinnedHashes?.Contains(hash) ?? false) &&
+                                (!requireAliveNodes || n.Status.IsAlive));
+
         public async Task LoadAllNodesAsync()
         {
             var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
@@ -102,54 +106,69 @@ namespace Etherna.BeehiveManager.Services.Utilities
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
 
-        public BeeNodeLiveInstance? TrySelectHealthyNode(BeeNodeSelectionMode mode)
+        public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
+            BeeNodeSelectionMode mode,
+            string selectionContext,
+            Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null)
         {
+            isValidPredicate ??= _ => Task.FromResult(true);
+
             switch (mode)
             {
-#pragma warning disable CA5394 // Do not use insecure randomness
 
                 case BeeNodeSelectionMode.Random:
-                    var healthyNodes = beeNodeInstances.Values.Where(instance => instance.Status.IsAlive);
-                    if (!healthyNodes.Any())
-                        return null;
+                    var availableNodes = beeNodeInstances.Values.Where(instance => instance.Status.IsAlive).ToList();
 
-                    int takeIndex = rand.Next(0, healthyNodes.Count());
-                    return healthyNodes.ElementAt(takeIndex);
-
+                    while (availableNodes.Any())
+                    {
+#pragma warning disable CA5394 // Do not use insecure randomness
+                        int takeIndex = Random.Shared.Next(0, availableNodes.Count);
 #pragma warning restore CA5394 // Do not use insecure randomness
+                        var node = availableNodes[takeIndex];
+
+                        //validate node
+                        if (!await isValidPredicate(node))
+                        {
+                            availableNodes.RemoveAt(takeIndex); //lazy check for efficiency
+                            continue;
+                        }
+
+                        return node;
+                    }
+                    return null;
 
                 case BeeNodeSelectionMode.RoundRobin:
                     BeeNodeLiveInstance? selectedNode = null;
 
-                    //take first node if last selected was null
-                    if (lastSelectedNodeRoundRobin is null)
-                        selectedNode = beeNodeInstances.Values.Where(instance => instance.Status.IsAlive).FirstOrDefault();
-
-                    //take next on list if already selected one previously
-                    if (selectedNode is null)
+                    if (!lastSelectedNodesRoundRobin.ContainsKey(selectionContext)) //take first node if never selected once in this context
                     {
-                        var lastSelectedIndex = beeNodeInstances.Values
+                        selectedNode = await beeNodeInstances.Values
+                            .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
+                            .FirstOrDefaultAsync();
+                    }
+                    else //take next on list if already selected one previously
+                    {
+                        var lastSelectedNodeWithIndexList = beeNodeInstances.Values
                             .Select((node, index) => new { index, node })
-                            .Where(o => o.node == lastSelectedNodeRoundRobin)
-                            .Select(o => o.index)
-                            .FirstOrDefault();
+                            .Where(g => g.node == lastSelectedNodesRoundRobin[selectionContext]);
 
-                        selectedNode = beeNodeInstances.Values
-                            .Skip(lastSelectedIndex + 1)
-                            .Where(instance => instance.Status.IsAlive)
-                            .FirstOrDefault();
+                        if (lastSelectedNodeWithIndexList.Any()) //if prev node still exists
+                        {
+                            selectedNode = await beeNodeInstances.Values
+                                .Skip(lastSelectedNodeWithIndexList.First().index + 1)
+                                .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
+                                .FirstOrDefaultAsync();
+                        }
+
+                        //or try from beginning
+                        selectedNode ??= await beeNodeInstances.Values
+                            .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
+                            .FirstOrDefaultAsync();
                     }
 
-                    //or try from beginning
-                    if (selectedNode is null)
-                    {
-                        selectedNode = beeNodeInstances.Values
-                            .Where(instance => instance.Status.IsAlive)
-                            .FirstOrDefault();
-                    }
-
-                    //update last selected
-                    lastSelectedNodeRoundRobin = selectedNode;
+                    //update last selected, if not null
+                    if (selectedNode is not null)
+                        lastSelectedNodesRoundRobin[selectionContext] = selectedNode;
 
                     return selectedNode;
 
@@ -169,7 +188,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             await Task.WhenAll(tasks);
 
             //update chain state
-            var node = TrySelectHealthyNode(BeeNodeSelectionMode.RoundRobin);
+            var node = await TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "chainState");
             if (node is not null)
             {
                 try

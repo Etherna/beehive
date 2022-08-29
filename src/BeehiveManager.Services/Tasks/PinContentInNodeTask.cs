@@ -12,12 +12,27 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.BeehiveManager.Services.Utilities;
+using System.Threading.Tasks;
+
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public static class Queues
+    public class PinContentInNodeTask : IPinContentInNodeTask
     {
-        public const string DOMAIN_MAINTENANCE = "domain_maintenance";
-        public const string NODE_MAINTENANCE = "node_maintenance";
-        public const string PIN_CONTENTS = "pin_contents";
+        private readonly IBeeNodeLiveManager beeNodeLiveManager;
+
+        public PinContentInNodeTask(
+            IBeeNodeLiveManager beeNodeLiveManager)
+        {
+            this.beeNodeLiveManager = beeNodeLiveManager;
+        }
+
+        public async Task RunAsync(string contentHash, string nodeId)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
+
+            // Pin.
+            await beeNodeInstance.PinResourceAsync(contentHash);
+        }
     }
 }

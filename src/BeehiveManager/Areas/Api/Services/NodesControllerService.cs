@@ -59,15 +59,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new BeeNodeDto(node);
         }
 
-        public async Task<BeeNodeDto> FindByIdAsync(string id) =>
-            new BeeNodeDto(await beehiveDbContext.BeeNodes.FindOneAsync(id));
-
-        public async Task<PostageBatchDto> FindPostageBatchOnNodeAsync(string id, string batchId)
+        public async Task DeletePinAsync(string id, string hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
-            return new PostageBatchDto(postageBatch);
+            await beeNodeInstance.RemovePinnedResourceAsync(hash);
         }
+
+        public async Task<BeeNodeDto> FindByIdAsync(string id) =>
+            new BeeNodeDto(await beehiveDbContext.BeeNodes.FindOneAsync(id));
 
         public async Task<bool> ForceFullStatusRefreshAsync(string id)
         {
@@ -90,7 +89,34 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
 
-        public async Task<IEnumerable<PostageBatchDto>> GetOwnedPostageBatchesByNodeAsync(string id)
+        public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, string hash)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+
+            if (await beeNodeInstance.IsPinningResourceAsync(hash))
+                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.Pinned);
+            else if (beeNodeInstance.InProgressPins.Contains(hash))
+                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.InProgress);
+            else
+                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.NotPinned);
+        }
+
+        public async Task<IEnumerable<string>> GetPinsByNodeAsync(string id)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var readyPins = await beeNodeInstance.Client.GatewayClient!.GetAllPinsAsync();
+            var inProgressPins = beeNodeInstance.InProgressPins;
+            return readyPins.Union(inProgressPins);
+        }
+
+        public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, string batchId)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
+            return new PostageBatchDto(postageBatch);
+        }
+
+        public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             var batches = await beeNodeInstance.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();

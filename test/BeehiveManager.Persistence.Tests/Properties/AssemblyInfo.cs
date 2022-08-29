@@ -12,12 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.BeehiveManager.Services.Tasks
-{
-    public static class Queues
-    {
-        public const string DOMAIN_MAINTENANCE = "domain_maintenance";
-        public const string NODE_MAINTENANCE = "node_maintenance";
-        public const string PIN_CONTENTS = "pin_contents";
-    }
-}
+using System;
+
+[assembly: CLSCompliant(false)]

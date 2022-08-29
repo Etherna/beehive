@@ -12,12 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Hangfire;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
     public interface ICashoutAllNodesTask
     {
+        [Queue(Queues.NODE_MAINTENANCE)]
         Task RunAsync();
     }
 }
