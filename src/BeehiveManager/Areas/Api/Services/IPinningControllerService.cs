@@ -12,12 +12,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.BeehiveManager.Services.Tasks
+using Etherna.BeehiveManager.Areas.Api.DtoModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace Etherna.BeehiveManager.Areas.Api.Services
 {
-    public static class Queues
+    public interface IPinningControllerService
     {
-        public const string DOMAIN_MAINTENANCE = "domain_maintenance";
-        public const string NODE_MAINTENANCE = "node_maintenance";
-        public const string PIN_CONTENTS = "pin_contents";
+        Task<IEnumerable<BeeNodeDto>> FindBeeNodesPinningContentAsync(string hash, bool requireAliveNodes);
+        Task<string> PinContentInNodeAsync(string hash, string? nodeId);
     }
 }
