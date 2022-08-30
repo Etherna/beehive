@@ -84,8 +84,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<string> PinContentInNodeAsync(
-            string hash,
-            string? nodeId = null) =>
+            [Required] string hash, string? nodeId = null) =>
             service.PinContentInNodeAsync(hash, nodeId);
     }
 }
