@@ -28,6 +28,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 {
     public class PinningControllerService : IPinningControllerService
     {
+        private const string PinNewContentSelectionContext = "pinNewContent";
+
         // Fields.
         private readonly IBackgroundJobClient backgroundJobClient;
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
@@ -60,15 +62,22 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             // Try to select an healthy node that doesn't already own the pin, if not specified.
             nodeId ??= (await beeNodeLiveManager.TrySelectHealthyNodeAsync(
                 BeeNodeSelectionMode.RoundRobin,
-                "pinNewContent",
+                PinNewContentSelectionContext,
                 async node => !await node.IsPinningResourceAsync(hash)))?.Id;
+            var newNodeIsFound = nodeId is not null;
+
+            // If isn't available any new node, try to find any healthy node.
+            nodeId ??= (await beeNodeLiveManager.TrySelectHealthyNodeAsync(
+                BeeNodeSelectionMode.RoundRobin,
+                PinNewContentSelectionContext))?.Id;
 
             if (nodeId is null)
                 throw new InvalidOperationException("No healthy nodes available to pin");
 
-            // Schedule task.
-            backgroundJobClient.Enqueue<IPinContentInNodeTask>(
-                task => task.RunAsync(hash, nodeId));
+            // Schedule task if needed.
+            if (newNodeIsFound)
+                backgroundJobClient.Enqueue<IPinContentInNodeTask>(
+                    task => task.RunAsync(hash, nodeId));
 
             return nodeId;
         }
