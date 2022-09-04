@@ -101,6 +101,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
         [HttpPatch("batches/{id}/dilute/{depth}")]
         [SimpleExceptionFilter]
+        [Produces("application/json")] //force because of https://github.com/RicoSuter/NSwag/issues/4132
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -111,6 +112,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
         [HttpPatch("batches/{id}/topup/{amount}")]
         [SimpleExceptionFilter]
+        [Produces("application/json")] //force because of https://github.com/RicoSuter/NSwag/issues/4132
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
