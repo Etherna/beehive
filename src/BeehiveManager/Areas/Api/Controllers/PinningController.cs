@@ -80,12 +80,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <response code="200">Id of the new pinning node</response>
         [HttpPost]
         [SimpleExceptionFilter]
+        [Produces("application/json")] //force because of https://github.com/RicoSuter/NSwag/issues/4132
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<string> PinContentInNodeAsync(
-            string hash,
-            string? nodeId = null) =>
+            [Required] string hash, string? nodeId = null) =>
             service.PinContentInNodeAsync(hash, nodeId);
     }
 }

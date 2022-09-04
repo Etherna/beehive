@@ -203,7 +203,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// </summary>
         /// <param name="id">Id of the bee node</param>
         /// <param name="hash">Resource hash</param>
-        /// <returns>Pinned resource info</returns>
         [HttpDelete("{id}/pins/{hash}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
