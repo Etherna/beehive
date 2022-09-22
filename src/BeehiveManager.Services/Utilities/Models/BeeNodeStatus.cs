@@ -21,6 +21,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Status comparison is not a required function")]
     public struct BeeNodeStatus
     {
+        // Constructor.
         public BeeNodeStatus(
             IEnumerable<string>? errors,
             DateTime heartbeatTimeStamp,
