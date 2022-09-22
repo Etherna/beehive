@@ -63,8 +63,21 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             var batchId = await Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
 
-            //add batchId with full status refresh
-            RequireFullStatusRefresh = true;
+            //immediately add the batch to the node
+            await statusRefreshSemaphore.WaitAsync();
+            try
+            {
+                Status = new BeeNodeStatus(
+                    Status.Errors,
+                    Status.HeartbeatTimeStamp,
+                    Status.IsAlive,
+                    Status.PinnedHashes,
+                    (Status.PostageBatchesId ?? Array.Empty<string>()).Append(batchId).ToArray());
+            }
+            finally
+            {
+                statusRefreshSemaphore.Release();
+            }
 
             return batchId;
         }
@@ -220,8 +233,14 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     //postage batches
                     try
                     {
+                        /* Union is required, because postage batches just created could not appear from the node request.
+                         * Because of this, if we added a new created postage, and we try to refresh with only info from node,
+                         * the postage Id reference could be lost.
+                         * Unione instead never remove a postage batch id. This is fine, because an owned postage batch can't be removed
+                         * by node's logic. It only can expire, but this is not concern of this part of code.
+                         */
                         var batches = await Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
-                        postageBatchesId = batches.Select(b => b.Id);
+                        postageBatchesId = (postageBatchesId ?? Array.Empty<string>()).Union(batches.Select(b => b.Id)).ToArray();
                     }
                     catch { errors.Add("Can't read postage batches"); }
                 }
