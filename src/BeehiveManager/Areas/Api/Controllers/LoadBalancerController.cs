@@ -30,7 +30,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// </summary>
         /// <param name="hash">Reference hash of the content</param>
         /// <response code="200">Selected Bee node</response>
-        [HttpGet("{hash}/nodes")]
+        [HttpGet("download/{hash}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
