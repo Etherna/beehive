@@ -72,7 +72,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     Status.HeartbeatTimeStamp,
                     Status.IsAlive,
                     Status.PinnedHashes,
-                    (Status.PostageBatchesId ?? Array.Empty<string>()).Append(batchId).ToArray());
+                    (Status.PostageBatchesId ?? Array.Empty<string>()).Append(batchId).ToHashSet());
             }
             finally
             {
@@ -95,6 +95,25 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
             {
                 return false;
+            }
+        }
+
+        public async Task NotifyPinnedResourceAsync(string hash)
+        {
+            //immediately add the pin to the node
+            await statusRefreshSemaphore.WaitAsync();
+            try
+            {
+                Status = new BeeNodeStatus(
+                    Status.Errors,
+                    Status.HeartbeatTimeStamp,
+                    Status.IsAlive,
+                    (Status.PinnedHashes ?? Array.Empty<string>()).Append(hash).ToHashSet(),
+                    Status.PostageBatchesId);
+            }
+            finally
+            {
+                statusRefreshSemaphore.Release();
             }
         }
 
