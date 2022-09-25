@@ -123,6 +123,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return batches.Select(b => new PostageBatchDto(b));
         }
 
+        public async Task NotifyPinningOfUploadedContentAsync(string id, string hash)
+        {
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            await beeNodeInstance.NotifyPinnedResourceAsync(hash);
+        }
+
         public async Task RemoveBeeNodeAsync(string id)
         {
             if (id is null)
