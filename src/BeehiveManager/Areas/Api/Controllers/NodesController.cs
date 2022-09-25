@@ -167,6 +167,21 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required] BeeNodeInput nodeInput) =>
             service.AddBeeNodeAsync(nodeInput);
 
+        /// <summary>
+        /// Notify live manager of pinned content during upload
+        /// </summary>
+        /// <param name="id">Id of the bee node</param>
+        /// <param name="hash">Resource hash</param>
+        [HttpPost("{id}/pins/{hash}/uploaded")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task NotifyPinningOfUploadedContentAsync(
+            [Required] string id,
+            [Required] string hash) =>
+            service.NotifyPinningOfUploadedContentAsync(id, hash);
+
         // Put.
 
         /// <summary>
