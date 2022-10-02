@@ -23,20 +23,28 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         // Constructor.
         public BeeNodeStatusDto(string id, BeeNodeStatus status)
         {
+            Id = id;
             Errors = status.Errors ?? Array.Empty<string>();
+            EthereumAddress = status.Addresses?.Ethereum;
             HeartbeatTimeStamp = status.HeartbeatTimeStamp;
             IsAlive = status.IsAlive;
+            OverlayAddress = status.Addresses?.Overlay;
             PinnedHashes = status.PinnedHashes ?? Array.Empty<string>();
             PostageBatchesId = status.PostageBatchesId ?? Array.Empty<string>();
-            Id = id;
+            PssPublicKey = status.Addresses?.PssPublicKey;
+            PublicKey = status.Addresses?.PublicKey;
         }
 
         // Properties.
         public string Id { get; }
         public IEnumerable<string> Errors { get; }
+        public string? EthereumAddress { get; }
         public DateTime HeartbeatTimeStamp { get; }
         public bool IsAlive { get; }
+        public string? OverlayAddress { get; }
         public IEnumerable<string> PinnedHashes { get; }
         public IEnumerable<string> PostageBatchesId { get; }
+        public string? PssPublicKey { get; }
+        public string? PublicKey { get; }
     }
 }

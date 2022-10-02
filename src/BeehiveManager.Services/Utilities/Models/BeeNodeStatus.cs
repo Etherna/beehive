@@ -23,12 +23,14 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     {
         // Constructor.
         public BeeNodeStatus(
+            BeeNodeAddresses? addresses,
             IEnumerable<string>? errors,
             DateTime heartbeatTimeStamp,
             bool isAlive,
             IEnumerable<string>? pinnedHashes,
             IEnumerable<string>? postageBatchesId)
         {
+            Addresses = addresses;
             Errors = errors;
             HeartbeatTimeStamp = heartbeatTimeStamp;
             IsAlive = isAlive;
@@ -37,6 +39,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         }
 
         // Properties.
+        public BeeNodeAddresses? Addresses { get; }
         public IEnumerable<string>? Errors { get; }
         public DateTime HeartbeatTimeStamp { get; }
         public bool IsAlive { get; }

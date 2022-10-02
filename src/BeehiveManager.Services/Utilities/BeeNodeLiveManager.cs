@@ -63,7 +63,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         public async Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode)
         {
             // Add node.
-            var liveInstance = new BeeNodeLiveInstance(beeNode, beehiveDbContext);
+            var liveInstance = new BeeNodeLiveInstance(beeNode);
             var result = beeNodeInstances.TryAdd(beeNode.Id, liveInstance);
 
             // Refresh live status (if necessary).

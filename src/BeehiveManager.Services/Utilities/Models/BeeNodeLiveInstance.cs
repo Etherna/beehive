@@ -12,14 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.BeeNet.Exceptions;
-using Etherna.ExecContext.AsyncLocal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -35,25 +32,21 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     {
         // Fields.
         private readonly ConcurrentDictionary<string, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
-        private readonly IBeehiveDbContext beehiveDbContext;
         private readonly SemaphoreSlim statusRefreshSemaphore = new(1, 1);
 
         // Constructor.
         internal BeeNodeLiveInstance(
-            BeeNode beeNode,
-            IBeehiveDbContext beehiveDbContext)
+            BeeNode beeNode)
         {
             Id = beeNode.Id;
             Client = new BeeNodeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
             RequireFullStatusRefresh = true;
             Status = new BeeNodeStatus();
-            this.beehiveDbContext = beehiveDbContext;
         }
 
         // Properties.
         public string Id { get; }
         public BeeNodeClient Client { get; }
-        public bool DomainModelIsInitialized { get; private set; }
         public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
         public bool RequireFullStatusRefresh { get; private set; }
         public BeeNodeStatus Status { get; private set; }
@@ -68,6 +61,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 Status = new BeeNodeStatus(
+                    Status.Addresses,
                     Status.Errors,
                     Status.HeartbeatTimeStamp,
                     Status.IsAlive,
@@ -105,6 +99,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 Status = new BeeNodeStatus(
+                    Status.Addresses,
                     Status.Errors,
                     Status.HeartbeatTimeStamp,
                     Status.IsAlive,
@@ -174,6 +169,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     if (!isAlive)
                     {
                         Status = new BeeNodeStatus(
+                            Status.Addresses,
                             new[] { "Node is not ready" },
                             heartbeatTimeStamp,
                             false,
@@ -210,6 +206,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     e is SocketException)
                 {
                     Status = new BeeNodeStatus(
+                        Status.Addresses,
                         new[] { "Exception invoking node API" },
                         heartbeatTimeStamp,
                         false,
@@ -219,18 +216,24 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     return false;
                 }
 
-                /***
-                 * If here, node is Alive
-                 */
 #pragma warning disable CA1031 // Do not catch general exception types
 
-                // Verify domain model initialization.
-                if (!DomainModelIsInitialized)
+                /***
+                 * If here, node is Alive
+                 ***/
+
+                // Verify addresses initialization.
+                var addresses = Status.Addresses;
+                if (addresses is null)
                 {
                     try
                     {
-                        await InitializeBeeDomainModelAsync();
-                        DomainModelIsInitialized = true;
+                        var response = await Client.DebugClient!.GetAddressesAsync();
+                        addresses = new BeeNodeAddresses(
+                            response.Ethereum,
+                            response.Overlay,
+                            response.PssPublicKey,
+                            response.PublicKey);
                     }
                     catch { }
                 }
@@ -267,6 +270,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 #pragma warning restore CA1031 // Do not catch general exception types
 
                 Status = new BeeNodeStatus(
+                    addresses,
                     errors,
                     heartbeatTimeStamp,
                     true,
@@ -280,28 +284,6 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             finally
             {
                 statusRefreshSemaphore.Release();
-            }
-        }
-
-        // Helpers.
-        private async Task InitializeBeeDomainModelAsync()
-        {
-            using var execContext = AsyncLocalContext.Instance.InitAsyncLocalContext();
-
-            var node = await beehiveDbContext.BeeNodes.FindOneAsync(Id);
-            if (node is not null && node.Addresses is null)
-            {
-                var response = await Client.DebugClient!.GetAddressesAsync();
-
-                // Update node.
-                node.SetAddresses(new BeeNodeAddresses(
-                    response.Ethereum,
-                    response.Overlay,
-                    response.PssPublicKey,
-                    response.PublicKey));
-
-                // Save changes.
-                await beehiveDbContext.SaveChangesAsync();
             }
         }
     }
