@@ -15,9 +15,9 @@
 using Nethereum.Util;
 using System;
 
-namespace Etherna.BeehiveManager.Domain.Models.BeeNodeAgg
+namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
-    public class BeeNodeAddresses : ModelBase
+    public class BeeNodeAddresses
     {
         // Constructors.
         public BeeNodeAddresses(
@@ -34,12 +34,11 @@ namespace Etherna.BeehiveManager.Domain.Models.BeeNodeAgg
             PssPublicKey = pssPublicKey ?? throw new ArgumentNullException(nameof(pssPublicKey));
             PublicKey = publicKey ?? throw new ArgumentNullException(nameof(publicKey));
         }
-        protected BeeNodeAddresses() { }
 
         // Properties.
-        public virtual string Ethereum { get; protected set; } = default!;
-        public virtual string Overlay { get; protected set; } = default!;
-        public virtual string PssPublicKey { get; protected set; } = default!;
-        public virtual string PublicKey { get; protected set; } = default!;
+        public string Ethereum { get; }
+        public string Overlay { get; }
+        public string PssPublicKey { get; }
+        public string PublicKey { get; }
     }
 }

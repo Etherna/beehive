@@ -56,13 +56,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             // Copy response in headers (Nginx optimization).
             HttpContext.Response.Headers.Add("bee-node-id", beeNode.Id);
             HttpContext.Response.Headers.Add("bee-node-debug-port", beeNode.DebugPort.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-ethereum-address", beeNode.EthereumAddress);
             HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNode.GatewayPort.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-hostname", beeNode.Hostname.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-scheme", beeNode.ConnectionScheme);
-            HttpContext.Response.Headers.Add("bee-node-overlay-address", beeNode.OverlayAddress);
-            HttpContext.Response.Headers.Add("bee-node-pss-public-key", beeNode.PssPublicKey);
-            HttpContext.Response.Headers.Add("bee-node-public-key", beeNode.PublicKey);
 
             return beeNode;
         }
