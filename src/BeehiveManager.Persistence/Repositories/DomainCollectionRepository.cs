@@ -38,44 +38,70 @@ namespace Etherna.BeehiveManager.Persistence.Repositories
             : base(options)
         { }
 
-        public override void Initialize(IDbContext dbContext)
-        {
-            if (dbContext is not IEventDispatcherDbContext)
-                throw new InvalidOperationException($"DbContext needs to implement {nameof(IEventDispatcherDbContext)}");
-
-            base.Initialize(dbContext);
-        }
-
         // Properties.
-        public IEventDispatcher EventDispatcher => ((IEventDispatcherDbContext)DbContext).EventDispatcher;
+        public IEventDispatcher? EventDispatcher => (DbContext as IEventDispatcherDbContext)?.EventDispatcher;
 
         // Methods.
         public override async Task CreateAsync(IEnumerable<TModel> models, CancellationToken cancellationToken = default)
         {
+            if (models is null)
+                throw new ArgumentNullException(nameof(models));
+
+            // Create entity.
             await base.CreateAsync(models, cancellationToken);
 
-            // Dispatch created events.
-            if (EventDispatcher != null) //could be null in seeding
-                await EventDispatcher.DispatchAsync(
-                    models.Select(m => new EntityCreatedEvent<TModel>(m)));
+            // Dispatch events.
+            if (EventDispatcher != null)
+            {
+                //created event
+                await EventDispatcher.DispatchAsync(models.Select(m => new EntityCreatedEvent<TModel>(m)));
+
+                //custom events
+                foreach (var model in models)
+                {
+                    await EventDispatcher.DispatchAsync(model.Events);
+                    model.ClearEvents();
+                }
+            }
         }
 
         public override async Task CreateAsync(TModel model, CancellationToken cancellationToken = default)
         {
+            if (model is null)
+                throw new ArgumentNullException(nameof(model));
+
+            // Create entity.
             await base.CreateAsync(model, cancellationToken);
 
-            // Dispatch created event.
-            if (EventDispatcher != null) //could be null in seeding
-                await EventDispatcher.DispatchAsync(
-                    new EntityCreatedEvent<TModel>(model));
+            // Dispatch events.
+            if (EventDispatcher != null)
+            {
+                //created event
+                await EventDispatcher.DispatchAsync(new EntityCreatedEvent<TModel>(model));
+
+                //custom events
+                await EventDispatcher.DispatchAsync(model.Events);
+                model.ClearEvents();
+            }
         }
 
         public override async Task DeleteAsync(TModel model, CancellationToken cancellationToken = default)
         {
+            if (model is null)
+                throw new ArgumentNullException(nameof(model));
+
+            // Dispatch custom events.
+            if (EventDispatcher != null)
+            {
+                await EventDispatcher.DispatchAsync(model.Events);
+                model.ClearEvents();
+            }
+
+            // Delete entity.
             await base.DeleteAsync(model, cancellationToken);
 
             // Dispatch deleted event.
-            if (EventDispatcher != null) //could be null in seeding
+            if (EventDispatcher != null)
                 await EventDispatcher.DispatchAsync(
                     new EntityDeletedEvent<TModel>(model));
         }
