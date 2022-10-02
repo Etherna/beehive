@@ -22,7 +22,7 @@ namespace Etherna.BeehiveManager.Domain.Models
     public abstract class EntityModelBase : ModelBase, IEntityModel
     {
         private DateTime _creationDateTime;
-        private readonly List<IDomainEvent> _events = new();
+        private readonly HashSet<IDomainEvent> _events = new();
 
         // Constructors and dispose.
         protected EntityModelBase()
