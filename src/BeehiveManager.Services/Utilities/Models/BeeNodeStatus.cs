@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
@@ -24,6 +25,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         private readonly HashSet<string> _pinnedHashes = new();
         private readonly HashSet<string> _postageBatchesId = new();
 
+        // Constructor.
+        public BeeNodeStatus()
+        {
+            RequireFullRefresh = true;
+        }
+
         // Properties.
         public BeeNodeAddresses? Addresses { get; private set; }
         public IEnumerable<string> Errors => _errors;
@@ -31,6 +38,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public bool IsAlive { get; private set; }
         public IEnumerable<string> PinnedHashes => _pinnedHashes;
         public IEnumerable<string> PostageBatchesId => _postageBatchesId;
+        public bool RequireFullRefresh { get; private set; }
 
         // Internal methods.
         internal void AddPinnedHash(string hash)
@@ -61,6 +69,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             if (Addresses is not null)
                 throw new InvalidOperationException();
             Addresses = addresses;
+        }
+
+        internal void RemovePinnedHash(string hash)
+        {
+            lock (_pinnedHashes)
+                _pinnedHashes.Remove(hash);
         }
 
         internal void SucceededHeartbeatAttempt(
@@ -100,6 +114,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                         _postageBatchesId.Add(batchId);
                 }
             }
+
+            RequireFullRefresh &= errors.Any() ||
+                refreshedPinnedHashes is null ||
+                refreshedPostageBatchesId is null;
         }
     }
 }

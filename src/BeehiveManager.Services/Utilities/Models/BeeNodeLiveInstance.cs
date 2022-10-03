@@ -38,7 +38,6 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             Id = beeNode.Id;
             Client = new BeeNodeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
-            RequireFullStatusRefresh = true;
             Status = new BeeNodeStatus();
         }
 
@@ -46,7 +45,6 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public string Id { get; }
         public BeeNodeClient Client { get; }
         public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
-        public bool RequireFullStatusRefresh { get; private set; }
         public BeeNodeStatus Status { get; }
 
         // Public methods.
@@ -89,9 +87,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 await Client.GatewayClient!.CreatePinAsync(hash);
-
-                //add pinned hash with full status refresh
-                RequireFullStatusRefresh = true;
+                Status.AddPinnedHash(hash);
             }
             finally
             {
@@ -104,9 +100,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 await Client.GatewayClient!.DeletePinAsync(hash);
-
-                //remove pinned hash with full status refresh
-                RequireFullStatusRefresh = true;
+                Status.RemovePinnedHash(hash);
             }
             catch (BeeNetGatewayApiException e) when(e.StatusCode == 404)
             {
@@ -199,7 +193,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             IEnumerable<string>? refreshedPinnedHashes = null;
             IEnumerable<string>? refreshedPostageBatchesId = null;
 
-            if (RequireFullStatusRefresh || forceFullRefresh)
+            if (Status.RequireFullRefresh || forceFullRefresh)
             {
                 //pinned hashes
                 try
@@ -224,8 +218,6 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 heartbeatTimeStamp,
                 refreshedPinnedHashes,
                 refreshedPostageBatchesId);
-
-            RequireFullStatusRefresh &= errors.Any();
 
             return true;
         }
