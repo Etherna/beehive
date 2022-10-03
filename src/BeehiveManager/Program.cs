@@ -252,6 +252,8 @@ namespace Etherna.BeehiveManager
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
+                options.DocumentTitle = "Beehive Manager API";
+
                 // build a swagger endpoint for each discovered API version
                 foreach (var description in apiProvider.ApiVersionDescriptions)
                 {
