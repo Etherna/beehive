@@ -14,36 +14,92 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
-    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "Status comparison is not a required function")]
-    public struct BeeNodeStatus
+    public class BeeNodeStatus
     {
-        // Constructor.
-        public BeeNodeStatus(
-            BeeNodeAddresses? addresses,
-            IEnumerable<string>? errors,
-            DateTime heartbeatTimeStamp,
-            bool isAlive,
-            IEnumerable<string>? pinnedHashes,
-            IEnumerable<string>? postageBatchesId)
-        {
-            Addresses = addresses;
-            Errors = errors;
-            HeartbeatTimeStamp = heartbeatTimeStamp;
-            IsAlive = isAlive;
-            PinnedHashes = pinnedHashes;
-            PostageBatchesId = postageBatchesId;
-        }
+        // Fields.
+        private readonly List<string> _errors = new();
+        private readonly HashSet<string> _pinnedHashes = new();
+        private readonly HashSet<string> _postageBatchesId = new();
 
         // Properties.
-        public BeeNodeAddresses? Addresses { get; }
-        public IEnumerable<string>? Errors { get; }
-        public DateTime HeartbeatTimeStamp { get; }
-        public bool IsAlive { get; }
-        public IEnumerable<string>? PinnedHashes { get; }
-        public IEnumerable<string>? PostageBatchesId { get; }
+        public BeeNodeAddresses? Addresses { get; private set; }
+        public IEnumerable<string> Errors => _errors;
+        public DateTime HeartbeatTimeStamp { get; private set; }
+        public bool IsAlive { get; private set; }
+        public IEnumerable<string> PinnedHashes => _pinnedHashes;
+        public IEnumerable<string> PostageBatchesId => _postageBatchesId;
+
+        // Internal methods.
+        internal void AddPinnedHash(string hash)
+        {
+            lock (_pinnedHashes)
+                _pinnedHashes.Add(hash);
+        }
+
+        internal void AddPostageBatchId(string batchId)
+        {
+            lock (_postageBatchesId)
+                _postageBatchesId.Add(batchId);
+        }
+
+        internal void FailedHeartbeatAttempt(IEnumerable<string> errors, DateTime timestamp)
+        {
+            lock (_errors)
+            {
+                _errors.Clear();
+                _errors.AddRange(errors);
+            }
+            HeartbeatTimeStamp = timestamp;
+            IsAlive = false;
+        }
+
+        internal void InitializeAddresses(BeeNodeAddresses addresses)
+        {
+            if (Addresses is not null)
+                throw new InvalidOperationException();
+            Addresses = addresses;
+        }
+
+        internal void SucceededHeartbeatAttempt(
+            IEnumerable<string> errors,
+            DateTime timestamp,
+            IEnumerable<string>? refreshedPinnedHashes,
+            IEnumerable<string>? refreshedPostageBatchesId)
+        {
+            lock (_errors)
+            {
+                _errors.Clear();
+                _errors.AddRange(errors);
+            }
+            HeartbeatTimeStamp = timestamp;
+            IsAlive = true;
+
+            if (refreshedPinnedHashes is not null)
+            {
+                lock (_pinnedHashes)
+                {
+                    _pinnedHashes.Clear();
+                    foreach (var hash in refreshedPinnedHashes)
+                        _pinnedHashes.Add(hash);
+                }
+            }
+
+            if (refreshedPostageBatchesId is not null)
+            {
+                lock (_postageBatchesId)
+                {
+                    /* Don't clear, because postage batches just created on node could not appear from the node query.
+                     * Because of this, if we created a new postage, and we try to refresh with only info coming from node,
+                     * the postage Id reference could be lost in status.
+                     * Adding instead never remove a postage batch id. This is fine, because an owned postage batch can't be removed
+                     * by node's logic. It only can expire, but this is not concern of this part of code. */
+                    foreach (var batchId in refreshedPostageBatchesId)
+                        _postageBatchesId.Add(batchId);
+                }
+            }
+        }
     }
 }

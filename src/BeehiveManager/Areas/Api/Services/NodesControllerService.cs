@@ -126,7 +126,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task NotifyPinningOfUploadedContentAsync(string id, string hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            await beeNodeInstance.NotifyPinnedResourceAsync(hash);
+            beeNodeInstance.NotifyPinnedResource(hash);
         }
 
         public async Task RemoveBeeNodeAsync(string id)
