@@ -23,14 +23,17 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         // Constructor.
         public BeeNodeStatusDto(string id, BeeNodeStatus status)
         {
+            if (status is null)
+                throw new ArgumentNullException(nameof(status));
+
             Id = id;
-            Errors = status.Errors ?? Array.Empty<string>();
+            Errors = status.Errors;
             EthereumAddress = status.Addresses?.Ethereum;
             HeartbeatTimeStamp = status.HeartbeatTimeStamp;
             IsAlive = status.IsAlive;
             OverlayAddress = status.Addresses?.Overlay;
-            PinnedHashes = status.PinnedHashes ?? Array.Empty<string>();
-            PostageBatchesId = status.PostageBatchesId ?? Array.Empty<string>();
+            PinnedHashes = status.PinnedHashes;
+            PostageBatchesId = status.PostageBatchesId;
             PssPublicKey = status.Addresses?.PssPublicKey;
             PublicKey = status.Addresses?.PublicKey;
         }
