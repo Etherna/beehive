@@ -59,6 +59,14 @@ namespace Etherna.BeehiveManager.Persistence
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
                 }
             });
+        public ICollectionRepository<EtherAddress, string> EtherAddresses { get; } = new DomainCollectionRepository<EtherAddress, string>(
+            new CollectionRepositoryOptions<EtherAddress>("etherAddresses")
+            {
+                IndexBuilders = new[]
+                {
+                    (Builders<EtherAddress>.IndexKeys.Ascending(a => a.Address), new CreateIndexOptions<EtherAddress> { Unique = true }),
+                }
+            });
         public ICollectionRepository<NodeLogBase, string> NodeLogs { get; } = new DomainCollectionRepository<NodeLogBase, string>("nodeLogs");
 
         //other properties

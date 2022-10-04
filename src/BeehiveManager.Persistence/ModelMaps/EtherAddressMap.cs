@@ -13,18 +13,23 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.DomainEvents;
 using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.MongODM.Core.Extensions;
+using Etherna.MongODM.Core.Serialization;
 
-namespace Etherna.BeehiveManager.Domain
+namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
-    public interface IBeehiveDbContext : IDbContext
+    class EtherAddressMap : IModelMapsCollector
     {
-        ICollectionRepository<BeeNode, string> BeeNodes { get; }
-        ICollectionRepository<EtherAddress, string> EtherAddresses { get; }
-        ICollectionRepository<NodeLogBase, string> NodeLogs { get; }
+        public void Register(IDbContext dbContext)
+        {
+            dbContext.SchemaRegistry.AddModelMapsSchema<EtherAddress>("e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c", mm =>
+            {
+                mm.AutoMap();
 
-        IEventDispatcher EventDispatcher { get; }
+                // Set members with custom serializers.
+                mm.SetMemberSerializer(a => a.PreferredSocNode!, BeeNodeMap.ConnectionInfoSerializer(dbContext));
+            });
+        }
     }
 }
