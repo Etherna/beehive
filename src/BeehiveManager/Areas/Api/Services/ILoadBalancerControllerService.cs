@@ -20,5 +20,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public interface ILoadBalancerControllerService
     {
         Task<BeeNodeDto> SelectDownloadNodeAsync(string hash);
+        Task<BeeNodeDto> SelectSocNodeAsync(string address);
     }
 }
