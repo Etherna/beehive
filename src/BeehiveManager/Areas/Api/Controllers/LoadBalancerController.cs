@@ -62,5 +62,29 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
             return beeNode;
         }
+
+        /// <summary>
+        /// Select best node for download a specific content
+        /// </summary>
+        /// <param name="address">Reference hash of the content</param>
+        /// <response code="200">Selected Bee node</response>
+        [HttpGet("soc/{address}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<BeeNodeDto> SelectSocNodeAsync(
+            [Required] string address)
+        {
+            var beeNode = await service.SelectSocNodeAsync(address);
+
+            // Copy response in headers (Nginx optimization).
+            HttpContext.Response.Headers.Add("bee-node-id", beeNode.Id);
+            HttpContext.Response.Headers.Add("bee-node-debug-port", beeNode.DebugPort.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNode.GatewayPort.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Add("bee-node-hostname", beeNode.Hostname.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Add("bee-node-scheme", beeNode.ConnectionScheme);
+
+            return beeNode;
+        }
     }
 }
