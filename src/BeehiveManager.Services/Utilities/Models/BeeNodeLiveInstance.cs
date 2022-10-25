@@ -120,16 +120,16 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             var heartbeatTimeStamp = DateTime.UtcNow;
 
-            // Check if node is alive.
+            // Verify node health and readiness.
             try
             {
-                var result = await Client.DebugClient!.GetReadinessAsync();
-                var isAlive = result.Status == "ok";
+                //health
+                var healthResult = await Client.DebugClient!.GetHealthAsync();
 
-                if (!isAlive)
+                if (healthResult.Status != BeeNet.DtoModels.StatusEnumDto.Ok)
                 {
                     Status.FailedHeartbeatAttempt(
-                        new[] { "Node is not ready" },
+                        new[] { "Node is not healthy" },
                         heartbeatTimeStamp);
                     return false;
                 }
@@ -140,14 +140,14 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                  * This because is more probable that the actual version is more advanced than the recognized one,
                  * and so APIs are more similar to the last version than the older versions.
                  */
-                var currentGatewayApiVersion = result.ApiVersion switch
+                var currentGatewayApiVersion = healthResult.ApiVersion switch
                 {
-                    "3.0.2" => GatewayApiVersion.v3_0_2,
+                    "3.2.0" => GatewayApiVersion.v3_2_0,
                     _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                 };
-                var currentDebugApiVersion = result.DebugApiVersion switch
+                var currentDebugApiVersion = healthResult.DebugApiVersion switch
                 {
-                    "3.0.2" => DebugApiVersion.v3_0_2,
+                    "3.2.0" => DebugApiVersion.v3_2_0,
                     _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                 };
 
@@ -155,6 +155,17 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
                 if (Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
                     Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
+
+                //readiness
+                var isReady = await Client.DebugClient!.GetReadinessAsync();
+
+                if (!isReady)
+                {
+                    Status.FailedHeartbeatAttempt(
+                        new[] { "Node is not ready" },
+                        heartbeatTimeStamp);
+                    return false;
+                }
             }
             catch (Exception e) when (
                 e is BeeNetDebugApiException ||
