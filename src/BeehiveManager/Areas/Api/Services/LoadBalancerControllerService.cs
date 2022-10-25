@@ -74,7 +74,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             var selectedNode = await beeNodeService.GetPreferredSocBeeNodeAsync(address);
 
             // If preferred soc node is not healthy, select another random.
-            if (!beeNodeLiveManager.HealthyNodes.Any(n => n.Id == selectedNode.Id))
+            if (!(await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(selectedNode.Id)).Status.IsAlive)
                 selectedNode = await beeNodeService.SelectRandomHealthyNodeAsync();
 
             return new BeeNodeDto(selectedNode);
