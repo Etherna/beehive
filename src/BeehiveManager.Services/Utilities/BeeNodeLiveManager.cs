@@ -38,16 +38,16 @@ namespace Etherna.BeehiveManager.Services.Utilities
         private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
-        private readonly IBeehiveDbContext beehiveDbContext;
+        private readonly IBeehiveDbContext dbContext;
         private Timer? heartbeatTimer;
         private readonly Dictionary<string, BeeNodeLiveInstance?> lastSelectedNodesRoundRobin = new(); //selectionContext -> lastSelectedNodeRoundRobin
         private readonly ConcurrentDictionary<string, BeeNodeLiveInstance> beeNodeInstances = new(); //Id -> Live instance
 
         // Constructor and dispose.
         public BeeNodeLiveManager(
-            IBeehiveDbContext beehiveDbContext)
+            IBeehiveDbContext dbContext)
         {
-            this.beehiveDbContext = beehiveDbContext;
+            this.dbContext = dbContext;
         }
         public void Dispose()
         {
@@ -78,7 +78,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             if (beeNodeInstances.ContainsKey(nodeId))
                 return beeNodeInstances[nodeId];
 
-            var beeNode = await beehiveDbContext.BeeNodes.FindOneAsync(nodeId);
+            var beeNode = await dbContext.BeeNodes.FindOneAsync(nodeId);
             return await AddBeeNodeAsync(beeNode);
         }
 
@@ -91,7 +91,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         public async Task LoadAllNodesAsync()
         {
-            var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(
+            var nodes = await dbContext.BeeNodes.QueryElementsAsync(
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
                 await AddBeeNodeAsync(node);
@@ -108,10 +108,11 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode,
-            string selectionContext,
+            string? selectionContext = null,
             Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null)
         {
             isValidPredicate ??= _ => Task.FromResult(true);
+            selectionContext ??= "";
 
             switch (mode)
             {

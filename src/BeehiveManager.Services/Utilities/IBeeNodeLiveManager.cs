@@ -38,7 +38,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         void StopHealthHeartbeat();
         Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode,
-            string selectionContext,
+            string? selectionContext = null,
             Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null);
     }
 }
