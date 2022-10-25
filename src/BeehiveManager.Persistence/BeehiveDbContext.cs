@@ -53,11 +53,18 @@ namespace Etherna.BeehiveManager.Persistence
             {
                 IndexBuilders = new[]
                 {
-                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.Addresses.Ethereum), new CreateIndexOptions<BeeNode> { Sparse = true, Unique = true }),
                     (Builders<BeeNode>.IndexKeys.Ascending(n => n.DebugPort)
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true }),
                     (Builders<BeeNode>.IndexKeys.Ascending(n => n.GatewayPort)
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
+                }
+            });
+        public ICollectionRepository<EtherAddressConfig, string> EtherAddressConfigs { get; } = new DomainCollectionRepository<EtherAddressConfig, string>(
+            new CollectionRepositoryOptions<EtherAddressConfig>("etherAddressConfigs")
+            {
+                IndexBuilders = new[]
+                {
+                    (Builders<EtherAddressConfig>.IndexKeys.Ascending(a => a.Address), new CreateIndexOptions<EtherAddressConfig> { Unique = true }),
                 }
             });
         public ICollectionRepository<NodeLogBase, string> NodeLogs { get; } = new DomainCollectionRepository<NodeLogBase, string>("nodeLogs");
@@ -73,17 +80,17 @@ namespace Etherna.BeehiveManager.Persistence
             select Activator.CreateInstance(t) as IModelMapsCollector;
 
         // Public methods.
-        public override Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        public override async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             // Dispatch events.
             foreach (var model in ChangedModelsList.Where(m => m is EntityModelBase)
                                                    .Select(m => (EntityModelBase)m))
             {
-                EventDispatcher.DispatchAsync(model.Events);
+                await EventDispatcher.DispatchAsync(model.Events);
                 model.ClearEvents();
             }
 
-            return base.SaveChangesAsync(cancellationToken);
+            await base.SaveChangesAsync(cancellationToken);
         }
 
         // Protected methods.

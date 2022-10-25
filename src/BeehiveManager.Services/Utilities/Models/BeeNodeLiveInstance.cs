@@ -12,21 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
-using Etherna.BeehiveManager.Domain.Models.BeeNodeAgg;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.BeeNet.Exceptions;
-using Etherna.ExecContext.AsyncLocal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Utilities.Models
@@ -35,49 +31,29 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     {
         // Fields.
         private readonly ConcurrentDictionary<string, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
-        private readonly IBeehiveDbContext beehiveDbContext;
-        private readonly SemaphoreSlim statusRefreshSemaphore = new(1, 1);
 
         // Constructor.
         internal BeeNodeLiveInstance(
-            BeeNode beeNode,
-            IBeehiveDbContext beehiveDbContext)
+            BeeNode beeNode)
         {
             Id = beeNode.Id;
             Client = new BeeNodeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
-            RequireFullStatusRefresh = true;
             Status = new BeeNodeStatus();
-            this.beehiveDbContext = beehiveDbContext;
         }
 
         // Properties.
         public string Id { get; }
         public BeeNodeClient Client { get; }
-        public bool DomainModelIsInitialized { get; private set; }
         public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
-        public bool RequireFullStatusRefresh { get; private set; }
-        public BeeNodeStatus Status { get; private set; }
+        public BeeNodeStatus Status { get; }
 
         // Public methods.
         public async Task<string> BuyPostageBatchAsync(long amount, int depth, string? label, bool immutable, long? gasPrice)
         {
             var batchId = await Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
 
-            //immediately add the batch to the node
-            await statusRefreshSemaphore.WaitAsync();
-            try
-            {
-                Status = new BeeNodeStatus(
-                    Status.Errors,
-                    Status.HeartbeatTimeStamp,
-                    Status.IsAlive,
-                    Status.PinnedHashes,
-                    (Status.PostageBatchesId ?? Array.Empty<string>()).Append(batchId).ToHashSet());
-            }
-            finally
-            {
-                statusRefreshSemaphore.Release();
-            }
+            //immediately add the batch to the node status
+            Status.AddPostageBatchId(batchId);
 
             return batchId;
         }
@@ -98,23 +74,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             }
         }
 
-        public async Task NotifyPinnedResourceAsync(string hash)
+        public void NotifyPinnedResource(string hash)
         {
-            //immediately add the pin to the node
-            await statusRefreshSemaphore.WaitAsync();
-            try
-            {
-                Status = new BeeNodeStatus(
-                    Status.Errors,
-                    Status.HeartbeatTimeStamp,
-                    Status.IsAlive,
-                    (Status.PinnedHashes ?? Array.Empty<string>()).Append(hash).ToHashSet(),
-                    Status.PostageBatchesId);
-            }
-            finally
-            {
-                statusRefreshSemaphore.Release();
-            }
+            //immediately add the pin to the node status
+            Status.AddPinnedHash(hash);
         }
 
         public async Task PinResourceAsync(string hash)
@@ -124,9 +87,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 await Client.GatewayClient!.CreatePinAsync(hash);
-
-                //add pinned hash with full status refresh
-                RequireFullStatusRefresh = true;
+                Status.AddPinnedHash(hash);
             }
             finally
             {
@@ -139,9 +100,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 await Client.GatewayClient!.DeletePinAsync(hash);
-
-                //remove pinned hash with full status refresh
-                RequireFullStatusRefresh = true;
+                Status.RemovePinnedHash(hash);
             }
             catch (BeeNetGatewayApiException e) when(e.StatusCode == 404)
             {
@@ -159,150 +118,119 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         /// <returns>True if node was alive</returns>
         public async Task<bool> TryRefreshStatusAsync(bool forceFullRefresh = false)
         {
-            await statusRefreshSemaphore.WaitAsync();
-
             var heartbeatTimeStamp = DateTime.UtcNow;
 
+            // Verify node health and readiness.
             try
             {
-                // Check if node is alive.
-                try
+                //health
+                var healthResult = await Client.DebugClient!.GetHealthAsync();
+
+                if (healthResult.Status != BeeNet.DtoModels.StatusEnumDto.Ok)
                 {
-                    var result = await Client.DebugClient!.GetReadinessAsync();
-                    var isAlive = result.Status == "ok";
-
-                    if (!isAlive)
-                    {
-                        Status = new BeeNodeStatus(
-                            new[] { "Node is not ready" },
-                            heartbeatTimeStamp,
-                            false,
-                            Status.PinnedHashes,
-                            Status.PostageBatchesId);
-                        return false;
-                    }
-
-                    /* Verify and update api version.
-                     * 
-                     * If the version is not recognized (switch default case) use the last version available.
-                     * This because is more probable that the actual version is more advanced than the recognized one,
-                     * and so APIs are more similar to the last version than the older versions.
-                     */
-                    var currentGatewayApiVersion = result.ApiVersion switch
-                    {
-                        "3.0.2" => GatewayApiVersion.v3_0_2,
-                        _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
-                    };
-                    var currentDebugApiVersion = result.DebugApiVersion switch
-                    {
-                        "3.0.2" => DebugApiVersion.v3_0_2,
-                        _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
-                    };
-
-                    if (Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
-                        Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
-                    if (Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
-                        Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
-                }
-                catch (Exception e) when (
-                    e is BeeNetDebugApiException ||
-                    e is HttpRequestException ||
-                    e is SocketException)
-                {
-                    Status = new BeeNodeStatus(
-                        new[] { "Exception invoking node API" },
-                        heartbeatTimeStamp,
-                        false,
-                        Status.PinnedHashes,
-                        Status.PostageBatchesId
-                    );
+                    Status.FailedHeartbeatAttempt(
+                        new[] { "Node is not healthy" },
+                        heartbeatTimeStamp);
                     return false;
                 }
 
-                /***
-                 * If here, node is Alive
+                /* Verify and update api version.
+                 * 
+                 * If the version is not recognized (switch default case) use the last version available.
+                 * This because is more probable that the actual version is more advanced than the recognized one,
+                 * and so APIs are more similar to the last version than the older versions.
                  */
+                var currentGatewayApiVersion = healthResult.ApiVersion switch
+                {
+                    "3.2.0" => GatewayApiVersion.v3_2_0,
+                    _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
+                };
+                var currentDebugApiVersion = healthResult.DebugApiVersion switch
+                {
+                    "3.2.0" => DebugApiVersion.v3_2_0,
+                    _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
+                };
+
+                if (Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
+                    Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
+                if (Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
+                    Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
+
+                //readiness
+                var isReady = await Client.DebugClient!.GetReadinessAsync();
+
+                if (!isReady)
+                {
+                    Status.FailedHeartbeatAttempt(
+                        new[] { "Node is not ready" },
+                        heartbeatTimeStamp);
+                    return false;
+                }
+            }
+            catch (Exception e) when (
+                e is BeeNetDebugApiException ||
+                e is HttpRequestException ||
+                e is SocketException)
+            {
+                Status.FailedHeartbeatAttempt(
+                    new[] { "Exception invoking node API" },
+                    heartbeatTimeStamp);
+                return false;
+            }
+
 #pragma warning disable CA1031 // Do not catch general exception types
 
-                // Verify domain model initialization.
-                if (!DomainModelIsInitialized)
+            /***
+             * If here, node is Alive
+             ***/
+
+            // Verify addresses initialization.
+            if (Status.Addresses is null)
+            {
+                try
                 {
-                    try
-                    {
-                        await InitializeBeeDomainModelAsync();
-                        DomainModelIsInitialized = true;
-                    }
-                    catch { }
+                    var response = await Client.DebugClient!.GetAddressesAsync();
+                    Status.InitializeAddresses(new BeeNodeAddresses(
+                        response.Ethereum,
+                        response.Overlay,
+                        response.PssPublicKey,
+                        response.PublicKey));
                 }
+                catch { }
+            }
 
-                // Full refresh if is required (or if is forced).
-                var errors = new List<string>();
-                var pinnedHashes = Status.PinnedHashes;
-                var postageBatchesId = Status.PostageBatchesId;
+            // Full refresh if is required (or if is forced).
+            var errors = new List<string>();
+            IEnumerable<string>? refreshedPinnedHashes = null;
+            IEnumerable<string>? refreshedPostageBatchesId = null;
 
-                if (RequireFullStatusRefresh || forceFullRefresh)
+            if (Status.RequireFullRefresh || forceFullRefresh)
+            {
+                //pinned hashes
+                try
                 {
-                    //pinned hashes
-                    try
-                    {
-                        pinnedHashes = await Client.GatewayClient!.GetAllPinsAsync();
-                    }
-                    catch { errors.Add("Can't read pinned hashes"); }
-
-                    //postage batches
-                    try
-                    {
-                        /* Union is required, because postage batches just created could not appear from the node request.
-                         * Because of this, if we added a new created postage, and we try to refresh with only info from node,
-                         * the postage Id reference could be lost.
-                         * Unione instead never remove a postage batch id. This is fine, because an owned postage batch can't be removed
-                         * by node's logic. It only can expire, but this is not concern of this part of code.
-                         */
-                        var batches = await Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
-                        postageBatchesId = (postageBatchesId ?? Array.Empty<string>()).Union(batches.Select(b => b.Id)).ToArray();
-                    }
-                    catch { errors.Add("Can't read postage batches"); }
+                    refreshedPinnedHashes = await Client.GatewayClient!.GetAllPinsAsync();
                 }
+                catch { errors.Add("Can't read pinned hashes"); }
+
+                //postage batches
+                try
+                {
+                    var batches = await Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+                    refreshedPostageBatchesId = batches.Select(b => b.Id);
+                }
+                catch { errors.Add("Can't read postage batches"); }
+            }
 
 #pragma warning restore CA1031 // Do not catch general exception types
 
-                Status = new BeeNodeStatus(
-                    errors,
-                    heartbeatTimeStamp,
-                    true,
-                    pinnedHashes,
-                    postageBatchesId
-                );
-                RequireFullStatusRefresh &= errors.Any();
+            Status.SucceededHeartbeatAttempt(
+                errors,
+                heartbeatTimeStamp,
+                refreshedPinnedHashes,
+                refreshedPostageBatchesId);
 
-                return true;
-            }
-            finally
-            {
-                statusRefreshSemaphore.Release();
-            }
-        }
-
-        // Helpers.
-        private async Task InitializeBeeDomainModelAsync()
-        {
-            using var execContext = AsyncLocalContext.Instance.InitAsyncLocalContext();
-
-            var node = await beehiveDbContext.BeeNodes.FindOneAsync(Id);
-            if (node is not null && node.Addresses is null)
-            {
-                var response = await Client.DebugClient!.GetAddressesAsync();
-
-                // Update node.
-                node.SetAddresses(new BeeNodeAddresses(
-                    response.Ethereum,
-                    response.Overlay,
-                    response.PssPublicKey,
-                    response.PublicKey));
-
-                // Save changes.
-                await beehiveDbContext.SaveChangesAsync();
-            }
+            return true;
         }
     }
 }

@@ -58,13 +58,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             // Copy response in headers (Nginx optimization).
             HttpContext.Response.Headers.Add("bee-node-id", beeNodeInfo.Id);
             HttpContext.Response.Headers.Add("bee-node-debug-port", beeNodeInfo.DebugPort.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-ethereum-address", beeNodeInfo.EthereumAddress);
             HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNodeInfo.GatewayPort.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-hostname", beeNodeInfo.Hostname.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-scheme", beeNodeInfo.ConnectionScheme);
-            HttpContext.Response.Headers.Add("bee-node-overlay-address", beeNodeInfo.OverlayAddress);
-            HttpContext.Response.Headers.Add("bee-node-pss-public-key", beeNodeInfo.PssPublicKey);
-            HttpContext.Response.Headers.Add("bee-node-public-key", beeNodeInfo.PublicKey);
 
             return beeNodeInfo;
         }
@@ -80,6 +76,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <param name="immutable">Is batch immutable</param>
         /// <param name="label">An optional label for this batch</param>
         /// <param name="nodeId">Bee node Id</param>
+        /// <param name="ownerAddress">The optional ethereum address of the owner</param>
         /// <response code="200">Postage batch id</response>
         [HttpPost("batches")]
         [SimpleExceptionFilter]
@@ -92,8 +89,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             long? gasPrice = null,
             bool immutable = false,
             string? label = null,
-            string? nodeId = null) =>
-            service.BuyPostageBatchAsync(amount, depth, gasPrice, immutable, label, nodeId);
+            string? nodeId = null,
+            string? ownerAddress = null) =>
+            service.BuyPostageBatchAsync(amount, depth, gasPrice, immutable, label, nodeId, ownerAddress);
 
         // Put.
 
