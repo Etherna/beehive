@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.BeehiveManager.Services.Domain;
 using Etherna.BeehiveManager.Services.Tasks;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.DomainEvents;
@@ -40,6 +41,10 @@ namespace Etherna.BeehiveManager.Services
                                     select t;
 
             services.AddDomainEvents(eventHandlerTypes);
+
+            // Register services.
+            //domain
+            services.AddScoped<IBeeNodeService, BeeNodeService>();
 
             // Utilities.
             services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();

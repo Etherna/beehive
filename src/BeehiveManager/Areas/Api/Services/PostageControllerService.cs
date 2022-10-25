@@ -14,6 +14,7 @@
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Domain;
+using Etherna.BeehiveManager.Services.Domain;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using System;
@@ -25,25 +26,57 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     {
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly IBeeNodeService beeNodeService;
         private readonly IBeehiveDbContext dbContext;
 
         // Constructor.
         public PostageControllerService(
             IBeeNodeLiveManager beeNodeLiveManager,
+            IBeeNodeService beeNodeService,
             IBeehiveDbContext dbContext)
         {
             this.beeNodeLiveManager = beeNodeLiveManager;
+            this.beeNodeService = beeNodeService;
             this.dbContext = dbContext;
         }
 
         // Methods.
         public async Task<PostageBatchRefDto> BuyPostageBatchAsync(
-            long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId)
+            long amount,
+            int depth,
+            long? gasPrice,
+            bool immutable,
+            string? label,
+            string? nodeId,
+            string? ownerAddress)
         {
-            // Try to select an healthy node.
-            var beeNodeInstance = nodeId is null ?
-                await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "buyPostageBatch") :
-                await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
+            // Select node.
+            BeeNodeLiveInstance? beeNodeInstance = null;
+
+            //if is passed a specific node id, use it to select node
+            if (nodeId is not null)
+                beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
+
+            /* else, if exists an owner address, take its preferred soc node.
+             * This is necessary because postage batches are still binded to specific owning node.
+             * If a node purchase a postage batch, only this node can sign with it.
+             * Because we should try to always upload soc/feeds on preferred soc node,
+             * also postage batches should be purchased on the same node.
+             * Because we can't discriminate postage batches for soc or not-soc use, always try to
+             * purchase on preferred soc node, until postagebatch->node binding can be overcome.
+             */
+            else if(ownerAddress is not null)
+            {
+                var selectedBeeNode = await beeNodeService.GetPreferredSocBeeNodeAsync(ownerAddress);
+
+                //select instance only if is healthy
+                var selectedBeeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(selectedBeeNode.Id);
+                if (selectedBeeNodeInstance.Status.IsAlive)
+                    beeNodeInstance = selectedBeeNodeInstance;
+            }
+
+            //if still null, try to select a random healthy node
+            beeNodeInstance ??= await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "buyPostageBatch");
 
             if (beeNodeInstance is null)
                 throw new InvalidOperationException("No healthy nodes available");
