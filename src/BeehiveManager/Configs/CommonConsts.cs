@@ -18,5 +18,6 @@ namespace Etherna.BeehiveManager.Configs
     {
         public const string DatabaseAdminPath = "/admin/db";
         public const string HangfireAdminPath = "/admin/hangfire";
+        public const string SwaggerPath = "/swagger";
     }
 }

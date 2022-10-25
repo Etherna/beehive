@@ -14,6 +14,7 @@
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Domain;
+using Etherna.BeehiveManager.Services.Domain;
 using Etherna.BeehiveManager.Services.Utilities;
 using MoreLinq;
 using System;
@@ -26,14 +27,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     {
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly IBeeNodeService beeNodeService;
         private readonly IBeehiveDbContext dbContext;
 
         // Constructor.
         public LoadBalancerControllerService(
             IBeeNodeLiveManager beeNodeLiveManager,
+            IBeeNodeService beeNodeService,
             IBeehiveDbContext dbContext)
         {
             this.beeNodeLiveManager = beeNodeLiveManager;
+            this.beeNodeService = beeNodeService;
             this.dbContext = dbContext;
         }
 
@@ -62,6 +66,18 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             // Throw exception because doesn't exist any available node.
             throw new InvalidOperationException("Can't select a valid node");
+        }
+
+        public async Task<BeeNodeDto> SelectSocNodeAsync(string address)
+        {
+            // Get preferred soc node.
+            var selectedNode = await beeNodeService.GetPreferredSocBeeNodeAsync(address);
+
+            // If preferred soc node is not healthy, select another random.
+            if (!(await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(selectedNode.Id)).Status.IsAlive)
+                selectedNode = await beeNodeService.SelectRandomHealthyNodeAsync();
+
+            return new BeeNodeDto(selectedNode);
         }
     }
 }

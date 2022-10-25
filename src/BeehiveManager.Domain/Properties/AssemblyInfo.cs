@@ -17,3 +17,4 @@ using System.Runtime.CompilerServices;
 
 [assembly: CLSCompliant(false)]
 [assembly: InternalsVisibleTo("BeehiveManager.Services")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

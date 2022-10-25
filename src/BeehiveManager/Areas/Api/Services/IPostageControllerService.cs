@@ -19,7 +19,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 {
     public interface IPostageControllerService
     {
-        Task<PostageBatchRefDto> BuyPostageBatchAsync(long amount, int depth, long? gasPrice, bool immutable, string? label, string? nodeId);
+        Task<PostageBatchRefDto> BuyPostageBatchAsync(
+            long amount,
+            int depth,
+            long? gasPrice,
+            bool immutable,
+            string? label,
+            string? nodeId,
+            string? ownerAddress);
         Task<string> DilutePostageBatchAsync(string batchId, int depth);
         Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId);
         Task<string> TopUpPostageBatchAsync(string batchId, long amount);

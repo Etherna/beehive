@@ -12,17 +12,41 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.BeehiveManager.Configs;
+using Etherna.BeehiveManager.Configs.Hangfire;
+using Etherna.BeehiveManager.Configs.Swagger;
+using Etherna.BeehiveManager.Domain;
+using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Exceptions;
+using Etherna.BeehiveManager.Extensions;
+using Etherna.BeehiveManager.Persistence;
+using Etherna.BeehiveManager.Services;
+using Etherna.BeehiveManager.Services.Tasks;
+using Etherna.DomainEvents;
+using Etherna.MongODM;
+using Etherna.MongODM.AspNetCore.UI;
+using Etherna.MongODM.Core.Options;
+using Hangfire;
+using Hangfire.Mongo;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace Etherna.BeehiveManager
 {
@@ -37,7 +61,23 @@ namespace Etherna.BeehiveManager
             try
             {
                 Log.Information("Starting web host");
-                CreateHostBuilder(args).Build().Run();
+
+                var builder = WebApplication.CreateBuilder(args);
+
+                // Configs.
+                builder.Host.UseSerilog();
+
+                ConfigureServices(builder);
+
+                var app = builder.Build();
+                ConfigureApplication(app);
+
+                // First operations.
+                app.SeedDbContexts();
+                app.StartBeeNodeLiveManager();
+
+                // Run application.
+                app.Run();
             }
             catch (Exception ex)
             {
@@ -49,14 +89,6 @@ namespace Etherna.BeehiveManager
                 Log.CloseAndFlush();
             }
         }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .UseSerilog()
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
 
         // Helpers.
         private static void ConfigureLogging()
@@ -88,6 +120,150 @@ namespace Etherna.BeehiveManager
                 AutoRegisterTemplate = true,
                 IndexFormat = $"{assemblyName}-{envName}-{DateTime.UtcNow:yyyy-MM}"
             };
+        }
+
+        private static void ConfigureServices(WebApplicationBuilder builder)
+        {
+            var services = builder.Services;
+            var config = builder.Configuration;
+            var env = builder.Environment;
+
+            // Configure Asp.Net Core framework services.
+            services.AddDataProtection()
+                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = config["ConnectionStrings:DataProtectionDb"] });
+
+            services.AddCors();
+            services.AddRazorPages();
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            services.AddApiVersioning(options =>
+            {
+                options.ReportApiVersions = true;
+            });
+            services.AddVersionedApiExplorer(options =>
+            {
+                // add the versioned api explorer, which also adds IApiVersionDescriptionProvider service
+                // note: the specified format code will format the version as "'v'major[.minor][-status]"
+                options.GroupNameFormat = "'v'VVV";
+
+                // note: this option is only necessary when versioning by url segment. the SubstitutionFormat
+                // can also be used to control the format of the API version in route templates
+                options.SubstituteApiVersionInUrl = true;
+            });
+
+            // Configure Hangfire server.
+            if (!env.IsStaging()) //don't start server in staging
+            {
+                //register hangfire server
+                services.AddHangfireServer(options =>
+                {
+                    options.Queues = new[]
+                    {
+                        Queues.DOMAIN_MAINTENANCE,
+                        Queues.PIN_CONTENTS,
+                        Queues.NODE_MAINTENANCE,
+                        "default"
+                    };
+                    options.WorkerCount = System.Environment.ProcessorCount * 2;
+                });
+            }
+
+            // Configure Swagger services.
+            services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+            services.AddSwaggerGen(options =>
+            {
+                options.SupportNonNullableReferenceTypes();
+
+                //add a custom operation filter which sets default values
+                options.OperationFilter<SwaggerDefaultValues>();
+
+                //integrate xml comments
+                var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                options.IncludeXmlComments(xmlPath);
+            });
+
+            // Configure setting.
+            var assemblyVersion = new AssemblyVersion(typeof(Program).GetTypeInfo().Assembly);
+            services.Configure<ApplicationSettings>(options =>
+            {
+                options.AssemblyVersion = assemblyVersion.Version;
+            });
+            services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
+
+            // Configure Hangfire and persistence.
+            services.AddMongODMWithHangfire(configureHangfireOptions: options =>
+            {
+                options.ConnectionString = config["ConnectionStrings:HangfireDb"];
+                options.StorageOptions = new MongoStorageOptions
+                {
+                    MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception
+                    {
+                        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                        BackupStrategy = new CollectionMongoBackupStrategy()
+                    }
+                };
+            })
+                .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
+                {
+                    var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
+                    var seedDbSettings = sp.GetRequiredService<IOptions<SeedDbSettings>>().Value;
+                    return new BeehiveDbContext(
+                        eventDispatcher,
+                        seedDbSettings.BeeNodes.Where(n => n is not null)
+                                               .Select(n => new BeeNode(n.Scheme, n.DebugPort, n.GatewayPort, n.Hostname)));
+                },
+                options =>
+                {
+                    options.DocumentSemVer.CurrentVersion = assemblyVersion.SimpleVersion;
+                    options.ConnectionString = config["ConnectionStrings:BeehiveManagerDb"];
+                });
+
+            services.AddMongODMAdminDashboard(new MongODM.AspNetCore.UI.DashboardOptions
+            {
+                BasePath = CommonConsts.DatabaseAdminPath
+            });
+
+            // Configure domain services.
+            services.AddDomainServices();
+        }
+
+        private static void ConfigureApplication(WebApplication app)
+        {
+            app.UseDeveloperExceptionPage();
+            app.UseStaticFiles();
+            app.UseRouting();
+            app.UseAuthorization();
+
+            // Add Hangfire.
+            app.UseHangfireDashboard(
+                CommonConsts.HangfireAdminPath,
+                new Hangfire.DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
+
+            // Register cron tasks.
+            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
+                CashoutAllNodesTask.TaskId,
+                task => task.RunAsync(),
+                "0 5 * * *"); //at 05:00 every day
+
+            // Add Swagger and SwaggerUI.
+            var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
+            {
+                options.DocumentTitle = "Beehive Manager API";
+
+                // build a swagger endpoint for each discovered API version
+                foreach (var description in apiProvider.ApiVersionDescriptions)
+                {
+                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                }
+            });
+
+            // Add controllers.
+            app.MapControllers();
+            app.MapRazorPages();
         }
     }
 }
