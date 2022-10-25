@@ -17,10 +17,10 @@ using System;
 
 namespace Etherna.BeehiveManager.Domain.Models
 {
-    public class EtherAddress : EntityModelBase<string>
+    public class EtherAddressConfig : EntityModelBase<string>
     {
         // Consturctor.
-        public EtherAddress(string address)
+        public EtherAddressConfig(string address)
         {
             if (!address.IsValidEthereumAddressHexFormat())
                 throw new ArgumentException("Is not a valid ethereum address", nameof(address));
@@ -28,7 +28,7 @@ namespace Etherna.BeehiveManager.Domain.Models
             Address = address.ConvertToEthereumChecksumAddress();
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected EtherAddress() { }
+        protected EtherAddressConfig() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Properties.

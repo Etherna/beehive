@@ -29,7 +29,7 @@ namespace Etherna.BeehiveManager.Services.Domain
             socOwnerAddress = socOwnerAddress.ConvertToEthereumChecksumAddress();
 
             // Try to find ether address configuration.
-            var etherAddressConfig = await dbContext.EtherAddresses.TryFindOneAsync(a => a.Address == socOwnerAddress);
+            var etherAddressConfig = await dbContext.EtherAddressConfigs.TryFindOneAsync(a => a.Address == socOwnerAddress);
 
             // If configuration doesn't exist, create it.
             if (etherAddressConfig is null)
@@ -38,8 +38,8 @@ namespace Etherna.BeehiveManager.Services.Domain
                 var selectedNode = await SelectRandomHealthyNodeAsync();
 
                 //create configuration with selected node as preferred
-                etherAddressConfig = new EtherAddress(socOwnerAddress) { PreferredSocNode = selectedNode };
-                await dbContext.EtherAddresses.CreateAsync(etherAddressConfig);
+                etherAddressConfig = new EtherAddressConfig(socOwnerAddress) { PreferredSocNode = selectedNode };
+                await dbContext.EtherAddressConfigs.CreateAsync(etherAddressConfig);
             }
 
             // Else, if there is no preferred soc node, select one random and update config.

@@ -59,12 +59,12 @@ namespace Etherna.BeehiveManager.Persistence
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
                 }
             });
-        public ICollectionRepository<EtherAddress, string> EtherAddresses { get; } = new DomainCollectionRepository<EtherAddress, string>(
-            new CollectionRepositoryOptions<EtherAddress>("etherAddresses")
+        public ICollectionRepository<EtherAddressConfig, string> EtherAddressConfigs { get; } = new DomainCollectionRepository<EtherAddressConfig, string>(
+            new CollectionRepositoryOptions<EtherAddressConfig>("etherAddressConfigs")
             {
                 IndexBuilders = new[]
                 {
-                    (Builders<EtherAddress>.IndexKeys.Ascending(a => a.Address), new CreateIndexOptions<EtherAddress> { Unique = true }),
+                    (Builders<EtherAddressConfig>.IndexKeys.Ascending(a => a.Address), new CreateIndexOptions<EtherAddressConfig> { Unique = true }),
                 }
             });
         public ICollectionRepository<NodeLogBase, string> NodeLogs { get; } = new DomainCollectionRepository<NodeLogBase, string>("nodeLogs");

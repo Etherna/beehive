@@ -5,14 +5,14 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
     public class EtherAddressDto
     {
-        public EtherAddressDto(EtherAddress etherAddress)
+        public EtherAddressDto(EtherAddressConfig etherAddressConfig)
         {
-            if (etherAddress is null)
-                throw new ArgumentNullException(nameof(etherAddress));
+            if (etherAddressConfig is null)
+                throw new ArgumentNullException(nameof(etherAddressConfig));
 
-            Address = etherAddress.Address;
-            if (etherAddress.PreferredSocNode is not null)
-                PreferredSocNode = new BeeNodeDto(etherAddress.PreferredSocNode);
+            Address = etherAddressConfig.Address;
+            if (etherAddressConfig.PreferredSocNode is not null)
+                PreferredSocNode = new BeeNodeDto(etherAddressConfig.PreferredSocNode);
         }
 
         public string Address { get; }

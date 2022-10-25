@@ -19,11 +19,11 @@ using Etherna.MongODM.Core.Serialization;
 
 namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
-    class EtherAddressMap : IModelMapsCollector
+    class EtherAddressConfigMap : IModelMapsCollector
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.SchemaRegistry.AddModelMapsSchema<EtherAddress>("e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c", mm =>
+            dbContext.SchemaRegistry.AddModelMapsSchema<EtherAddressConfig>("e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c", mm =>
             {
                 mm.AutoMap();
 

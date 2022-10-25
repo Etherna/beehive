@@ -86,11 +86,11 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
             }
         }
 
-        public static IEnumerable<object[]> EtherAddressDeserializationTests
+        public static IEnumerable<object[]> EtherAddressConfigDeserializationTests
         {
             get
             {
-                var tests = new List<DeserializationTestElement<EtherAddress>>();
+                var tests = new List<DeserializationTestElement<EtherAddressConfig>>();
 
                 // "e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c" - v0.3.11
                 {
@@ -110,7 +110,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                             }
                         }";
 
-                    var expectedEtherAddressMock = new Mock<EtherAddress>();
+                    var expectedEtherAddressMock = new Mock<EtherAddressConfig>();
                     expectedEtherAddressMock.Setup(n => n.Id).Returns("633c703c867c5a05f708070d");
                     expectedEtherAddressMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2022, 10, 04, 17, 41, 16, 522));
                     expectedEtherAddressMock.Setup(n => n.Address).Returns("0x974caA59E52682cdA0ad1bBEA2083919A2eCC400");
@@ -121,7 +121,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                         expectedEtherAddressMock.Setup(a => a.PreferredSocNode).Returns(beeNodeMock.Object);
                     }
 
-                    tests.Add(new DeserializationTestElement<EtherAddress>(sourceDocument, expectedEtherAddressMock.Object));
+                    tests.Add(new DeserializationTestElement<EtherAddressConfig>(sourceDocument, expectedEtherAddressMock.Object));
                 }
 
                 return tests.Select(t => new object[] { t });
@@ -157,15 +157,15 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
             Assert.NotNull(result.Hostname);
         }
 
-        [Theory, MemberData(nameof(EtherAddressDeserializationTests))]
-        public void EtherAddressDeserialization(DeserializationTestElement<EtherAddress> testElement)
+        [Theory, MemberData(nameof(EtherAddressConfigDeserializationTests))]
+        public void EtherAddressConfigDeserialization(DeserializationTestElement<EtherAddressConfig> testElement)
         {
             if (testElement is null)
                 throw new ArgumentNullException(nameof(testElement));
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<EtherAddress>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<EtherAddressConfig>(dbContext);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 

@@ -22,24 +22,24 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<EtherAddressDto> FindEtherAddressConfigAsync(string address)
         {
             address = address.ConvertToEthereumChecksumAddress();
-            var etherAddress = await dbContext.EtherAddresses.TryFindOneAsync(a => a.Address == address);
-            return new EtherAddressDto(etherAddress ?? new EtherAddress(address));
+            var etherAddressConfig = await dbContext.EtherAddressConfigs.TryFindOneAsync(a => a.Address == address);
+            return new EtherAddressDto(etherAddressConfig ?? new EtherAddressConfig(address));
         }
 
         public async Task SetPreferredSocNodeAsync(string address, string nodeId)
         {
             address = address.ConvertToEthereumChecksumAddress();
-            var etherAddress = await dbContext.EtherAddresses.TryFindOneAsync(a => a.Address == address);
+            var etherAddressConfig = await dbContext.EtherAddressConfigs.TryFindOneAsync(a => a.Address == address);
             var node = await dbContext.BeeNodes.FindOneAsync(nodeId);
 
-            if (etherAddress is null)
+            if (etherAddressConfig is null)
             {
-                etherAddress = new EtherAddress(address) { PreferredSocNode = node };
-                await dbContext.EtherAddresses.CreateAsync(etherAddress);
+                etherAddressConfig = new EtherAddressConfig(address) { PreferredSocNode = node };
+                await dbContext.EtherAddressConfigs.CreateAsync(etherAddressConfig);
             }
             else
             {
-                etherAddress.PreferredSocNode = node;
+                etherAddressConfig.PreferredSocNode = node;
                 await dbContext.SaveChangesAsync();
             }
         }
