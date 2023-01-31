@@ -48,8 +48,8 @@ namespace Etherna.BeehiveManager.Persistence
 
         // Properties.
         //repositories
-        public ICollectionRepository<BeeNode, string> BeeNodes { get; } = new DomainCollectionRepository<BeeNode, string>(
-            new CollectionRepositoryOptions<BeeNode>("beeNodes")
+        public IRepository<BeeNode, string> BeeNodes { get; } = new DomainRepository<BeeNode, string>(
+            new RepositoryOptions<BeeNode>("beeNodes")
             {
                 IndexBuilders = new[]
                 {
@@ -59,15 +59,15 @@ namespace Etherna.BeehiveManager.Persistence
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
                 }
             });
-        public ICollectionRepository<EtherAddressConfig, string> EtherAddressConfigs { get; } = new DomainCollectionRepository<EtherAddressConfig, string>(
-            new CollectionRepositoryOptions<EtherAddressConfig>("etherAddressConfigs")
+        public IRepository<EtherAddressConfig, string> EtherAddressConfigs { get; } = new DomainRepository<EtherAddressConfig, string>(
+            new RepositoryOptions<EtherAddressConfig>("etherAddressConfigs")
             {
                 IndexBuilders = new[]
                 {
                     (Builders<EtherAddressConfig>.IndexKeys.Ascending(a => a.Address), new CreateIndexOptions<EtherAddressConfig> { Unique = true }),
                 }
             });
-        public ICollectionRepository<NodeLogBase, string> NodeLogs { get; } = new DomainCollectionRepository<NodeLogBase, string>("nodeLogs");
+        public IRepository<NodeLogBase, string> NodeLogs { get; } = new DomainRepository<NodeLogBase, string>("nodeLogs");
 
         //other properties
         public IEventDispatcher EventDispatcher { get; }

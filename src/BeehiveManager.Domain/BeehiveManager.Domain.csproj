@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="Etherna.DomainEvents" Version="1.4.0" />
-    <PackageReference Include="MongODM.Core" Version="0.23.1" />
+    <PackageReference Include="MongODM.Core" Version="0.24.0-alpha.80" />
     <PackageReference Include="Nethereum.Accounts" Version="4.9.0" />
   </ItemGroup>
 

@@ -25,45 +25,41 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.SchemaRegistry.AddModelMapsSchema<BeeNode>("6b94df32-034f-46f9-a5c1-239905ad5d07");
+            dbContext.MapRegistry.AddModelMap<BeeNode>("6b94df32-034f-46f9-a5c1-239905ad5d07");
         }
 
         /// <summary>
         /// A minimal serializer with only id
         /// </summary>
         public static ReferenceSerializer<BeeNode, string> ReferenceSerializer(
-            IDbContext dbContext,
-            bool useCascadeDelete = false) =>
+            IDbContext dbContext) =>
             new(dbContext, config =>
             {
-                config.UseCascadeDelete = useCascadeDelete;
-                config.AddModelMapsSchema<ModelBase>("e5d93371-e1a7-4ff3-b947-a4862c40d938");
-                config.AddModelMapsSchema<EntityModelBase>("a48cf8b2-1b18-450d-afc1-4094ce23ba78", mm => { });
-                config.AddModelMapsSchema<EntityModelBase<string>>("1a7fb389-fd58-4ad6-82b5-b687273bc5ab", mm =>
+                config.AddModelMap<ModelBase>("e5d93371-e1a7-4ff3-b947-a4862c40d938");
+                config.AddModelMap<EntityModelBase>("a48cf8b2-1b18-450d-afc1-4094ce23ba78", mm => { });
+                config.AddModelMap<EntityModelBase<string>>("1a7fb389-fd58-4ad6-82b5-b687273bc5ab", mm =>
                 {
                     mm.MapIdMember(m => m.Id);
                     mm.IdMemberMap.SetSerializer(new StringSerializer(BsonType.ObjectId));
                 });
-                config.AddModelMapsSchema<BeeNode>("28d5e30d-c205-4440-9ba6-80505409ef8d", mm => { });
+                config.AddModelMap<BeeNode>("28d5e30d-c205-4440-9ba6-80505409ef8d", mm => { });
             });
 
         /// <summary>
         /// A serializer with connection info to node
         /// </summary>
         public static ReferenceSerializer<BeeNode, string> ConnectionInfoSerializer(
-            IDbContext dbContext,
-            bool useCascadeDelete = false) =>
+            IDbContext dbContext) =>
             new(dbContext, config =>
             {
-                config.UseCascadeDelete = useCascadeDelete;
-                config.AddModelMapsSchema<ModelBase>("148b3991-63da-4966-a781-30295c71fcae");
-                config.AddModelMapsSchema<EntityModelBase>("774d614c-2bd2-4a51-83a7-6d0df1942216", mm => { });
-                config.AddModelMapsSchema<EntityModelBase<string>>("959def90-ddab-48a7-9a0e-1917be419171", mm =>
+                config.AddModelMap<ModelBase>("148b3991-63da-4966-a781-30295c71fcae");
+                config.AddModelMap<EntityModelBase>("774d614c-2bd2-4a51-83a7-6d0df1942216", mm => { });
+                config.AddModelMap<EntityModelBase<string>>("959def90-ddab-48a7-9a0e-1917be419171", mm =>
                 {
                     mm.MapIdMember(n => n.Id);
                     mm.IdMemberMap.SetSerializer(new StringSerializer(BsonType.ObjectId));
                 });
-                config.AddModelMapsSchema<BeeNode>("a833d25f-4613-4cbc-b36a-4cdfa62501f4", mm =>
+                config.AddModelMap<BeeNode>("a833d25f-4613-4cbc-b36a-4cdfa62501f4", mm =>
                 {
                     mm.MapMember(n => n.ConnectionScheme);
                     mm.MapMember(n => n.DebugPort);
