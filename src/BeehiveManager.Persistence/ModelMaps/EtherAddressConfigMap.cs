@@ -23,7 +23,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.SchemaRegistry.AddModelMapsSchema<EtherAddressConfig>("e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c", mm =>
+            dbContext.MapRegistry.AddModelMap<EtherAddressConfig>("e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c", mm =>
             {
                 mm.AutoMap();
 

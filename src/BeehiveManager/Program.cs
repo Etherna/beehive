@@ -185,11 +185,6 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure setting.
-            var assemblyVersion = new AssemblyVersion(typeof(Program).GetTypeInfo().Assembly);
-            services.Configure<ApplicationSettings>(options =>
-            {
-                options.AssemblyVersion = assemblyVersion.Version;
-            });
             services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
 
             // Configure Hangfire and persistence.
@@ -216,7 +211,6 @@ namespace Etherna.BeehiveManager
                 },
                 options =>
                 {
-                    options.DocumentSemVer.CurrentVersion = assemblyVersion.SimpleVersion;
                     options.ConnectionString = config["ConnectionStrings:BeehiveManagerDb"];
                 });
 

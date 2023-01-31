@@ -21,9 +21,9 @@ namespace Etherna.BeehiveManager.Domain
 {
     public interface IBeehiveDbContext : IDbContext
     {
-        ICollectionRepository<BeeNode, string> BeeNodes { get; }
-        ICollectionRepository<EtherAddressConfig, string> EtherAddressConfigs { get; }
-        ICollectionRepository<NodeLogBase, string> NodeLogs { get; }
+        IRepository<BeeNode, string> BeeNodes { get; }
+        IRepository<EtherAddressConfig, string> EtherAddressConfigs { get; }
+        IRepository<NodeLogBase, string> NodeLogs { get; }
 
         IEventDispatcher EventDispatcher { get; }
     }
