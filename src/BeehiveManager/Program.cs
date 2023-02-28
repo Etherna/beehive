@@ -219,6 +219,7 @@ namespace Etherna.BeehiveManager
 
             services.AddMongODMAdminDashboard(new MongODM.AspNetCore.UI.DashboardOptions
             {
+                AuthFilters = new[] { new Configs.MongODM.AllowAllFilter() },
                 BasePath = CommonConsts.DatabaseAdminPath
             });
 
