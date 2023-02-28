@@ -59,7 +59,6 @@ namespace Etherna.BeehiveManager.Persistence
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
                 }
             });
-        public IRepository<NodeLogBase, string> NodeLogs { get; } = new DomainRepository<NodeLogBase, string>("nodeLogs");
 
         //other properties
         public IEventDispatcher EventDispatcher { get; }

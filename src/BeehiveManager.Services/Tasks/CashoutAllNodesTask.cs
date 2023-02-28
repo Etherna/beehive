@@ -14,9 +14,11 @@
 
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -33,14 +35,17 @@ namespace Etherna.BeehiveManager.Services.Tasks
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
         private readonly IBeehiveDbContext context;
+        private readonly ILogger<CashoutAllNodesTask> logger;
 
         // Constructors.
         public CashoutAllNodesTask(
             IBeeNodeLiveManager beeNodeLiveManager,
-            IBeehiveDbContext context)
+            IBeehiveDbContext context,
+            ILogger<CashoutAllNodesTask> logger)
         {
             this.beeNodeLiveManager = beeNodeLiveManager;
             this.context = context;
+            this.logger = logger;
         }
 
         // Methods.
@@ -92,10 +97,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                     // Add log.
                     if (totalCashedout > 0)
-                    {
-                        var log = new CashoutNodeLog(node, txs, totalCashedout);
-                        await context.NodeLogs.CreateAsync(log);
-                    }
+                        logger.NodeCashedOut(node.Id, totalCashedout, txs);
                 }));
         }
     }
