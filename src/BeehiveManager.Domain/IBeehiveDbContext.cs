@@ -22,7 +22,6 @@ namespace Etherna.BeehiveManager.Domain
     public interface IBeehiveDbContext : IDbContext
     {
         IRepository<BeeNode, string> BeeNodes { get; }
-        IRepository<EtherAddressConfig, string> EtherAddressConfigs { get; }
         IRepository<NodeLogBase, string> NodeLogs { get; }
 
         IEventDispatcher EventDispatcher { get; }

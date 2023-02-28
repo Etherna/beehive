@@ -66,16 +66,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <summary>
         /// Select best node for download a specific content
         /// </summary>
-        /// <param name="address">Reference hash of the content</param>
         /// <response code="200">Selected Bee node</response>
         [HttpGet("soc/{address}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<BeeNodeDto> SelectSocNodeAsync(
-            [Required] string address)
+        public async Task<BeeNodeDto> SelectSocNodeAsync()
         {
-            var beeNode = await service.SelectSocNodeAsync(address);
+            var beeNode = await service.SelectSocNodeAsync();
 
             // Copy response in headers (Nginx optimization).
             HttpContext.Response.Headers.Add("bee-node-id", beeNode.Id);

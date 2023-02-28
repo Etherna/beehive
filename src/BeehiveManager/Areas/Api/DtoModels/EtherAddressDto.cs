@@ -1,21 +1,16 @@
-﻿using Etherna.BeehiveManager.Domain.Models;
-using System;
+﻿using System;
 
 namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
+    [Obsolete("This is a dropped feature")]
     public class EtherAddressDto
     {
-        public EtherAddressDto(EtherAddressConfig etherAddressConfig)
+        public EtherAddressDto(string address)
         {
-            if (etherAddressConfig is null)
-                throw new ArgumentNullException(nameof(etherAddressConfig));
-
-            Address = etherAddressConfig.Address;
-            if (etherAddressConfig.PreferredSocNode is not null)
-                PreferredSocNode = new BeeNodeDto(etherAddressConfig.PreferredSocNode);
+            Address = address;
         }
 
         public string Address { get; }
-        public BeeNodeDto? PreferredSocNode { get; }
+        public BeeNodeDto? PreferredSocNode => null;
     }
 }
