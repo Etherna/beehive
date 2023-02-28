@@ -32,7 +32,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
     /// <summary>
     /// Manage live instances of bee nodes
     /// </summary>
-    class BeeNodeLiveManager : IBeeNodeLiveManager, IDisposable
+    internal sealed class BeeNodeLiveManager : IBeeNodeLiveManager, IDisposable
     {
         // Consts.
         private const int HeartbeatPeriod = 10000; //10s
@@ -75,8 +75,8 @@ namespace Etherna.BeehiveManager.Services.Utilities
 
         public async Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId)
         {
-            if (beeNodeInstances.ContainsKey(nodeId))
-                return beeNodeInstances[nodeId];
+            if (beeNodeInstances.TryGetValue(nodeId, out var instance))
+                return instance;
 
             var beeNode = await dbContext.BeeNodes.FindOneAsync(nodeId);
             return await AddBeeNodeAsync(beeNode);
@@ -151,7 +151,8 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     {
                         var lastSelectedNodeWithIndexList = beeNodeInstances.Values
                             .Select((node, index) => new { index, node })
-                            .Where(g => g.node == lastSelectedNodesRoundRobin[selectionContext]);
+                            .Where(g => g.node == lastSelectedNodesRoundRobin[selectionContext])
+                            .ToList();
 
                         if (lastSelectedNodeWithIndexList.Any()) //if prev node still exists
                         {

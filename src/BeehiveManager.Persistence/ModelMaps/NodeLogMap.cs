@@ -19,7 +19,7 @@ using Etherna.MongODM.Core.Serialization;
 
 namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
-    class NodeLogMap : IModelMapsCollector
+    internal sealed class NodeLogMap : IModelMapsCollector
     {
         public void Register(IDbContext dbContext)
         {

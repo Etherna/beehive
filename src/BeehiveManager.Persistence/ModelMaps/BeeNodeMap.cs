@@ -21,7 +21,7 @@ using Etherna.MongODM.Core.Serialization.Serializers;
 
 namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
-    class BeeNodeMap : IModelMapsCollector
+    internal sealed class BeeNodeMap : IModelMapsCollector
     {
         public void Register(IDbContext dbContext)
         {
