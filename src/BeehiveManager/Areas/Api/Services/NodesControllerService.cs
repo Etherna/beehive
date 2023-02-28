@@ -17,6 +17,7 @@ using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities;
+using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
 using MongoDB.Driver;
@@ -112,8 +113,15 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, string batchId)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
-            return new PostageBatchDto(postageBatch);
+            try
+            {
+                var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
+                return new PostageBatchDto(postageBatch);
+            }
+            catch (BeeNetDebugApiException ex) when (ex.StatusCode == 400)
+            {
+                throw new KeyNotFoundException();
+            }
         }
 
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
