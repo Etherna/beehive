@@ -86,48 +86,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
             }
         }
 
-        public static IEnumerable<object[]> EtherAddressConfigDeserializationTests
-        {
-            get
-            {
-                var tests = new List<DeserializationTestElement<EtherAddressConfig>>();
-
-                // "e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c" - v0.3.11
-                {
-                    var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""633c703c867c5a05f708070d""),
-                            ""_m"" : ""e7e7bb6a-17c2-444b-bd7d-6fc84f57da3c"",
-                            ""CreationDateTime"" : ISODate(""2022-10-04T17:41:16.522+0000""),
-                            ""Address"" : ""0x974caA59E52682cdA0ad1bBEA2083919A2eCC400"",
-                            ""PreferredSocNode"" : {
-                                ""_m"" : ""a833d25f-4613-4cbc-b36a-4cdfa62501f4"",
-                                ""_id"" : ObjectId(""632dcea61b6694a5ab78bdac""),
-                                ""ConnectionScheme"" : ""http"",
-                                ""DebugPort"" : NumberInt(1635),
-                                ""GatewayPort"" : NumberInt(1633),
-                                ""Hostname"" : ""bee0""
-                            }
-                        }";
-
-                    var expectedEtherAddressMock = new Mock<EtherAddressConfig>();
-                    expectedEtherAddressMock.Setup(n => n.Id).Returns("633c703c867c5a05f708070d");
-                    expectedEtherAddressMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2022, 10, 04, 17, 41, 16, 522));
-                    expectedEtherAddressMock.Setup(n => n.Address).Returns("0x974caA59E52682cdA0ad1bBEA2083919A2eCC400");
-                    {
-                        var beeNodeMock = new Mock<BeeNode>();
-                        beeNodeMock.Setup(n => n.Id).Returns("632dcea61b6694a5ab78bdac");
-
-                        expectedEtherAddressMock.Setup(a => a.PreferredSocNode).Returns(beeNodeMock.Object);
-                    }
-
-                    tests.Add(new DeserializationTestElement<EtherAddressConfig>(sourceDocument, expectedEtherAddressMock.Object));
-                }
-
-                return tests.Select(t => new object[] { t });
-            }
-        }
-
         // Tests.
         [Theory, MemberData(nameof(BeeNodeDeserializationTests))]
         public void BeeNodeDeserialization(DeserializationTestElement<BeeNode> testElement)
@@ -155,31 +113,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
             Assert.NotNull(result.Id);
             Assert.NotNull(result.ConnectionScheme);
             Assert.NotNull(result.Hostname);
-        }
-
-        [Theory, MemberData(nameof(EtherAddressConfigDeserializationTests))]
-        public void EtherAddressConfigDeserialization(DeserializationTestElement<EtherAddressConfig> testElement)
-        {
-            if (testElement is null)
-                throw new ArgumentNullException(nameof(testElement));
-
-            // Setup.
-            using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<EtherAddressConfig>(dbContext);
-            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
-            testElement.SetupAction(mongoDatabaseMock, dbContext);
-
-            // Action.
-            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
-            var result = modelMapSerializer.Deserialize(deserializationContext);
-
-            // Assert.
-            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
-            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
-            Assert.Equal(testElement.ExpectedModel.Address, result.Address);
-            Assert.Equal(testElement.ExpectedModel.PreferredSocNode?.Id, result.PreferredSocNode?.Id);
-            Assert.NotNull(result.Id);
-            Assert.NotNull(result.Address);
         }
     }
 }
