@@ -19,7 +19,7 @@ using Etherna.MongODM.Core.Serialization;
 
 namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
-    class EtherAddressConfigMap : IModelMapsCollector
+    internal sealed class EtherAddressConfigMap : IModelMapsCollector
     {
         public void Register(IDbContext dbContext)
         {

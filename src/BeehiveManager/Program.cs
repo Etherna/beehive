@@ -116,7 +116,7 @@ namespace Etherna.BeehiveManager
         {
             string assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
             string envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
-            return new ElasticsearchSinkOptions(configuration.GetSection("Elastic:Urls").Get<string[]>().Select(u => new Uri(u)))
+            return new ElasticsearchSinkOptions((configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException()).Select(u => new Uri(u)))
             {
                 AutoRegisterTemplate = true,
                 IndexFormat = $"{assemblyName}-{envName}-{DateTime.UtcNow:yyyy-MM}"
@@ -131,7 +131,7 @@ namespace Etherna.BeehiveManager
 
             // Configure Asp.Net Core framework services.
             services.AddDataProtection()
-                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = config["ConnectionStrings:DataProtectionDb"] });
+                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = config["ConnectionStrings:DataProtectionDb"] ?? throw new ServiceConfigurationException() });
 
             services.AddCors();
             services.AddRazorPages();
@@ -191,7 +191,7 @@ namespace Etherna.BeehiveManager
             // Configure Hangfire and persistence.
             services.AddMongODMWithHangfire(configureHangfireOptions: options =>
             {
-                options.ConnectionString = config["ConnectionStrings:HangfireDb"];
+                options.ConnectionString = config["ConnectionStrings:HangfireDb"] ?? throw new ServiceConfigurationException();
                 options.StorageOptions = new MongoStorageOptions
                 {
                     MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception
@@ -212,7 +212,7 @@ namespace Etherna.BeehiveManager
                 },
                 options =>
                 {
-                    options.ConnectionString = config["ConnectionStrings:BeehiveManagerDb"];
+                    options.ConnectionString = config["ConnectionStrings:BeehiveManagerDb"] ?? throw new ServiceConfigurationException();
                 });
 
             services.AddMongODMAdminDashboard(new MongODM.AspNetCore.UI.DashboardOptions

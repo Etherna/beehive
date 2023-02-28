@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.EventHandlers
 {
-    class OnBeeNodeCreatedThenAddNodeStatusHandler : EventHandlerBase<EntityCreatedEvent<BeeNode>>
+    internal sealed class OnBeeNodeCreatedThenAddNodeStatusHandler : EventHandlerBase<EntityCreatedEvent<BeeNode>>
     {
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
