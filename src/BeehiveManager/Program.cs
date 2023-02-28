@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.BeehiveManager.Configs;
 using Etherna.BeehiveManager.Configs.Hangfire;
 using Etherna.BeehiveManager.Configs.Swagger;
@@ -226,7 +227,14 @@ namespace Etherna.BeehiveManager
 
         private static void ConfigureApplication(WebApplication app)
         {
-            app.UseDeveloperExceptionPage();
+            var env = app.Environment;
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseEthernaAcrDebugPages();
+            }
+
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
@@ -235,12 +243,6 @@ namespace Etherna.BeehiveManager
             app.UseHangfireDashboard(
                 CommonConsts.HangfireAdminPath,
                 new Hangfire.DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
-
-            // Register cron tasks.
-            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
-                CashoutAllNodesTask.TaskId,
-                task => task.RunAsync(),
-                "0 5 * * *"); //at 05:00 every day
 
             // Add Swagger and SwaggerUI.
             var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
@@ -256,9 +258,15 @@ namespace Etherna.BeehiveManager
                 }
             });
 
-            // Add controllers.
+            // Add pages and controllers.
             app.MapControllers();
             app.MapRazorPages();
+
+            // Register cron tasks.
+            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
+                CashoutAllNodesTask.TaskId,
+                task => task.RunAsync(),
+                "0 5 * * *"); //at 05:00 every day
         }
     }
 }
