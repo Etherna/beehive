@@ -58,10 +58,8 @@ namespace Etherna.BeehiveManager.Services.Domain
 
         public async Task<BeeNode> SelectRandomHealthyNodeAsync()
         {
-            var instance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.Random);
-            if (instance is null)
+            var instance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.Random) ??
                 throw new InvalidOperationException("Can't select a valid healthy node");
-
             return await dbContext.BeeNodes.FindOneAsync(instance.Id);
         }
     }
