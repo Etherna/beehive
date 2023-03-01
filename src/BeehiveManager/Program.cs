@@ -22,7 +22,9 @@ using Etherna.BeehiveManager.Exceptions;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
 using Etherna.BeehiveManager.Services;
+using Etherna.BeehiveManager.Services.Settings;
 using Etherna.BeehiveManager.Services.Tasks;
+using Etherna.BeehiveManager.Settings;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
@@ -188,6 +190,7 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure setting.
+            services.Configure<FundNodesSettings>(config.GetSection(FundNodesSettings.ConfigPosition));
             services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
 
             // Configure Hangfire and persistence.
@@ -265,6 +268,11 @@ namespace Etherna.BeehiveManager
             app.MapRazorPages();
 
             // Register cron tasks.
+            RecurringJob.AddOrUpdate<IFundNodesTask>(
+                FundNodesTask.TaskId,
+                task => task.RunAsync(),
+                "5 * * * *"); //at 05 every hour
+
             RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
                 CashoutAllNodesTask.TaskId,
                 task => task.RunAsync(),

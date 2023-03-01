@@ -16,6 +16,7 @@
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.156" />
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.4.0" />
     <PackageReference Include="MongODM.Hangfire" Version="0.24.0-alpha.80" />
+    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="4.13.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
