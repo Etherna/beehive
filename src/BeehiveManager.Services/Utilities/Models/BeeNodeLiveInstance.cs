@@ -142,12 +142,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                  */
                 var currentGatewayApiVersion = healthResult.ApiVersion switch
                 {
-                    "3.2.0" => GatewayApiVersion.v3_2_0,
+                    "4.0.0" => GatewayApiVersion.v4_0_0,
                     _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                 };
                 var currentDebugApiVersion = healthResult.DebugApiVersion switch
                 {
-                    "3.2.0" => DebugApiVersion.v3_2_0,
+                    "4.0.0" => DebugApiVersion.v4_0_0,
                     _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                 };
 

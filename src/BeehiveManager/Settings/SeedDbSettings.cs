@@ -14,7 +14,7 @@
 
 using System;
 
-namespace Etherna.BeehiveManager.Configs
+namespace Etherna.BeehiveManager.Settings
 {
 #pragma warning disable CA1034 // Nested types should not be visible
 #pragma warning disable CA1819 // Properties should not return arrays

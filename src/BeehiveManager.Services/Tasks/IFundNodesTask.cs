@@ -12,20 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+using Hangfire;
+using System.Threading.Tasks;
 
-namespace Etherna.BeehiveManager.Domain.Models
+namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public abstract class NodeLogBase : EntityModelBase<string>
+    public interface IFundNodesTask
     {
-        // Constructors.
-        protected NodeLogBase(BeeNode node)
-        {
-            Node = node ?? throw new ArgumentNullException(nameof(node));
-        }
-        protected NodeLogBase() { }
-
-        // Properties.
-        public virtual BeeNode Node { get; protected set; } = default!;
+        [Queue(Queues.NODE_MAINTENANCE)]
+        Task RunAsync();
     }
 }

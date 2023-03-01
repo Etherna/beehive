@@ -68,14 +68,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             throw new InvalidOperationException("Can't select a valid node");
         }
 
-        public async Task<BeeNodeDto> SelectSocNodeAsync(string address)
+        public async Task<BeeNodeDto> SelectSocNodeAsync()
         {
-            // Get preferred soc node.
-            var selectedNode = await beeNodeService.GetPreferredSocBeeNodeAsync(address);
-
-            // If preferred soc node is not healthy, select another random.
-            if (!(await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(selectedNode.Id)).Status.IsAlive)
-                selectedNode = await beeNodeService.SelectRandomHealthyNodeAsync();
+            // Get random node.
+            var selectedNode = await beeNodeService.SelectRandomHealthyNodeAsync();
 
             return new BeeNodeDto(selectedNode);
         }

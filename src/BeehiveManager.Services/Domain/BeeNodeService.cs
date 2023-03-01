@@ -1,8 +1,21 @@
-﻿using Etherna.BeehiveManager.Domain;
+﻿//   Copyright 2021-present Etherna Sagl
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
-using Nethereum.Util;
 using System;
 using System.Threading.Tasks;
 
@@ -24,44 +37,10 @@ namespace Etherna.BeehiveManager.Services.Domain
         }
 
         // Methods.
-        public async Task<BeeNode> GetPreferredSocBeeNodeAsync(string socOwnerAddress)
-        {
-            socOwnerAddress = socOwnerAddress.ConvertToEthereumChecksumAddress();
-
-            // Try to find ether address configuration.
-            var etherAddressConfig = await dbContext.EtherAddressConfigs.TryFindOneAsync(a => a.Address == socOwnerAddress);
-
-            // If configuration doesn't exist, create it.
-            if (etherAddressConfig is null)
-            {
-                //select a random healthy node
-                var selectedNode = await SelectRandomHealthyNodeAsync();
-
-                //create configuration with selected node as preferred
-                etherAddressConfig = new EtherAddressConfig(socOwnerAddress) { PreferredSocNode = selectedNode };
-                await dbContext.EtherAddressConfigs.CreateAsync(etherAddressConfig);
-            }
-
-            // Else, if there is no preferred soc node, select one random and update config.
-            else if (etherAddressConfig.PreferredSocNode is null)
-            {
-                //select a random healthy node
-                var selectedNode = await SelectRandomHealthyNodeAsync();
-
-                //update configuration with selected node as preferred
-                etherAddressConfig.PreferredSocNode = selectedNode;
-                await dbContext.SaveChangesAsync();
-            }
-
-            return etherAddressConfig.PreferredSocNode;
-        }
-
         public async Task<BeeNode> SelectRandomHealthyNodeAsync()
         {
-            var instance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.Random);
-            if (instance is null)
+            var instance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.Random) ??
                 throw new InvalidOperationException("Can't select a valid healthy node");
-
             return await dbContext.BeeNodes.FindOneAsync(instance.Id);
         }
     }
