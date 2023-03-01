@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.EventHandlers
 {
-    class OnBeeNodeDeletedThenRemoveNodeStatusHandler : EventHandlerBase<EntityDeletedEvent<BeeNode>>
+    internal sealed class OnBeeNodeDeletedThenRemoveNodeStatusHandler : EventHandlerBase<EntityDeletedEvent<BeeNode>>
     {
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;

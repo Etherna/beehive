@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.BeehiveManager.Configs;
 using Etherna.BeehiveManager.Configs.Hangfire;
 using Etherna.BeehiveManager.Configs.Swagger;
@@ -21,7 +22,9 @@ using Etherna.BeehiveManager.Exceptions;
 using Etherna.BeehiveManager.Extensions;
 using Etherna.BeehiveManager.Persistence;
 using Etherna.BeehiveManager.Services;
+using Etherna.BeehiveManager.Services.Settings;
 using Etherna.BeehiveManager.Services.Tasks;
+using Etherna.BeehiveManager.Settings;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
@@ -97,14 +100,15 @@ namespace Etherna.BeehiveManager
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{environment}.json", optional: true)
+                .AddEnvironmentVariables()
                 .Build();
 
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
                 .Enrich.WithExceptionDetails()
                 .Enrich.WithMachineName()
-                .WriteTo.Debug()
-                .WriteTo.Console()
+                .WriteTo.Debug(formatProvider: CultureInfo.InvariantCulture)
+                .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
                 .WriteTo.Elasticsearch(ConfigureElasticSink(configuration, environment))
                 .Enrich.WithProperty("Environment", environment)
                 .ReadFrom.Configuration(configuration)
@@ -115,7 +119,7 @@ namespace Etherna.BeehiveManager
         {
             string assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
             string envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
-            return new ElasticsearchSinkOptions(configuration.GetSection("Elastic:Urls").Get<string[]>().Select(u => new Uri(u)))
+            return new ElasticsearchSinkOptions((configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException()).Select(u => new Uri(u)))
             {
                 AutoRegisterTemplate = true,
                 IndexFormat = $"{assemblyName}-{envName}-{DateTime.UtcNow:yyyy-MM}"
@@ -130,7 +134,7 @@ namespace Etherna.BeehiveManager
 
             // Configure Asp.Net Core framework services.
             services.AddDataProtection()
-                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = config["ConnectionStrings:DataProtectionDb"] });
+                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = config["ConnectionStrings:DataProtectionDb"] ?? throw new ServiceConfigurationException() });
 
             services.AddCors();
             services.AddRazorPages();
@@ -174,6 +178,7 @@ namespace Etherna.BeehiveManager
             services.AddSwaggerGen(options =>
             {
                 options.SupportNonNullableReferenceTypes();
+                options.UseInlineDefinitionsForEnums();
 
                 //add a custom operation filter which sets default values
                 options.OperationFilter<SwaggerDefaultValues>();
@@ -185,17 +190,13 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure setting.
-            var assemblyVersion = new AssemblyVersion(typeof(Program).GetTypeInfo().Assembly);
-            services.Configure<ApplicationSettings>(options =>
-            {
-                options.AssemblyVersion = assemblyVersion.Version;
-            });
+            services.Configure<FundNodesSettings>(config.GetSection(FundNodesSettings.ConfigPosition));
             services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
 
             // Configure Hangfire and persistence.
             services.AddMongODMWithHangfire(configureHangfireOptions: options =>
             {
-                options.ConnectionString = config["ConnectionStrings:HangfireDb"];
+                options.ConnectionString = config["ConnectionStrings:HangfireDb"] ?? throw new ServiceConfigurationException();
                 options.StorageOptions = new MongoStorageOptions
                 {
                     MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception
@@ -216,12 +217,12 @@ namespace Etherna.BeehiveManager
                 },
                 options =>
                 {
-                    options.DocumentSemVer.CurrentVersion = assemblyVersion.SimpleVersion;
-                    options.ConnectionString = config["ConnectionStrings:BeehiveManagerDb"];
+                    options.ConnectionString = config["ConnectionStrings:BeehiveManagerDb"] ?? throw new ServiceConfigurationException();
                 });
 
             services.AddMongODMAdminDashboard(new MongODM.AspNetCore.UI.DashboardOptions
             {
+                AuthFilters = new[] { new Configs.MongODM.AllowAllFilter() },
                 BasePath = CommonConsts.DatabaseAdminPath
             });
 
@@ -231,7 +232,14 @@ namespace Etherna.BeehiveManager
 
         private static void ConfigureApplication(WebApplication app)
         {
-            app.UseDeveloperExceptionPage();
+            var env = app.Environment;
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseEthernaAcrDebugPages();
+            }
+
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
@@ -240,12 +248,6 @@ namespace Etherna.BeehiveManager
             app.UseHangfireDashboard(
                 CommonConsts.HangfireAdminPath,
                 new Hangfire.DashboardOptions { Authorization = new[] { new AllowAllFilter() } });
-
-            // Register cron tasks.
-            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
-                CashoutAllNodesTask.TaskId,
-                task => task.RunAsync(),
-                "0 5 * * *"); //at 05:00 every day
 
             // Add Swagger and SwaggerUI.
             var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
@@ -261,9 +263,20 @@ namespace Etherna.BeehiveManager
                 }
             });
 
-            // Add controllers.
+            // Add pages and controllers.
             app.MapControllers();
             app.MapRazorPages();
+
+            // Register cron tasks.
+            RecurringJob.AddOrUpdate<IFundNodesTask>(
+                FundNodesTask.TaskId,
+                task => task.RunAsync(),
+                "5 * * * *"); //at 05 every hour
+
+            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
+                CashoutAllNodesTask.TaskId,
+                task => task.RunAsync(),
+                "0 5 * * *"); //at 05:00 every day
         }
     }
 }

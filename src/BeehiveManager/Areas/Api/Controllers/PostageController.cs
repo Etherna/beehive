@@ -76,7 +76,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <param name="immutable">Is batch immutable</param>
         /// <param name="label">An optional label for this batch</param>
         /// <param name="nodeId">Bee node Id</param>
-        /// <param name="ownerAddress">The optional ethereum address of the owner</param>
         /// <response code="200">Postage batch id</response>
         [HttpPost("batches")]
         [SimpleExceptionFilter]
@@ -89,9 +88,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             long? gasPrice = null,
             bool immutable = false,
             string? label = null,
-            string? nodeId = null,
-            string? ownerAddress = null) =>
-            service.BuyPostageBatchAsync(amount, depth, gasPrice, immutable, label, nodeId, ownerAddress);
+            string? nodeId = null) =>
+            service.BuyPostageBatchAsync(amount, depth, gasPrice, immutable, label, nodeId);
 
         // Put.
 

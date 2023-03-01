@@ -12,27 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.Collections.Generic;
+using Etherna.MongODM.AspNetCore.UI.Auth.Filters;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.BeehiveManager.Domain.Models
+namespace Etherna.BeehiveManager.Configs.MongODM
 {
-    public class CashoutNodeLog : NodeLogBase
+    public class AllowAllFilter : IDashboardAuthFilter
     {
-        // Constructors.
-        public CashoutNodeLog(
-            BeeNode beeNode,
-            IEnumerable<string> txs,
-            long totalCashout)
-            : base(beeNode)
-        {
-            Txs = txs;
-            TotalCashout = totalCashout;
-        }
-        protected CashoutNodeLog() { }
-
-
-        // Properties.
-        public virtual long TotalCashout { get; protected set; }
-        public virtual IEnumerable<string> Txs { get; protected set; } = default!;
+        public Task<bool> AuthorizeAsync(HttpContext? context) => Task.FromResult(true);
     }
 }

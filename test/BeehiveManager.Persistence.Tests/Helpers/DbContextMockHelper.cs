@@ -24,6 +24,7 @@ using Etherna.MongODM.Core.Repositories;
 using Etherna.MongODM.Core.Serialization.Mapping;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Etherna.MongODM.Core.Utility;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -50,9 +51,9 @@ namespace Etherna.BeehiveManager.Persistence.Helpers
             dbDependenciesMock.Setup(d => d.DbMigrationManager).Returns(new Mock<IDbMigrationManager>().Object);
             dbDependenciesMock.Setup(d => d.DiscriminatorRegistry).Returns(new DiscriminatorRegistry());
             dbDependenciesMock.Setup(d => d.ExecutionContext).Returns(execContext);
-            dbDependenciesMock.Setup(d => d.ProxyGenerator).Returns(new ProxyGenerator(new Castle.DynamicProxy.ProxyGenerator()));
+            dbDependenciesMock.Setup(d => d.MapRegistry).Returns(new MapRegistry());
+            dbDependenciesMock.Setup(d => d.ProxyGenerator).Returns(new ProxyGenerator(new Mock<ILoggerFactory>().Object, new Castle.DynamicProxy.ProxyGenerator()));
             dbDependenciesMock.Setup(d => d.RepositoryRegistry).Returns(new RepositoryRegistry());
-            dbDependenciesMock.Setup(d => d.SchemaRegistry).Returns(new SchemaRegistry());
             dbDependenciesMock.Setup(d => d.SerializerModifierAccessor).Returns(new SerializerModifierAccessor(execContext));
 
             // Setup Mongo client.
@@ -81,7 +82,7 @@ namespace Etherna.BeehiveManager.Persistence.Helpers
 
         public static Mock<IMongoCollection<TModel>> SetupCollectionMock<TModel, TKey>(
             Mock<IMongoDatabase> mongoDatabaseMock,
-            ICollectionRepository<TModel, TKey> collection)
+            IRepository<TModel, TKey> collection)
              where TModel : class, IEntityModel<TKey>
         {
             if (mongoDatabaseMock is null)
