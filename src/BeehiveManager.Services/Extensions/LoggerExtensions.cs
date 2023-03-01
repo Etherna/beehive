@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Numerics;
 
 namespace Etherna.BeehiveManager.Services.Extensions
 {
@@ -22,45 +20,45 @@ namespace Etherna.BeehiveManager.Services.Extensions
                 new EventId(0, nameof(NodeCashedOut)),
                 "Node {BeeNodeId} cashed out {TotalCashedOut} with tx hashes {TxHashes}");
 
-        private static readonly Action<ILogger, string, string, string, Exception> _succededToFundBzzOnNode =
-            LoggerMessage.Define<string, string, string>(
+        private static readonly Action<ILogger, string, decimal, decimal, string, Exception> _succededToFundBzzOnNode =
+            LoggerMessage.Define<string, decimal, decimal, string>(
                 LogLevel.Information,
                 new EventId(1, nameof(SuccededToFundBzzOnNode)),
-                "Node {BeeNodeId} funded with {PlurFunded} PLUR to final {PlurFinal} PLUR");
+                "Node {BeeNodeId} funded with {BzzFunded} BZZ to total {BzzTotal} BZZ. Tx hash {TxHash}");
 
-        private static readonly Action<ILogger, string, string, string, Exception> _succededToFundXDaiOnNode =
-            LoggerMessage.Define<string, string, string>(
+        private static readonly Action<ILogger, string, decimal, decimal, string, Exception> _succededToFundXDaiOnNode =
+            LoggerMessage.Define<string, decimal, decimal, string>(
                 LogLevel.Information,
                 new EventId(3, nameof(SuccededToFundXDaiOnNode)),
-                "Node {BeeNodeId} funded with {WeiFunded} xDai Wei to final {WeiFinal} xDai Wei");
+                "Node {BeeNodeId} funded with {XDaiFunded} xDai to total {XDaiTotal} xDai. Tx hash {TxHash}");
 
         //*** WARNING LOGS ***
 
         //*** ERROR LOGS ***
-        private static readonly Action<ILogger, string, string, Exception> _failedToFundBzzOnNode =
-            LoggerMessage.Define<string, string>(LogLevel.Error,
+        private static readonly Action<ILogger, string, decimal, string?, Exception> _failedToFundBzzOnNode =
+            LoggerMessage.Define<string, decimal, string?>(LogLevel.Error,
                 new EventId(2, nameof(FailedToFundBzzOnNode)),
-                "Funding on node {BeeNodeId} failed with tx of {PlurAmount} PLUR");
+                "Funding on node {BeeNodeId} failed with {BzzAmount} BZZ. Tx hash {TxHash}");
 
-        private static readonly Action<ILogger, string, string, Exception> _failedToFundXDaiOnNode =
-            LoggerMessage.Define<string, string>(LogLevel.Error,
+        private static readonly Action<ILogger, string, decimal, string?, Exception> _failedToFundXDaiOnNode =
+            LoggerMessage.Define<string, decimal, string?>(LogLevel.Error,
                 new EventId(2, nameof(FailedToFundXDaiOnNode)),
-                "Funding on node {BeeNodeId} failed with tx of {WeiAmount} xDai Wei");
+                "Funding on node {BeeNodeId} failed with {XDaiAmount} xDai. Tx hash {TxHash}");
 
         // Methods.
-        public static void FailedToFundBzzOnNode(this ILogger logger, string nodeId, BigInteger plurFundAmount, Exception? exception) =>
-            _failedToFundBzzOnNode(logger, nodeId, plurFundAmount.ToString(CultureInfo.InvariantCulture), exception!);
+        public static void FailedToFundBzzOnNode(this ILogger logger, string nodeId, decimal bzzFundAmount, string? txHash, Exception? exception) =>
+            _failedToFundBzzOnNode(logger, nodeId, bzzFundAmount, txHash, exception!);
 
-        public static void FailedToFundXDaiOnNode(this ILogger logger, string nodeId, BigInteger weiFundAmount, Exception? exception) =>
-            _failedToFundXDaiOnNode(logger, nodeId, weiFundAmount.ToString(CultureInfo.InvariantCulture), exception!);
+        public static void FailedToFundXDaiOnNode(this ILogger logger, string nodeId, decimal xDaiFundAmount, string? txHash, Exception? exception) =>
+            _failedToFundXDaiOnNode(logger, nodeId, xDaiFundAmount, txHash, exception!);
 
         public static void NodeCashedOut(this ILogger logger, string beeNodeId, long totalCashedOut, IEnumerable<string> txHashes) =>
             _nodeCashedOut(logger, beeNodeId, totalCashedOut, txHashes, null!);
 
-        public static void SuccededToFundBzzOnNode(this ILogger logger, string nodeId, BigInteger plurFunded, BigInteger plurFinal) =>
-            _succededToFundBzzOnNode(logger, nodeId, plurFunded.ToString(CultureInfo.InvariantCulture), plurFinal.ToString(CultureInfo.InvariantCulture), null!);
+        public static void SuccededToFundBzzOnNode(this ILogger logger, string nodeId, decimal bzzFunded, decimal bzzTotal, string txHash) =>
+            _succededToFundBzzOnNode(logger, nodeId, bzzFunded, bzzTotal, txHash, null!);
 
-        public static void SuccededToFundXDaiOnNode(this ILogger logger, string nodeId, BigInteger weiFunded, BigInteger weiFinal) =>
-            _succededToFundXDaiOnNode(logger, nodeId, weiFunded.ToString(CultureInfo.InvariantCulture), weiFinal.ToString(CultureInfo.InvariantCulture), null!);
+        public static void SuccededToFundXDaiOnNode(this ILogger logger, string nodeId, decimal xDaiFunded, decimal xDaiTotal, string txHash) =>
+            _succededToFundXDaiOnNode(logger, nodeId, xDaiFunded, xDaiTotal, txHash, null!);
     }
 }
