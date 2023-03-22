@@ -24,6 +24,7 @@ namespace Etherna.BeehiveManager.Settings
         public class BeeNode
         {
             public int DebugPort { get; set; } = 1635;
+            public bool EnableBatchCreation { get; set; } = true;
             public int GatewayPort { get; set; } = 1633;
             public string Hostname { get; set; } = "localhost";
             public string Scheme { get; set; } = "http";

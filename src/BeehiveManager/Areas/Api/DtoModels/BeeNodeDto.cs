@@ -30,6 +30,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             DebugPort = beeNode.DebugPort;
             GatewayPort = beeNode.GatewayPort;
             Hostname = beeNode.Hostname;
+            IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
         }
 
         // Properties.
@@ -38,5 +39,6 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public int DebugPort { get; }
         public int GatewayPort { get; }
         public string Hostname { get; }
+        public bool IsBatchCreationEnabled { get; }
     }
 }

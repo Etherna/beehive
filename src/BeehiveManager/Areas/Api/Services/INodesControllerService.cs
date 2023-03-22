@@ -34,5 +34,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id);
         Task NotifyPinningOfUploadedContentAsync(string id, string hash);
         Task RemoveBeeNodeAsync(string id);
+        Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config);
     }
 }

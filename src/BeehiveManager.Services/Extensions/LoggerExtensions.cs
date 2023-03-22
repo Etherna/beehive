@@ -20,7 +20,7 @@ namespace Etherna.BeehiveManager.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 6
+     * Last event id is: 7
      */
     public static class LoggerExtensions
     {
@@ -34,11 +34,17 @@ namespace Etherna.BeehiveManager.Services.Extensions
                 new EventId(0, nameof(NodeCashedOut)),
                 "Node {BeeNodeId} cashed out {TotalCashedOut} with tx hashes {TxHashes}");
 
-        private static readonly Action<ILogger, string, Uri, int, int, Exception> _nodeRegistered =
-            LoggerMessage.Define<string, Uri, int, int>(
+        private static readonly Action<ILogger, string, bool, Exception> _nodeConfigurationUpdated =
+            LoggerMessage.Define<string, bool>(
+                LogLevel.Information,
+                new EventId(7, nameof(NodeConfigurationUpdated)),
+                "Node {BeeNodeId} updated configuration. EnableBatchCreation: {EnableBatchCreation}");
+
+        private static readonly Action<ILogger, string, Uri, int, int, bool, Exception> _nodeRegistered =
+            LoggerMessage.Define<string, Uri, int, int, bool>(
                 LogLevel.Information,
                 new EventId(5, nameof(NodeRegistered)),
-                "Node {BeeNodeId} registered on url {NodeUrl} on gateway port {GatewayPort} and debug port {DebugPort}");
+                "Node {BeeNodeId} registered on url {NodeUrl} on gateway port {GatewayPort} and debug port {DebugPort}. Batch creation enabled: {IsBatchCreationEnabled}");
 
         private static readonly Action<ILogger, string, Exception> _nodeRemoved =
             LoggerMessage.Define<string>(
@@ -81,8 +87,11 @@ namespace Etherna.BeehiveManager.Services.Extensions
         public static void NodeCashedOut(this ILogger logger, string beeNodeId, long totalCashedOut, IEnumerable<string> txHashes) =>
             _nodeCashedOut(logger, beeNodeId, totalCashedOut, txHashes, null!);
 
-        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri nodeUrl, int gatewayPort, int debugPort) =>
-            _nodeRegistered(logger, beeNodeId, nodeUrl, gatewayPort, debugPort, null!);
+        public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid, bool enableBatchCreation) =>
+            _nodeConfigurationUpdated(logger, beeNodeid, enableBatchCreation, null!);
+
+        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri nodeUrl, int gatewayPort, int debugPort, bool isBatchCreationEnabled) =>
+            _nodeRegistered(logger, beeNodeId, nodeUrl, gatewayPort, debugPort, isBatchCreationEnabled, null!);
 
         public static void NodeRemoved(this ILogger logger, string beeNodeId) =>
             _nodeRemoved(logger, beeNodeId, null!);

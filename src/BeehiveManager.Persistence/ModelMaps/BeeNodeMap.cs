@@ -25,7 +25,14 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.MapRegistry.AddModelMap<BeeNode>("6b94df32-034f-46f9-a5c1-239905ad5d07");
+            dbContext.MapRegistry.AddModelMap<BeeNode>("6b94df32-034f-46f9-a5c1-239905ad5d07",
+                mm =>
+                {
+                    mm.AutoMap();
+
+                    // Set default values.
+                    mm.GetMemberMap(n => n.IsBatchCreationEnabled).SetDefaultValue(true);
+                });
         }
 
         /// <summary>
