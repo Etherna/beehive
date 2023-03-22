@@ -16,10 +16,12 @@ using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -33,14 +35,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         // Fields.
         private readonly IBeehiveDbContext beehiveDbContext;
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly ILogger<NodesControllerService> logger;
 
         // Constructor.
         public NodesControllerService(
             IBeehiveDbContext beehiveDbContext,
-            IBeeNodeLiveManager beeNodeLiveManager)
+            IBeeNodeLiveManager beeNodeLiveManager,
+            ILogger<NodesControllerService> logger)
         {
             this.beehiveDbContext = beehiveDbContext;
             this.beeNodeLiveManager = beeNodeLiveManager;
+            this.logger = logger;
         }
 
         // Methods.
@@ -56,6 +61,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 input.GatewayApiPort,
                 input.Hostname);
             await beehiveDbContext.BeeNodes.CreateAsync(node);
+
+            logger.NodeRegistered(
+                node.Id,
+                node.BaseUrl,
+                node.GatewayPort,
+                node.DebugPort);
 
             return new BeeNodeDto(node);
         }
@@ -143,6 +154,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new ArgumentNullException(nameof(id));
 
             await beehiveDbContext.BeeNodes.DeleteAsync(id);
+
+            logger.NodeRemoved(id);
         }
     }
 }

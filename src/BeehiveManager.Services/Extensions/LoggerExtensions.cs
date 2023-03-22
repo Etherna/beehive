@@ -20,7 +20,7 @@ namespace Etherna.BeehiveManager.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 4
+     * Last event id is: 6
      */
     public static class LoggerExtensions
     {
@@ -33,6 +33,18 @@ namespace Etherna.BeehiveManager.Services.Extensions
                 LogLevel.Information,
                 new EventId(0, nameof(NodeCashedOut)),
                 "Node {BeeNodeId} cashed out {TotalCashedOut} with tx hashes {TxHashes}");
+
+        private static readonly Action<ILogger, string, Uri, int, int, Exception> _nodeRegistered =
+            LoggerMessage.Define<string, Uri, int, int>(
+                LogLevel.Information,
+                new EventId(5, nameof(NodeRegistered)),
+                "Node {BeeNodeId} registered on url {NodeUrl} on gateway port {GatewayPort} and debug port {DebugPort}");
+
+        private static readonly Action<ILogger, string, Exception> _nodeRemoved =
+            LoggerMessage.Define<string>(
+                LogLevel.Information,
+                new EventId(6, nameof(NodeRemoved)),
+                "Node {BeeNodeId} has been removed");
 
         private static readonly Action<ILogger, string, decimal, decimal, string, Exception> _succededToFundBzzOnNode =
             LoggerMessage.Define<string, decimal, decimal, string>(
@@ -56,7 +68,7 @@ namespace Etherna.BeehiveManager.Services.Extensions
 
         private static readonly Action<ILogger, string, decimal, string?, Exception> _failedToFundXDaiOnNode =
             LoggerMessage.Define<string, decimal, string?>(LogLevel.Error,
-                new EventId(2, nameof(FailedToFundXDaiOnNode)),
+                new EventId(4, nameof(FailedToFundXDaiOnNode)),
                 "Funding on node {BeeNodeId} failed with {XDaiAmount} xDai. Tx hash {TxHash}");
 
         // Methods.
@@ -68,6 +80,12 @@ namespace Etherna.BeehiveManager.Services.Extensions
 
         public static void NodeCashedOut(this ILogger logger, string beeNodeId, long totalCashedOut, IEnumerable<string> txHashes) =>
             _nodeCashedOut(logger, beeNodeId, totalCashedOut, txHashes, null!);
+
+        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri nodeUrl, int gatewayPort, int debugPort) =>
+            _nodeRegistered(logger, beeNodeId, nodeUrl, gatewayPort, debugPort, null!);
+
+        public static void NodeRemoved(this ILogger logger, string beeNodeId) =>
+            _nodeRemoved(logger, beeNodeId, null!);
 
         public static void SuccededToFundBzzOnNode(this ILogger logger, string nodeId, decimal bzzFunded, decimal bzzTotal, string txHash) =>
             _succededToFundBzzOnNode(logger, nodeId, bzzFunded, bzzTotal, txHash, null!);
