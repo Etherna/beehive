@@ -91,6 +91,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 await Client.GatewayClient!.CreatePinAsync(hash);
                 Status.AddPinnedHash(hash);
             }
+            catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
+            {
+                throw new KeyNotFoundException();
+            }
             finally
             {
                 _inProgressPins.TryRemove(hash, out _);

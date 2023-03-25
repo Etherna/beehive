@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Services.Utilities;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
@@ -31,8 +32,9 @@ namespace Etherna.BeehiveManager.Services.Tasks
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
 
-            // Pin.
-            await beeNodeInstance.PinResourceAsync(contentHash);
+            // Try to pin.
+            try { await beeNodeInstance.PinResourceAsync(contentHash); }
+            catch (KeyNotFoundException) { }
         }
     }
 }
