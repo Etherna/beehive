@@ -23,7 +23,8 @@ namespace Etherna.BeehiveManager.Domain.Models
             string connectionScheme,
             int debugPort,
             int gatewayPort,
-            string hostname)
+            string hostname,
+            bool enableBatchCreation)
         {
             if (debugPort is < 1 or > 65535)
                 throw new ArgumentOutOfRangeException(nameof(debugPort), "Debug port is not a valid port");
@@ -36,18 +37,20 @@ namespace Etherna.BeehiveManager.Domain.Models
             DebugPort = debugPort;
             GatewayPort = gatewayPort;
             Hostname = hostname;
+            IsBatchCreationEnabled = enableBatchCreation;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         protected BeeNode() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Properties.
-        public virtual string ConnectionScheme { get; set; }
         public virtual Uri BaseUrl => new($"{ConnectionScheme}://{Hostname}");
+        public virtual string ConnectionScheme { get; set; }
         public virtual int DebugPort { get; set; }
         public virtual Uri DebugUrl => new($"{ConnectionScheme}://{Hostname}:{DebugPort}");
         public virtual int GatewayPort { get; set; }
         public virtual Uri GatewayUrl => new($"{ConnectionScheme}://{Hostname}:{GatewayPort}");
         public virtual string Hostname { get; set; }
+        public virtual bool IsBatchCreationEnabled { get; set; }
     }
 }

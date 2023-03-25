@@ -23,6 +23,8 @@ namespace Etherna.BeehiveManager.Areas.Api.InputModels
         [Range(1, 65535)]
         public int DebugApiPort { get; set; }
 
+        public bool EnableBatchCreation { get; set; } = true;
+
         [Range(1, 65535)]
         public int GatewayApiPort { get; set; }
 

@@ -184,6 +184,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
 
         // Put.
 
+        [HttpPut("{id}/config")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task UpdateNodeConfigAsync(
+            [Required] string id,
+            [Required] UpdateNodeConfigInput config) =>
+            service.UpdateNodeConfigAsync(id, config);
+
         /// <summary>
         /// Force full status refresh on a Bee node
         /// </summary>

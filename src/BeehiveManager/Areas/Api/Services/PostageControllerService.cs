@@ -51,13 +51,20 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             //if is passed a specific node id, use it to select node
             if (nodeId is not null)
+            {
                 beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
+                if (!beeNodeInstance.IsBatchCreationEnabled)
+                    throw new InvalidOperationException("Selected node is not enabled for batch creation");
+            }
 
             //if still null, try to select a random healthy node
-            beeNodeInstance ??= await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "buyPostageBatch");
+            beeNodeInstance ??= await beeNodeLiveManager.TrySelectHealthyNodeAsync(
+                BeeNodeSelectionMode.RoundRobin,
+                "buyPostageBatch",
+                node => Task.FromResult(node.IsBatchCreationEnabled));
 
             if (beeNodeInstance is null)
-                throw new InvalidOperationException("No healthy nodes available");
+                throw new InvalidOperationException("No healthy nodes available for batch creation");
 
             // Buy postage.
             var batchId = await beeNodeInstance.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);

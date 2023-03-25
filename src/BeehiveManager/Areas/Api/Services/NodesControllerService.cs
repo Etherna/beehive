@@ -59,14 +59,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 input.ConnectionScheme,
                 input.DebugApiPort,
                 input.GatewayApiPort,
-                input.Hostname);
+                input.Hostname,
+                input.EnableBatchCreation);
             await beehiveDbContext.BeeNodes.CreateAsync(node);
 
             logger.NodeRegistered(
                 node.Id,
                 node.BaseUrl,
                 node.GatewayPort,
-                node.DebugPort);
+                node.DebugPort,
+                node.IsBatchCreationEnabled);
 
             return new BeeNodeDto(node);
         }
@@ -156,6 +158,25 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             await beehiveDbContext.BeeNodes.DeleteAsync(id);
 
             logger.NodeRemoved(id);
+        }
+
+        public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+            if (config is null)
+                throw new ArgumentNullException(nameof(config));
+
+            // Update live instance.
+            var nodeLiveInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            nodeLiveInstance.IsBatchCreationEnabled = config.EnableBatchCreation;
+
+            // Update config on db.
+            var node = await beehiveDbContext.BeeNodes.FindOneAsync(id);
+            node.IsBatchCreationEnabled = config.EnableBatchCreation;
+            await beehiveDbContext.SaveChangesAsync();
+
+            logger.NodeConfigurationUpdated(id, config.EnableBatchCreation);
         }
     }
 }
