@@ -167,9 +167,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             if (config is null)
                 throw new ArgumentNullException(nameof(config));
 
+            // Update live instance.
+            var nodeLiveInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            nodeLiveInstance.IsBatchCreationEnabled = config.EnableBatchCreation;
+
+            // Update config on db.
             var node = await beehiveDbContext.BeeNodes.FindOneAsync(id);
             node.IsBatchCreationEnabled = config.EnableBatchCreation;
-
             await beehiveDbContext.SaveChangesAsync();
 
             logger.NodeConfigurationUpdated(id, config.EnableBatchCreation);
