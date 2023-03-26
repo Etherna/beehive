@@ -13,9 +13,13 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Services.Extensions;
+using Etherna.BeehiveManager.Services.Settings;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Nethereum.Web3;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -27,55 +31,59 @@ namespace Etherna.BeehiveManager.Services.Tasks
     {
         // Consts.
         public const string TaskId = "cashoutAllNodesTask";
-        public const long MinAmount = 1_000_000_000_000; //10^12 = 0.0001 BZZ
+
+        private const int BzzDecimalPlaces = 16;
 
         // Fields.
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly IBeeNodeLiveManager liveManager;
         private readonly ILogger<CashoutAllNodesChequesTask> logger;
+        private readonly CashoutAllNodesChequesSettings options;
 
         // Constructors.
         public CashoutAllNodesChequesTask(
-            IBeeNodeLiveManager beeNodeLiveManager,
-            ILogger<CashoutAllNodesChequesTask> logger)
+            IBeeNodeLiveManager liveManager,
+            ILogger<CashoutAllNodesChequesTask> logger,
+            IOptions<CashoutAllNodesChequesSettings> options)
         {
-            this.beeNodeLiveManager = beeNodeLiveManager;
+            if (options is null)
+                throw new ArgumentNullException(nameof(options));
+
+            this.liveManager = liveManager;
             this.logger = logger;
+            this.options = options.Value;
         }
 
         // Methods.
         public async Task RunAsync()
         {
-            foreach (var node in beeNodeLiveManager.AllNodes)
+            foreach (var node in liveManager.AllNodes)
             {
-                // Get info.
-                var nodeClient = node.Client;
-                if (nodeClient.DebugClient is null) //skip if doesn't have a debug api config
-                    return;
+                if (node.Client.DebugClient is null)
+                    continue;
 
-                var totalCashedout = 0L;
+                decimal totalBzzCashedOut = 0;
                 var txs = new List<string>();
                 try
                 {
                     // Enumerate peers.
-                    var cheques = await nodeClient.DebugClient.GetAllChequeBookChequesAsync();
+                    var cheques = await node.Client.DebugClient.GetAllChequeBookChequesAsync();
                     foreach (var peer in cheques.Select(c => c.Peer))
                     {
-                        var uncashedAmount = 0L;
-
+                        decimal? uncashedBzzAmount = null;
                         try
                         {
-                            var cashoutResponse = await nodeClient.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
-                            uncashedAmount = cashoutResponse.UncashedAmount;
+                            var cashoutResponse = await node.Client.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
+                            uncashedBzzAmount = Web3.Convert.FromWei(cashoutResponse.UncashedAmount, BzzDecimalPlaces);
                         }
                         catch (BeeNetDebugApiException) { }
 
                         // Cashout.
-                        if (uncashedAmount >= MinAmount)
+                        if (uncashedBzzAmount >= options.BzzMaxTrigger)
                         {
                             try
                             {
-                                var txHash = await nodeClient.DebugClient.CashoutChequeForPeerAsync(peer);
-                                totalCashedout += uncashedAmount;
+                                var txHash = await node.Client.DebugClient.CashoutChequeForPeerAsync(peer);
+                                totalBzzCashedOut += uncashedBzzAmount.Value;
                                 txs.Add(txHash);
                             }
                             catch (BeeNetDebugApiException) { }
@@ -86,8 +94,8 @@ namespace Etherna.BeehiveManager.Services.Tasks
                 catch (HttpRequestException) { return; }
 
                 // Add log.
-                if (totalCashedout > 0)
-                    logger.NodeCashedOut(node.Id, totalCashedout, txs);
+                if (totalBzzCashedOut > 0)
+                    logger.NodeCashedOut(node.Id, totalBzzCashedOut, txs);
             }
         }
     }

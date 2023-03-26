@@ -28,11 +28,11 @@ namespace Etherna.BeehiveManager.Services.Extensions
         //*** DEBUG LOGS ***
 
         //*** INFORMATION LOGS ***
-        private static readonly Action<ILogger, string, long, IEnumerable<string>, Exception> _nodeCashedOut =
-            LoggerMessage.Define<string, long, IEnumerable<string>>(
+        private static readonly Action<ILogger, string, decimal, IEnumerable<string>, Exception> _nodeCashedOut =
+            LoggerMessage.Define<string, decimal, IEnumerable<string>>(
                 LogLevel.Information,
                 new EventId(0, nameof(NodeCashedOut)),
-                "Node {BeeNodeId} cashed out {TotalCashedOut} with tx hashes {TxHashes}");
+                "Node {BeeNodeId} cashed out {BzzCashedOut} BZZ with tx hashes {TxHashes}");
 
         private static readonly Action<ILogger, string, bool, Exception> _nodeConfigurationUpdated =
             LoggerMessage.Define<string, bool>(
@@ -116,8 +116,8 @@ namespace Etherna.BeehiveManager.Services.Extensions
         public static void FailedToWithdrawBzzOnNodeChequeBook(this ILogger logger, string nodeId, decimal bzzWithdraw, Exception exception) =>
             _failedToWithdrawBzzOnNodeChequeBook(logger, nodeId, bzzWithdraw, exception);
 
-        public static void NodeCashedOut(this ILogger logger, string beeNodeId, long totalCashedOut, IEnumerable<string> txHashes) =>
-            _nodeCashedOut(logger, beeNodeId, totalCashedOut, txHashes, null!);
+        public static void NodeCashedOut(this ILogger logger, string beeNodeId, decimal bzzCashedOut, IEnumerable<string> txHashes) =>
+            _nodeCashedOut(logger, beeNodeId, bzzCashedOut, txHashes, null!);
 
         public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid, bool enableBatchCreation) =>
             _nodeConfigurationUpdated(logger, beeNodeid, enableBatchCreation, null!);

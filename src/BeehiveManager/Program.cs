@@ -190,6 +190,7 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure setting.
+            services.Configure<CashoutAllNodesChequesSettings>(config.GetSection(CashoutAllNodesChequesSettings.ConfigPosition));
             services.Configure<NodesAddressMaintainerSettings>(config.GetSection(NodesAddressMaintainerSettings.ConfigPosition));
             services.Configure<NodesChequebookMaintainerSettings>(config.GetSection(NodesChequebookMaintainerSettings.ConfigPosition));
             services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
