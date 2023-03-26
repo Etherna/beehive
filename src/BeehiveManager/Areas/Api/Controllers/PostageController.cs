@@ -17,6 +17,7 @@ using Etherna.BeehiveManager.Areas.Api.Services;
 using Etherna.BeehiveManager.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -29,12 +30,15 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
     public class PostageController : ControllerBase
     {
         // Fields.
+        private readonly ILoadBalancerControllerService loadBalancerService;
         private readonly IPostageControllerService service;
 
         // Constructor.
         public PostageController(
+            ILoadBalancerControllerService loadBalancerService,
             IPostageControllerService service)
         {
+            this.loadBalancerService = loadBalancerService;
             this.service = service;
         }
 
@@ -46,6 +50,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// <param name="id">Id of the postage batch</param>
         /// <response code="200">Bee node info</response>
         [HttpGet("batches/{id}/node")]
+        [Obsolete("Use instead API in LoadBalancerController")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -53,7 +58,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(
             [Required] string id)
         {
-            var beeNodeInfo = (await service.FindBeeNodeOwnerOfPostageBatchAsync(id));
+            var beeNodeInfo = await loadBalancerService.FindBeeNodeOwnerOfPostageBatchAsync(id);
 
             // Copy response in headers (Nginx optimization).
             HttpContext.Response.Headers.Add("bee-node-id", beeNodeInfo.Id);

@@ -27,7 +27,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             string? label,
             string? nodeId);
         Task<string> DilutePostageBatchAsync(string batchId, int depth);
-        Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId);
         Task<string> TopUpPostageBatchAsync(string batchId, long amount);
     }
 }
