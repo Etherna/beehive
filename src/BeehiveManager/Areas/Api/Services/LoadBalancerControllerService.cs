@@ -42,6 +42,14 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         }
 
         // Methods.
+        public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
+        {
+            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+            var beeNode = await dbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
+
+            return new BeeNodeDto(beeNode);
+        }
+
         public async Task<BeeNodeDto> SelectDownloadNodeAsync(string hash)
         {
             // Try to find a pinning node.
@@ -68,7 +76,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             throw new InvalidOperationException("Can't select a valid node");
         }
 
-        public async Task<BeeNodeDto> SelectSocNodeAsync()
+        public async Task<BeeNodeDto> SelectHealthyNodeAsync()
         {
             // Get random node.
             var selectedNode = await beeNodeService.SelectRandomHealthyNodeAsync();
