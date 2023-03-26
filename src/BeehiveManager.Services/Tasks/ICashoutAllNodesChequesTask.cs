@@ -17,7 +17,10 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public interface ICashoutAllNodesTask
+    /// <summary>
+    /// Cashout all cheques from other nodes in the Swarm network, when total cheques with it pass over a limit.
+    /// </summary>
+    public interface ICashoutAllNodesChequesTask
     {
         [Queue(Queues.NODE_MAINTENANCE)]
         Task RunAsync();

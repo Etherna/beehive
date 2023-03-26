@@ -17,7 +17,10 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public interface IFundNodesTask
+    /// <summary>
+    /// Deposit BZZ and xDai on nodes' addresses when under a min limit.
+    /// </summary>
+    public interface INodesAddressMaintainerTask
     {
         [Queue(Queues.NODE_MAINTENANCE)]
         Task RunAsync();
