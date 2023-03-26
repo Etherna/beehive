@@ -191,6 +191,7 @@ namespace Etherna.BeehiveManager
 
             // Configure setting.
             services.Configure<NodesAddressMaintainerSettings>(config.GetSection(NodesAddressMaintainerSettings.ConfigPosition));
+            services.Configure<NodesChequebookMaintainerSettings>(config.GetSection(NodesChequebookMaintainerSettings.ConfigPosition));
             services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
 
             // Configure Hangfire and persistence.
@@ -271,12 +272,17 @@ namespace Etherna.BeehiveManager
             RecurringJob.AddOrUpdate<ICashoutAllNodesChequesTask>(
                 CashoutAllNodesChequesTask.TaskId,
                 task => task.RunAsync(),
-                "0 5 * * *"); //at 05:00 every day
+                Cron.Daily(5));
 
             RecurringJob.AddOrUpdate<INodesAddressMaintainerTask>(
                 NodesAddressMaintainerTask.TaskId,
                 task => task.RunAsync(),
-                "5 * * * *"); //at 05 every hour
+                Cron.Hourly(5));
+
+            RecurringJob.AddOrUpdate<INodesChequebookMaintainerTask>(
+                NodesChequebookMaintainerTask.TaskId,
+                task => task.RunAsync(),
+                Cron.Daily(5, 15));
         }
     }
 }
