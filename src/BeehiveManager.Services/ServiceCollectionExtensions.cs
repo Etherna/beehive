@@ -50,8 +50,8 @@ namespace Etherna.BeehiveManager.Services
             services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();
 
             // Tasks.
-            services.AddTransient<ICashoutAllNodesTask, CashoutAllNodesTask>();
-            services.AddTransient<IFundNodesTask, FundNodesTask>();
+            services.AddTransient<ICashoutAllNodesChequesTask, CashoutAllNodesChequesTask>();
+            services.AddTransient<INodesAddressMaintainerTask, NodesAddressMaintainerTask>();
             services.AddTransient<IPinContentInNodeTask, PinContentInNodeTask>();
         }
     }

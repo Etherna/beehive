@@ -14,7 +14,7 @@
 
 namespace Etherna.BeehiveManager.Services.Settings
 {
-    public class FundNodesSettings
+    public class NodesAddressMaintainerSettings
     {
         // Consts.
         public const string ConfigPosition = "FundNodes";

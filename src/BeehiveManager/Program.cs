@@ -190,7 +190,7 @@ namespace Etherna.BeehiveManager
             });
 
             // Configure setting.
-            services.Configure<FundNodesSettings>(config.GetSection(FundNodesSettings.ConfigPosition));
+            services.Configure<NodesAddressMaintainerSettings>(config.GetSection(NodesAddressMaintainerSettings.ConfigPosition));
             services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
 
             // Configure Hangfire and persistence.
@@ -268,15 +268,15 @@ namespace Etherna.BeehiveManager
             app.MapRazorPages();
 
             // Register cron tasks.
-            RecurringJob.AddOrUpdate<IFundNodesTask>(
-                FundNodesTask.TaskId,
-                task => task.RunAsync(),
-                "5 * * * *"); //at 05 every hour
-
-            RecurringJob.AddOrUpdate<ICashoutAllNodesTask>(
-                CashoutAllNodesTask.TaskId,
+            RecurringJob.AddOrUpdate<ICashoutAllNodesChequesTask>(
+                CashoutAllNodesChequesTask.TaskId,
                 task => task.RunAsync(),
                 "0 5 * * *"); //at 05:00 every day
+
+            RecurringJob.AddOrUpdate<INodesAddressMaintainerTask>(
+                NodesAddressMaintainerTask.TaskId,
+                task => task.RunAsync(),
+                "5 * * * *"); //at 05 every hour
         }
     }
 }

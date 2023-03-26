@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class FundNodesTask : IFundNodesTask, IDisposable
+    public class NodesAddressMaintainerTask : INodesAddressMaintainerTask, IDisposable
     {
         // Consts.
         public const string TaskId = "fundNodesTask";
@@ -41,16 +41,16 @@ namespace Etherna.BeehiveManager.Services.Tasks
         private bool disposed;
         private readonly bool isEnabled;
         private readonly IBeeNodeLiveManager liveManager;
-        private readonly ILogger<FundNodesTask> logger;
-        private readonly FundNodesSettings options;
+        private readonly ILogger<NodesAddressMaintainerTask> logger;
+        private readonly NodesAddressMaintainerSettings options;
         private readonly Web3? tresureChestWeb3;
         private readonly WebSocketClient? websocketClient;
 
         // Constructor.
-        public FundNodesTask(
+        public NodesAddressMaintainerTask(
             IBeeNodeLiveManager liveManager,
-            ILogger<FundNodesTask> logger,
-            IOptions<FundNodesSettings> options)
+            ILogger<NodesAddressMaintainerTask> logger,
+            IOptions<NodesAddressMaintainerSettings> options)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
