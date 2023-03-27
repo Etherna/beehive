@@ -13,8 +13,6 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
-using Etherna.BeehiveManager.Domain;
-using Etherna.BeehiveManager.Services.Domain;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using System;
@@ -26,15 +24,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     {
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
-        private readonly IBeehiveDbContext dbContext;
 
         // Constructor.
         public PostageControllerService(
-            IBeeNodeLiveManager beeNodeLiveManager,
-            IBeehiveDbContext dbContext)
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
             this.beeNodeLiveManager = beeNodeLiveManager;
-            this.dbContext = dbContext;
         }
 
         // Methods.
