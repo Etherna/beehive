@@ -83,7 +83,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<BeeNodeDto> SelectDownloadNodeAsync(
-            [Required] string hash)
+            [Required, SwarmResourceValidation] string hash)
         {
             var beeNode = await service.SelectDownloadNodeAsync(hash);
             WriteNodeInfoInHeaders(beeNode); //nginx optimization

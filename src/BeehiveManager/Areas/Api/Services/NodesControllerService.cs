@@ -73,6 +73,19 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new BeeNodeDto(node);
         }
 
+        public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, string hash)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+            if (hash is null)
+                throw new ArgumentNullException(nameof(hash));
+
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var result = await beeNodeInstance.Client.GatewayClient!.CheckIsContentAvailableAsync(hash);
+
+            return result.IsRetrievable;
+        }
+
         public async Task DeletePinAsync(string id, string hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
@@ -158,6 +171,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             await beehiveDbContext.BeeNodes.DeleteAsync(id);
 
             logger.NodeRemoved(id);
+        }
+
+        public async Task ReuploadResourceToNetworkFromNodeAsync(string id, string hash)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+            if (hash is null)
+                throw new ArgumentNullException(nameof(hash));
+
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            await beeNodeInstance.Client.GatewayClient!.ReuploadContentAsync(hash);
         }
 
         public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)
