@@ -22,6 +22,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public interface INodesControllerService
     {
         Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput input);
+        Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, string hash);
         Task DeletePinAsync(string id, string hash);
         Task<BeeNodeDto> FindByIdAsync(string id);
         Task<bool> ForceFullStatusRefreshAsync(string id);
@@ -34,6 +35,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id);
         Task NotifyPinningOfUploadedContentAsync(string id, string hash);
         Task RemoveBeeNodeAsync(string id);
+        Task ReuploadResourceToNetworkFromNodeAsync(string id, string hash);
         Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config);
     }
 }

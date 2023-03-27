@@ -52,7 +52,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IEnumerable<BeeNodeDto>> FindBeeNodesPinningContentAsync(
-            [Required] string hash, bool requireAliveNodes)
+            [Required, SwarmResourceValidation] string hash,
+            bool requireAliveNodes)
         {
             var beeNodes = await service.FindBeeNodesPinningContentAsync(hash, requireAliveNodes);
 
