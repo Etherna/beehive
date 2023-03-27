@@ -12,29 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Services.Utilities;
-using System.Collections.Generic;
+using Hangfire;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class PinContentInNodeTask : IPinContentInNodeTask
+    /// <summary>
+    /// Cashout all cheques from other nodes in the Swarm network, when total cheques with it pass over a limit.
+    /// </summary>
+    public interface ICashoutAllNodesChequesTask
     {
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
-
-        public PinContentInNodeTask(
-            IBeeNodeLiveManager beeNodeLiveManager)
-        {
-            this.beeNodeLiveManager = beeNodeLiveManager;
-        }
-
-        public async Task RunAsync(string contentHash, string nodeId)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
-
-            // Try to pin.
-            try { await beeNodeInstance.PinResourceAsync(contentHash); }
-            catch (KeyNotFoundException) { }
-        }
+        [Queue(Queues.NODE_MAINTENANCE)]
+        Task RunAsync();
     }
 }

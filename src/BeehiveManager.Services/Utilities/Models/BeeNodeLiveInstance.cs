@@ -38,6 +38,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             Id = beeNode.Id;
             Client = new BeeNodeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
+            IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }
 
@@ -45,6 +46,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public string Id { get; }
         public BeeNodeClient Client { get; }
         public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
+        public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
         // Public methods.
@@ -88,6 +90,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             {
                 await Client.GatewayClient!.CreatePinAsync(hash);
                 Status.AddPinnedHash(hash);
+            }
+            catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
+            {
+                throw new KeyNotFoundException();
             }
             finally
             {

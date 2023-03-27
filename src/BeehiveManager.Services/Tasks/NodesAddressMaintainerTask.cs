@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class FundNodesTask : IFundNodesTask, IDisposable
+    public class NodesAddressMaintainerTask : INodesAddressMaintainerTask, IDisposable
     {
         // Consts.
         public const string TaskId = "fundNodesTask";
@@ -41,16 +41,16 @@ namespace Etherna.BeehiveManager.Services.Tasks
         private bool disposed;
         private readonly bool isEnabled;
         private readonly IBeeNodeLiveManager liveManager;
-        private readonly ILogger<FundNodesTask> logger;
-        private readonly FundNodesSettings options;
+        private readonly ILogger<NodesAddressMaintainerTask> logger;
+        private readonly NodesAddressMaintainerSettings options;
         private readonly Web3? tresureChestWeb3;
         private readonly WebSocketClient? websocketClient;
 
         // Constructor.
-        public FundNodesTask(
+        public NodesAddressMaintainerTask(
             IBeeNodeLiveManager liveManager,
-            ILogger<FundNodesTask> logger,
-            IOptions<FundNodesSettings> options)
+            ILogger<NodesAddressMaintainerTask> logger,
+            IOptions<NodesAddressMaintainerSettings> options)
         {
             if (options is null)
                 throw new ArgumentNullException(nameof(options));
@@ -121,7 +121,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
                         };
                         var balanceHandler = tresureChestWeb3!.Eth.GetContractQueryHandler<BalanceOfFunction>();
                         var plurBalance = await balanceHandler.QueryAsync<BigInteger>(options.BzzContractAddress, balanceOfFunctionMessage);
-                        bzzNodeAmount = Web3.Convert.FromWei(plurBalance, 16);
+                        bzzNodeAmount = Web3.Convert.FromWei(plurBalance, BzzDecimalPlaces);
                     }
                     catch { }
 
@@ -140,13 +140,13 @@ namespace Etherna.BeehiveManager.Services.Tasks
                             var tx = await transferHandler.SendRequestAndWaitForReceiptAsync(options.BzzContractAddress, transferFunctionMessage);
 
                             if (tx.Succeeded())
-                                logger.SuccededToFundBzzOnNode(node.Id, bzzFundAmount, bzzNodeAmount.Value + bzzFundAmount, tx.TransactionHash);
+                                logger.SuccededToFundBzzOnNodeAddress(node.Id, bzzFundAmount, bzzNodeAmount.Value + bzzFundAmount, tx.TransactionHash);
                             else
-                                logger.FailedToFundBzzOnNode(node.Id, bzzFundAmount, tx.TransactionHash, null);
+                                logger.FailedToFundBzzOnNodeAddress(node.Id, bzzFundAmount, tx.TransactionHash, null);
                         }
                         catch (Exception ex)
                         {
-                            logger.FailedToFundBzzOnNode(node.Id, bzzFundAmount, null, ex);
+                            logger.FailedToFundBzzOnNodeAddress(node.Id, bzzFundAmount, null, ex);
                         }
                     }
                 }
@@ -173,13 +173,13 @@ namespace Etherna.BeehiveManager.Services.Tasks
                                 .TransferEtherAndWaitForReceiptAsync(node.Status.Addresses.Ethereum, xDaiFundAmount);
 
                             if (tx.Succeeded())
-                                logger.SuccededToFundXDaiOnNode(node.Id, xDaiFundAmount, xDaiNodeAmount.Value + xDaiFundAmount, tx.TransactionHash);
+                                logger.SuccededToFundXDaiOnNodeAddress(node.Id, xDaiFundAmount, xDaiNodeAmount.Value + xDaiFundAmount, tx.TransactionHash);
                             else
-                                logger.FailedToFundXDaiOnNode(node.Id, xDaiFundAmount, tx.TransactionHash, null);
+                                logger.FailedToFundXDaiOnNodeAddress(node.Id, xDaiFundAmount, tx.TransactionHash, null);
                         }
                         catch (Exception ex)
                         {
-                            logger.FailedToFundXDaiOnNode(node.Id, xDaiFundAmount, null, ex);
+                            logger.FailedToFundXDaiOnNodeAddress(node.Id, xDaiFundAmount, null, ex);
                         }
                     }
                 }

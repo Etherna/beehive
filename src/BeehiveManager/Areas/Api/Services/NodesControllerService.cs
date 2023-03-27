@@ -16,10 +16,12 @@ using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.InputModels;
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
+using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -33,14 +35,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         // Fields.
         private readonly IBeehiveDbContext beehiveDbContext;
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
+        private readonly ILogger<NodesControllerService> logger;
 
         // Constructor.
         public NodesControllerService(
             IBeehiveDbContext beehiveDbContext,
-            IBeeNodeLiveManager beeNodeLiveManager)
+            IBeeNodeLiveManager beeNodeLiveManager,
+            ILogger<NodesControllerService> logger)
         {
             this.beehiveDbContext = beehiveDbContext;
             this.beeNodeLiveManager = beeNodeLiveManager;
+            this.logger = logger;
         }
 
         // Methods.
@@ -54,10 +59,31 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 input.ConnectionScheme,
                 input.DebugApiPort,
                 input.GatewayApiPort,
-                input.Hostname);
+                input.Hostname,
+                input.EnableBatchCreation);
             await beehiveDbContext.BeeNodes.CreateAsync(node);
 
+            logger.NodeRegistered(
+                node.Id,
+                node.BaseUrl,
+                node.GatewayPort,
+                node.DebugPort,
+                node.IsBatchCreationEnabled);
+
             return new BeeNodeDto(node);
+        }
+
+        public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, string hash)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+            if (hash is null)
+                throw new ArgumentNullException(nameof(hash));
+
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            var result = await beeNodeInstance.Client.GatewayClient!.CheckIsContentAvailableAsync(hash);
+
+            return result.IsRetrievable;
         }
 
         public async Task DeletePinAsync(string id, string hash)
@@ -143,6 +169,38 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new ArgumentNullException(nameof(id));
 
             await beehiveDbContext.BeeNodes.DeleteAsync(id);
+
+            logger.NodeRemoved(id);
+        }
+
+        public async Task ReuploadResourceToNetworkFromNodeAsync(string id, string hash)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+            if (hash is null)
+                throw new ArgumentNullException(nameof(hash));
+
+            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            await beeNodeInstance.Client.GatewayClient!.ReuploadContentAsync(hash);
+        }
+
+        public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)
+        {
+            if (id is null)
+                throw new ArgumentNullException(nameof(id));
+            if (config is null)
+                throw new ArgumentNullException(nameof(config));
+
+            // Update live instance.
+            var nodeLiveInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
+            nodeLiveInstance.IsBatchCreationEnabled = config.EnableBatchCreation;
+
+            // Update config on db.
+            var node = await beehiveDbContext.BeeNodes.FindOneAsync(id);
+            node.IsBatchCreationEnabled = config.EnableBatchCreation;
+            await beehiveDbContext.SaveChangesAsync();
+
+            logger.NodeConfigurationUpdated(id, config.EnableBatchCreation);
         }
     }
 }
