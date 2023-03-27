@@ -13,22 +13,21 @@
 //   limitations under the License.
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
-namespace Etherna.BeehiveManager.Areas.Api.InputModels
+namespace Etherna.BeehiveManager.Attributes
 {
-    public class BeeNodeInput
+    public sealed partial class SwarmResourceValidationAttribute : ValidationAttribute
     {
-        public string ConnectionScheme { get; set; } = "http";
+        [GeneratedRegex("^[A-Fa-f0-9]{64}$")]
+        private static partial Regex SwarmResourceRegex();
 
-        [Range(1, 65535)]
-        public int DebugApiPort { get; set; }
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+        {
+            if (value is string stringValue && SwarmResourceRegex().IsMatch(stringValue))
+                return ValidationResult.Success;
 
-        public bool EnableBatchCreation { get; set; } = true;
-
-        [Range(1, 65535)]
-        public int GatewayApiPort { get; set; }
-
-        [Required]
-        public string Hostname { get; set; } = default!;
+            return new ValidationResult("Argument is not a valid swarm resource");
+        }
     }
 }

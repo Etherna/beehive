@@ -12,14 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Hangfire;
-using System.Threading.Tasks;
-
-namespace Etherna.BeehiveManager.Services.Tasks
+namespace Etherna.BeehiveManager.Areas.Api.InputModels
 {
-    public interface ICashoutAllNodesTask
+    public class UpdateNodeConfigInput
     {
-        [Queue(Queues.NODE_MAINTENANCE)]
-        Task RunAsync();
+        public bool EnableBatchCreation { get; set; }
     }
 }

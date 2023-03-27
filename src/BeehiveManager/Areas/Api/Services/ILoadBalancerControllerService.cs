@@ -19,7 +19,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 {
     public interface ILoadBalancerControllerService
     {
+        Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId);
         Task<BeeNodeDto> SelectDownloadNodeAsync(string hash);
-        Task<BeeNodeDto> SelectSocNodeAsync();
+        Task<BeeNodeDto> SelectHealthyNodeAsync();
     }
 }

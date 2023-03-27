@@ -12,21 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeehiveManager.Areas.Api.DtoModels;
-using System.Threading.Tasks;
-
-namespace Etherna.BeehiveManager.Areas.Api.Services
+namespace Etherna.BeehiveManager.Services.Settings
 {
-    public interface IPostageControllerService
+    public class CashoutAllNodesChequesSettings
     {
-        Task<PostageBatchRefDto> BuyPostageBatchAsync(
-            long amount,
-            int depth,
-            long? gasPrice,
-            bool immutable,
-            string? label,
-            string? nodeId);
-        Task<string> DilutePostageBatchAsync(string batchId, int depth);
-        Task<string> TopUpPostageBatchAsync(string batchId, long amount);
+        // Consts.
+        public const string ConfigPosition = "CashoutCheques";
+
+        // Properties.
+        public decimal BzzMaxTrigger { get; set; } = 1;
     }
 }

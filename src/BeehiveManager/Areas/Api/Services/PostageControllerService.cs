@@ -13,8 +13,6 @@
 //   limitations under the License.
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
-using Etherna.BeehiveManager.Domain;
-using Etherna.BeehiveManager.Services.Domain;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using System;
@@ -26,15 +24,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     {
         // Fields.
         private readonly IBeeNodeLiveManager beeNodeLiveManager;
-        private readonly IBeehiveDbContext dbContext;
 
         // Constructor.
         public PostageControllerService(
-            IBeeNodeLiveManager beeNodeLiveManager,
-            IBeehiveDbContext dbContext)
+            IBeeNodeLiveManager beeNodeLiveManager)
         {
             this.beeNodeLiveManager = beeNodeLiveManager;
-            this.dbContext = dbContext;
         }
 
         // Methods.
@@ -51,13 +46,20 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             //if is passed a specific node id, use it to select node
             if (nodeId is not null)
+            {
                 beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
+                if (!beeNodeInstance.IsBatchCreationEnabled)
+                    throw new InvalidOperationException("Selected node is not enabled for batch creation");
+            }
 
             //if still null, try to select a random healthy node
-            beeNodeInstance ??= await beeNodeLiveManager.TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "buyPostageBatch");
+            beeNodeInstance ??= await beeNodeLiveManager.TrySelectHealthyNodeAsync(
+                BeeNodeSelectionMode.RoundRobin,
+                "buyPostageBatch",
+                node => Task.FromResult(node.IsBatchCreationEnabled));
 
             if (beeNodeInstance is null)
-                throw new InvalidOperationException("No healthy nodes available");
+                throw new InvalidOperationException("No healthy nodes available for batch creation");
 
             // Buy postage.
             var batchId = await beeNodeInstance.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
@@ -71,14 +73,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
             // Top up.
             return await beeNodeLiveInstance.DilutePostageBatchAsync(batchId, depth);
-        }
-
-        public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
-        {
-            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
-            var beeNode = await dbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
-
-            return new BeeNodeDto(beeNode);
         }
 
         public async Task<string> TopUpPostageBatchAsync(string batchId, long amount)
