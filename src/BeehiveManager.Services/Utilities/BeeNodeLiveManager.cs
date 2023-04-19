@@ -83,10 +83,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
         }
 
         public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId) =>
-            AllNodes.First(n => n.Status.PostageBatchesId?.Contains(batchId) ?? false);
+            AllNodes.First(n => n.Status.PostageBatchesId.Contains(batchId));
 
         public IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes) =>
-            AllNodes.Where(n => (n.Status.PinnedHashes?.Contains(hash) ?? false) &&
+            AllNodes.Where(n => n.Status.PinnedHashes.Contains(hash) &&
                                 (!requireAliveNodes || n.Status.IsAlive));
 
         public async Task LoadAllNodesAsync()
