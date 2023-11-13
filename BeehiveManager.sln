@@ -40,6 +40,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CE10A1ED-2
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BeehiveManager.Persistence.Tests", "test\BeehiveManager.Persistence.Tests\BeehiveManager.Persistence.Tests.csproj", "{74F4D982-085D-42F4-9E61-C288B25E64CB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{9EEC390E-0D81-4379-A02A-C1A7B55CF431}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\stable-release.yml = .github\workflows\stable-release.yml
+		.github\workflows\unstable-release.yml = .github\workflows\unstable-release.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -79,6 +85,7 @@ Global
 		{74960F98-A78D-40A5-8CD1-20E05DB4DD35} = {11FCB662-8945-484F-9459-C2C5823045E7}
 		{791D69C2-725F-4E7A-B2F9-30CDC151A0C5} = {2100F089-0589-448E-93E0-45B069DDCE64}
 		{74F4D982-085D-42F4-9E61-C288B25E64CB} = {CE10A1ED-2695-44EC-97F1-CB91FC5412D8}
+		{9EEC390E-0D81-4379-A02A-C1A7B55CF431} = {61C3814F-A839-44D7-8335-0F365D3FFA8C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {67056C24-38A7-45E5-A31A-0CF654008257}
