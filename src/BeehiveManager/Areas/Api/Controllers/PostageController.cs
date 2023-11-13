@@ -1,11 +1,11 @@
-﻿//   Copyright 2021-present Etherna Sagl
-//
+﻿//   Copyright 2021-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,7 +77,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         /// </summary>
         /// <param name="amount">Amount of BZZ in Plur added that the postage batch will have</param>
         /// <param name="depth">Batch depth</param>
-        /// <param name="gasPrice">Gas price for transaction</param>
         /// <param name="immutable">Is batch immutable</param>
         /// <param name="label">An optional label for this batch</param>
         /// <param name="nodeId">Bee node Id</param>
@@ -90,11 +89,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         public Task<PostageBatchRefDto> BuyPostageBatchAsync(
             long amount,
             int depth,
-            long? gasPrice = null,
             bool immutable = false,
             string? label = null,
             string? nodeId = null) =>
-            service.BuyPostageBatchAsync(amount, depth, gasPrice, immutable, label, nodeId);
+            service.BuyPostageBatchAsync(amount, depth, immutable, label, nodeId);
 
         // Put.
 
