@@ -50,9 +50,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public BeeNodeStatus Status { get; }
 
         // Public methods.
-        public async Task<string> BuyPostageBatchAsync(long amount, int depth, string? label, bool immutable, long? gasPrice)
+        public async Task<string> BuyPostageBatchAsync(long amount, int depth, string? label, bool immutable)
         {
-            var batchId = await Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable, gasPrice);
+            var batchId = await Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable);
 
             //immediately add the batch to the node status
             Status.AddPostageBatchId(batchId);
@@ -148,12 +148,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                  */
                 var currentGatewayApiVersion = healthResult.ApiVersion switch
                 {
-                    "4.0.0" => GatewayApiVersion.v4_0_0,
+                    "5.0.0" => GatewayApiVersion.v5_0_0,
                     _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
                 };
                 var currentDebugApiVersion = healthResult.DebugApiVersion switch
                 {
-                    "4.0.0" => DebugApiVersion.v4_0_0,
+                    "5.0.0" => DebugApiVersion.v5_0_0,
                     _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
                 };
 

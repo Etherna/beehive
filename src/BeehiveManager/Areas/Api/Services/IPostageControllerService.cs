@@ -22,7 +22,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         Task<PostageBatchRefDto> BuyPostageBatchAsync(
             long amount,
             int depth,
-            long? gasPrice,
             bool immutable,
             string? label,
             string? nodeId);
