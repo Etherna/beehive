@@ -16,6 +16,7 @@ using Etherna.BeeNet.Exceptions;
 using Etherna.MongODM.Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Serilog;
 using System;
 using System.Collections.Generic;
 
@@ -27,6 +28,9 @@ namespace Etherna.BeehiveManager.Attributes
         {
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
+            
+            // Log exception.
+            Log.Warning(context.Exception, "API exception");
 
             context.Result = context.Exception switch
             {
