@@ -28,7 +28,7 @@ namespace Etherna.BeehiveManager.Attributes
         {
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
-            
+
             // Log exception.
             Log.Warning(context.Exception, "API exception");
 
@@ -44,6 +44,8 @@ namespace Etherna.BeehiveManager.Attributes
                 UnauthorizedAccessException _ => new UnauthorizedResult(),
 
                 // Error code 404.
+                BeeNetDebugApiException { StatusCode: 404 } _ or
+                BeeNetGatewayApiException { StatusCode: 404 } _ or
                 KeyNotFoundException _ or
                 MongodmEntityNotFoundException _ => new NotFoundObjectResult(context.Exception.Message),
 
