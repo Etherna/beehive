@@ -141,7 +141,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                 case BeeNodeSelectionMode.RoundRobin:
                     BeeNodeLiveInstance? selectedNode = null;
 
-                    if (!lastSelectedNodesRoundRobin.ContainsKey(selectionContext)) //take first node if never selected once in this context
+                    if (!lastSelectedNodesRoundRobin.TryGetValue(selectionContext, out BeeNodeLiveInstance? lastNode)) //take first node if never selected once in this context
                     {
                         selectedNode = await beeNodeInstances.Values
                             .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
@@ -151,7 +151,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     {
                         var lastSelectedNodeWithIndexList = beeNodeInstances.Values
                             .Select((node, index) => new { index, node })
-                            .Where(g => g.node == lastSelectedNodesRoundRobin[selectionContext])
+                            .Where(g => g.node == lastNode)
                             .ToList();
 
                         if (lastSelectedNodeWithIndexList.Any()) //if prev node still exists
