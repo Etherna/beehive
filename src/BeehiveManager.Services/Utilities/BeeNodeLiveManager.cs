@@ -195,10 +195,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
             {
                 try
                 {
-                    ChainState = new ChainState(node.Id, await node.Client.DebugClient!.GetChainStateAsync());
+                    ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
                 }
                 catch (Exception e) when (
-                    e is BeeNetDebugApiException ||
+                    e is BeeNetApiException ||
                     e is HttpRequestException ||
                     e is SocketException)
                 { }

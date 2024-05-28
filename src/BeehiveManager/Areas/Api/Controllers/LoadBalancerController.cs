@@ -110,7 +110,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         private void WriteNodeInfoInHeaders(BeeNodeDto beeNode)
         {
             HttpContext.Response.Headers.Add("bee-node-id", beeNode.Id);
-            HttpContext.Response.Headers.Add("bee-node-debug-port", beeNode.DebugPort.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNode.GatewayPort.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-hostname", beeNode.Hostname.ToString(CultureInfo.InvariantCulture));
             HttpContext.Response.Headers.Add("bee-node-scheme", beeNode.ConnectionScheme);

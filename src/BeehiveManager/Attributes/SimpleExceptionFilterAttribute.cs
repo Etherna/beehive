@@ -44,14 +44,12 @@ namespace Etherna.BeehiveManager.Attributes
                 UnauthorizedAccessException _ => new UnauthorizedResult(),
 
                 // Error code 404.
-                BeeNetDebugApiException { StatusCode: 404 } _ or
-                BeeNetGatewayApiException { StatusCode: 404 } _ or
+                BeeNetApiException { StatusCode: 404 } _ or
                 KeyNotFoundException _ or
                 MongodmEntityNotFoundException _ => new NotFoundObjectResult(context.Exception.Message),
 
                 // Error code 503.
-                BeeNetDebugApiException _ or
-                BeeNetGatewayApiException _ => new StatusCodeResult(503),
+                BeeNetApiException _ => new StatusCodeResult(503),
 
                 // Error code 500.
                 _ => new StatusCodeResult(500),

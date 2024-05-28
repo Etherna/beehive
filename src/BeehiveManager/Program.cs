@@ -215,7 +215,7 @@ namespace Etherna.BeehiveManager
                     return new BeehiveDbContext(
                         eventDispatcher,
                         seedDbSettings.BeeNodes.Where(n => n is not null)
-                                               .Select(n => new BeeNode(n.Scheme, n.DebugPort, n.GatewayPort, n.Hostname, n.EnableBatchCreation)));
+                                               .Select(n => new BeeNode(n.Scheme, n.GatewayPort, n.Hostname, n.EnableBatchCreation)));
                 },
                 options =>
                 {

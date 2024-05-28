@@ -20,9 +20,6 @@ namespace Etherna.BeehiveManager.Areas.Api.InputModels
     {
         public string ConnectionScheme { get; set; } = "http";
 
-        [Range(1, 65535)]
-        public int DebugApiPort { get; set; }
-
         public bool EnableBatchCreation { get; set; } = true;
 
         [Range(1, 65535)]

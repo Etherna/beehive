@@ -40,11 +40,11 @@ namespace Etherna.BeehiveManager.Services.Extensions
                 new EventId(7, nameof(NodeConfigurationUpdated)),
                 "Node {BeeNodeId} updated configuration. EnableBatchCreation: {EnableBatchCreation}");
 
-        private static readonly Action<ILogger, string, Uri, int, int, bool, Exception> _nodeRegistered =
-            LoggerMessage.Define<string, Uri, int, int, bool>(
+        private static readonly Action<ILogger, string, Uri, int, bool, Exception> _nodeRegistered =
+            LoggerMessage.Define<string, Uri, int, bool>(
                 LogLevel.Information,
                 new EventId(5, nameof(NodeRegistered)),
-                "Node {BeeNodeId} registered on url {NodeUrl} on gateway port {GatewayPort} and debug port {DebugPort}. Batch creation enabled: {IsBatchCreationEnabled}");
+                "Node {BeeNodeId} registered on url {NodeUrl} on port {GatewayPort}. Batch creation enabled: {IsBatchCreationEnabled}");
 
         private static readonly Action<ILogger, string, Exception> _nodeRemoved =
             LoggerMessage.Define<string>(
@@ -122,8 +122,8 @@ namespace Etherna.BeehiveManager.Services.Extensions
         public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid, bool enableBatchCreation) =>
             _nodeConfigurationUpdated(logger, beeNodeid, enableBatchCreation, null!);
 
-        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri nodeUrl, int gatewayPort, int debugPort, bool isBatchCreationEnabled) =>
-            _nodeRegistered(logger, beeNodeId, nodeUrl, gatewayPort, debugPort, isBatchCreationEnabled, null!);
+        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri nodeUrl, int gatewayPort, bool isBatchCreationEnabled) =>
+            _nodeRegistered(logger, beeNodeId, nodeUrl, gatewayPort, isBatchCreationEnabled, null!);
 
         public static void NodeRemoved(this ILogger logger, string beeNodeId) =>
             _nodeRemoved(logger, beeNodeId, null!);

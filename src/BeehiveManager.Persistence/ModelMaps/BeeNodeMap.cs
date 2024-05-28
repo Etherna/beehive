@@ -69,7 +69,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                 config.AddModelMap<BeeNode>("a833d25f-4613-4cbc-b36a-4cdfa62501f4", mm =>
                 {
                     mm.MapMember(n => n.ConnectionScheme);
-                    mm.MapMember(n => n.DebugPort);
                     mm.MapMember(n => n.GatewayPort);
                     mm.MapMember(n => n.Hostname);
                 });

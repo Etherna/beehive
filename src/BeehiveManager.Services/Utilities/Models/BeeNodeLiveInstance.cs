@@ -14,8 +14,7 @@
 
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeeNet;
-using Etherna.BeeNet.Clients.DebugApi;
-using Etherna.BeeNet.Clients.GatewayApi;
+using Etherna.BeeNet.Clients;
 using Etherna.BeeNet.Exceptions;
 using System;
 using System.Collections.Concurrent;
@@ -37,14 +36,14 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             BeeNode beeNode)
         {
             Id = beeNode.Id;
-            Client = new BeeNodeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort, beeNode.DebugPort);
+            Client = new BeeClient(beeNode.BaseUrl.AbsoluteUri, beeNode.GatewayPort);
             IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }
 
         // Properties.
         public string Id { get; }
-        public BeeNodeClient Client { get; }
+        public BeeClient Client { get; }
         public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
@@ -52,7 +51,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         // Public methods.
         public async Task<string> BuyPostageBatchAsync(long amount, int depth, string? label, bool immutable)
         {
-            var batchId = await Client.DebugClient!.BuyPostageBatchAsync(amount, depth, label, immutable);
+            var batchId = await Client.BuyPostageBatchAsync(amount, depth, label, immutable);
 
             //immediately add the batch to the node status
             Status.AddPostageBatchId(batchId);
@@ -61,16 +60,16 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         }
 
         public Task<string> DilutePostageBatchAsync(string batchId, int depth) =>
-            Client.DebugClient!.DilutePostageBatchAsync(batchId, depth);
+            Client.DilutePostageBatchAsync(batchId, depth);
 
         public async Task<bool> IsPinningResourceAsync(string hash)
         {
             try
             {
-                await Client.GatewayClient!.GetPinStatusAsync(hash);
+                await Client.GetPinStatusAsync(hash);
                 return true;
             }
-            catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
+            catch (BeeNetApiException e) when (e.StatusCode == 404)
             {
                 return false;
             }
@@ -88,10 +87,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
             try
             {
-                await Client.GatewayClient!.CreatePinAsync(hash);
+                await Client.CreatePinAsync(hash);
                 Status.AddPinnedHash(hash);
             }
-            catch (BeeNetGatewayApiException e) when (e.StatusCode == 404)
+            catch (BeeNetApiException e) when (e.StatusCode == 404)
             {
                 throw new KeyNotFoundException();
             }
@@ -105,17 +104,17 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         {
             try
             {
-                await Client.GatewayClient!.DeletePinAsync(hash);
+                await Client.DeletePinAsync(hash);
                 Status.RemovePinnedHash(hash);
             }
-            catch (BeeNetGatewayApiException e) when(e.StatusCode == 404)
+            catch (BeeNetApiException e) when(e.StatusCode == 404)
             {
                 throw new KeyNotFoundException();
             }
         }
 
         public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
-            Client.DebugClient!.TopUpPostageBatchAsync(batchId, amount);
+            Client.TopUpPostageBatchAsync(batchId, amount);
 
         /// <summary>
         /// Try to refresh node live status
@@ -130,9 +129,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             try
             {
                 //health
-                var healthResult = await Client.DebugClient!.GetHealthAsync();
+                var healthResult = await Client.GetHealthAsync();
 
-                if (healthResult.Status != BeeNet.DtoModels.StatusEnumDto.Ok)
+                if (healthResult.Status != BeeNet.Models.StatusValues.Ok)
                 {
                     Status.FailedHeartbeatAttempt(
                         new[] { "Node is not healthy" },
@@ -140,30 +139,8 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                     return false;
                 }
 
-                /* Verify and update api version.
-                 * 
-                 * If the version is not recognized (switch default case) use the last version available.
-                 * This because is more probable that the actual version is more advanced than the recognized one,
-                 * and so APIs are more similar to the last version than the older versions.
-                 */
-                var currentGatewayApiVersion = healthResult.ApiVersion switch
-                {
-                    "5.0.0" => GatewayApiVersion.v5_0_0,
-                    _ => Enum.GetValues<GatewayApiVersion>().OrderByDescending(e => e.ToString()).First()
-                };
-                var currentDebugApiVersion = healthResult.DebugApiVersion switch
-                {
-                    "5.0.0" => DebugApiVersion.v5_0_0,
-                    _ => Enum.GetValues<DebugApiVersion>().OrderByDescending(e => e.ToString()).First()
-                };
-
-                if (Client.GatewayClient!.CurrentApiVersion != currentGatewayApiVersion)
-                    Client.GatewayClient.CurrentApiVersion = currentGatewayApiVersion;
-                if (Client.DebugClient!.CurrentApiVersion != currentDebugApiVersion)
-                    Client.DebugClient.CurrentApiVersion = currentDebugApiVersion;
-
                 //readiness
-                var isReady = await Client.DebugClient!.GetReadinessAsync();
+                var isReady = await Client.GetReadinessAsync();
 
                 if (!isReady)
                 {
@@ -174,7 +151,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 }
             }
             catch (Exception e) when (
-                e is BeeNetDebugApiException ||
+                e is BeeNetApiException ||
                 e is HttpRequestException ||
                 e is SocketException)
             {
@@ -195,7 +172,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             {
                 try
                 {
-                    var response = await Client.DebugClient!.GetAddressesAsync();
+                    var response = await Client.GetAddressesAsync();
                     Status.InitializeAddresses(new BeeNodeAddresses(
                         response.Ethereum,
                         response.Overlay,
@@ -215,14 +192,14 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 //pinned hashes
                 try
                 {
-                    refreshedPinnedHashes = await Client.GatewayClient!.GetAllPinsAsync();
+                    refreshedPinnedHashes = await Client.GetAllPinsAsync();
                 }
                 catch { errors.Add("Can't read pinned hashes"); }
 
                 //postage batches
                 try
                 {
-                    var batches = await Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+                    var batches = await Client.GetOwnedPostageBatchesByNodeAsync();
                     refreshedPostageBatchesId = batches.Select(b => b.Id);
                 }
                 catch { errors.Add("Can't read postage batches"); }

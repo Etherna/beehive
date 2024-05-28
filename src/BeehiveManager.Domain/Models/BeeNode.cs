@@ -21,20 +21,14 @@ namespace Etherna.BeehiveManager.Domain.Models
         // Constructors.
         public BeeNode(
             string connectionScheme,
-            int debugPort,
             int gatewayPort,
             string hostname,
             bool enableBatchCreation)
         {
-            if (debugPort is < 1 or > 65535)
-                throw new ArgumentOutOfRangeException(nameof(debugPort), "Debug port is not a valid port");
             if (gatewayPort is < 1 or > 65535)
                 throw new ArgumentOutOfRangeException(nameof(gatewayPort), "Gateway port is not a valid port");
-            if (gatewayPort == debugPort)
-                throw new ArgumentException("Gateway and debug ports can't be the same");
 
             ConnectionScheme = connectionScheme;
-            DebugPort = debugPort;
             GatewayPort = gatewayPort;
             Hostname = hostname;
             IsBatchCreationEnabled = enableBatchCreation;
@@ -46,8 +40,6 @@ namespace Etherna.BeehiveManager.Domain.Models
         // Properties.
         public virtual Uri BaseUrl => new($"{ConnectionScheme}://{Hostname}");
         public virtual string ConnectionScheme { get; set; }
-        public virtual int DebugPort { get; set; }
-        public virtual Uri DebugUrl => new($"{ConnectionScheme}://{Hostname}:{DebugPort}");
         public virtual int GatewayPort { get; set; }
         public virtual Uri GatewayUrl => new($"{ConnectionScheme}://{Hostname}:{GatewayPort}");
         public virtual string Hostname { get; set; }
