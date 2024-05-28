@@ -62,13 +62,10 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
             foreach (var node in liveManager.AllNodes)
             {
-                if (node.Client.DebugClient is null)
-                    continue;
-
                 decimal? availableBzzBalance = null;
                 try
                 {
-                    var chequebookBalanceDto = await node.Client.DebugClient.GetChequeBookBalanceAsync();
+                    var chequebookBalanceDto = await node.Client.GetChequeBookBalanceAsync();
                     availableBzzBalance = Web3.Convert.FromWei(chequebookBalanceDto.AvailableBalance, BzzDecimalPlaces);
                 }
                 catch { }
@@ -81,7 +78,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                     try
                     {
-                        var tx = await node.Client.DebugClient.DepositIntoChequeBookAsync((long)Web3.Convert.ToWei(bzzDepositAmount, BzzDecimalPlaces));
+                        var tx = await node.Client.DepositIntoChequeBookAsync((long)Web3.Convert.ToWei(bzzDepositAmount, BzzDecimalPlaces));
                         logger.SuccededToDepositBzzOnNodeChequeBook(node.Id, bzzDepositAmount, tx);
                     }
                     catch (Exception ex)
@@ -98,7 +95,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                     try
                     {
-                        var tx = await node.Client.DebugClient.WithdrawFromChequeBookAsync((long)Web3.Convert.ToWei(bzzWithdrawAmount, BzzDecimalPlaces));
+                        var tx = await node.Client.WithdrawFromChequeBookAsync((long)Web3.Convert.ToWei(bzzWithdrawAmount, BzzDecimalPlaces));
                         logger.SuccededToWithdrawBzzOnNodeChequeBook(node.Id, bzzWithdrawAmount, tx);
                     }
                     catch (Exception ex)

@@ -58,39 +58,36 @@ namespace Etherna.BeehiveManager.Services.Tasks
         {
             foreach (var node in liveManager.AllNodes)
             {
-                if (node.Client.DebugClient is null)
-                    continue;
-
                 decimal totalBzzCashedOut = 0;
                 var txs = new List<string>();
                 try
                 {
                     // Enumerate peers.
-                    var cheques = await node.Client.DebugClient.GetAllChequeBookChequesAsync();
+                    var cheques = await node.Client.GetAllChequeBookChequesAsync();
                     foreach (var peer in cheques.Select(c => c.Peer))
                     {
                         decimal? uncashedBzzAmount = null;
                         try
                         {
-                            var cashoutResponse = await node.Client.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
+                            var cashoutResponse = await node.Client.GetChequeBookCashoutForPeerAsync(peer);
                             uncashedBzzAmount = Web3.Convert.FromWei(cashoutResponse.UncashedAmount, BzzDecimalPlaces);
                         }
-                        catch (BeeNetDebugApiException) { }
+                        catch (BeeNetApiException) { }
 
                         // Cashout.
                         if (uncashedBzzAmount >= options.BzzMaxTrigger)
                         {
                             try
                             {
-                                var txHash = await node.Client.DebugClient.CashoutChequeForPeerAsync(peer);
+                                var txHash = await node.Client.CashoutChequeForPeerAsync(peer);
                                 totalBzzCashedOut += uncashedBzzAmount.Value;
                                 txs.Add(txHash);
                             }
-                            catch (BeeNetDebugApiException) { }
+                            catch (BeeNetApiException) { }
                         }
                     }
                 }
-                catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api
+                catch (BeeNetApiException) { return; } //issues contacting the node instance api
                 catch (HttpRequestException) { return; }
 
                 // Add log.

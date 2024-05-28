@@ -57,7 +57,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             // Create node.
             var node = new BeeNode(
                 input.ConnectionScheme,
-                input.DebugApiPort,
                 input.GatewayApiPort,
                 input.Hostname,
                 input.EnableBatchCreation);
@@ -67,7 +66,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 node.Id,
                 node.BaseUrl,
                 node.GatewayPort,
-                node.DebugPort,
                 node.IsBatchCreationEnabled);
 
             return new BeeNodeDto(node);
@@ -81,7 +79,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new ArgumentNullException(nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var result = await beeNodeInstance.Client.GatewayClient!.CheckIsContentAvailableAsync(hash);
+            var result = await beeNodeInstance.Client.CheckIsContentAvailableAsync(hash);
 
             return result.IsRetrievable;
         }
@@ -131,7 +129,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<IEnumerable<string>> GetPinsByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var readyPins = await beeNodeInstance.Client.GatewayClient!.GetAllPinsAsync();
+            var readyPins = await beeNodeInstance.Client.GetAllPinsAsync();
             var inProgressPins = beeNodeInstance.InProgressPins;
             return readyPins.Union(inProgressPins);
         }
@@ -141,10 +139,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             try
             {
-                var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
+                var postageBatch = await beeNodeInstance.Client.GetPostageBatchAsync(batchId);
                 return new PostageBatchDto(postageBatch);
             }
-            catch (BeeNetDebugApiException ex) when (ex.StatusCode == 400)
+            catch (BeeNetApiException ex) when (ex.StatusCode == 400)
             {
                 throw new KeyNotFoundException();
             }
@@ -153,7 +151,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var batches = await beeNodeInstance.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+            var batches = await beeNodeInstance.Client.GetOwnedPostageBatchesByNodeAsync();
             return batches.Select(b => new PostageBatchDto(b));
         }
 
@@ -181,7 +179,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 throw new ArgumentNullException(nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            await beeNodeInstance.Client.GatewayClient!.ReuploadContentAsync(hash);
+            await beeNodeInstance.Client.ReuploadContentAsync(hash);
         }
 
         public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)

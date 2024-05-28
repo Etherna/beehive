@@ -75,7 +75,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                     expectedNodeMock.Setup(n => n.Id).Returns("62d9e1ab5b300b294022c2c6");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2022, 07, 21, 23, 47, 54, 036));
                     expectedNodeMock.Setup(n => n.ConnectionScheme).Returns("http");
-                    expectedNodeMock.Setup(n => n.DebugPort).Returns(1635);
                     expectedNodeMock.Setup(n => n.GatewayPort).Returns(1633);
                     expectedNodeMock.Setup(n => n.Hostname).Returns("127.0.0.1");
                     expectedNodeMock.Setup(n => n.IsBatchCreationEnabled).Returns(true);
@@ -108,7 +107,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                     expectedNodeMock.Setup(n => n.Id).Returns("62d9e1ab5b300b294022c2c6");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2022, 07, 21, 23, 47, 54, 036));
                     expectedNodeMock.Setup(n => n.ConnectionScheme).Returns("http");
-                    expectedNodeMock.Setup(n => n.DebugPort).Returns(1635);
                     expectedNodeMock.Setup(n => n.GatewayPort).Returns(1633);
                     expectedNodeMock.Setup(n => n.Hostname).Returns("127.0.0.1");
                     expectedNodeMock.Setup(n => n.IsBatchCreationEnabled).Returns(false);
@@ -141,7 +139,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
             Assert.Equal(testElement.ExpectedModel.Id, result.Id);
             Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
             Assert.Equal(testElement.ExpectedModel.ConnectionScheme, result.ConnectionScheme);
-            Assert.Equal(testElement.ExpectedModel.DebugPort, result.DebugPort);
             Assert.Equal(testElement.ExpectedModel.GatewayPort, result.GatewayPort);
             Assert.Equal(testElement.ExpectedModel.Hostname, result.Hostname);
             Assert.Equal(testElement.ExpectedModel.IsBatchCreationEnabled, result.IsBatchCreationEnabled);

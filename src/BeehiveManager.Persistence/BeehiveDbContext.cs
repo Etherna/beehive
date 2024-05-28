@@ -53,8 +53,6 @@ namespace Etherna.BeehiveManager.Persistence
             {
                 IndexBuilders = new[]
                 {
-                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.DebugPort)
-                                                .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true }),
                     (Builders<BeeNode>.IndexKeys.Ascending(n => n.GatewayPort)
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
                 }

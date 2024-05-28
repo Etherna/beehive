@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.BeeNet.DtoModels;
 using System;
 
 namespace Etherna.BeehiveManager.Services.Utilities.Models
 {
     public class ChainState
     {
-        public ChainState(string nodeId, ChainStateDto chainStateDto)
+        public ChainState(string nodeId, Etherna.BeeNet.Models.ChainState chainStateDto)
         {
             if (chainStateDto is null)
                 throw new ArgumentNullException(nameof(chainStateDto));

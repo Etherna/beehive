@@ -19,7 +19,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
     public class PostageBatchDto
     {
         // Constructors.
-        public PostageBatchDto(BeeNet.DtoModels.PostageBatchDto postageBatch)
+        public PostageBatchDto(BeeNet.Models.PostageBatch postageBatch)
         {
             if (postageBatch is null)
                 throw new ArgumentNullException(nameof(postageBatch));
@@ -46,7 +46,6 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public bool Exists { get; }
         public bool ImmutableFlag { get; }
         public string? Label { get; }
-        public long NormalisedBalance { get; }
         public bool Usable { get; }
         public int? Utilization { get; }
         public long? Value { get; }
