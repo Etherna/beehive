@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Etherna.BeehiveManager</RootNamespace>
     
-    <Authors>Etherna Sagl</Authors>
+    <Authors>Etherna SA</Authors>
     <Description>An utility for manage a cluster of Bee nodes</Description>
     
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -35,6 +35,11 @@
     <ProjectReference Include="..\BeehiveManager.Domain\BeehiveManager.Domain.csproj" />
     <ProjectReference Include="..\BeehiveManager.Persistence\BeehiveManager.Persistence.csproj" />
     <ProjectReference Include="..\BeehiveManager.Services\BeehiveManager.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\COPYING" />
+    <None Include="..\..\README.md" />
   </ItemGroup>
 
 </Project>
