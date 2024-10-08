@@ -38,8 +38,7 @@ namespace Etherna.BeehiveManager.Persistence.Helpers
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Need to keep objects after test construction")]
         public static void InitializeDbContextMock(DbContext dbContext, Mock<IMongoDatabase>? mongoDatabaseMock = null)
         {
-            if (dbContext is null)
-                throw new ArgumentNullException(nameof(dbContext));
+            ArgumentNullException.ThrowIfNull(dbContext, nameof(dbContext));
 
             // Setup dbcontext dependencies for initialization.
             Mock<IDbDependencies> dbDependenciesMock = new();
@@ -85,10 +84,8 @@ namespace Etherna.BeehiveManager.Persistence.Helpers
             IRepository<TModel, TKey> collection)
              where TModel : class, IEntityModel<TKey>
         {
-            if (mongoDatabaseMock is null)
-                throw new ArgumentNullException(nameof(mongoDatabaseMock));
-            if (collection is null)
-                throw new ArgumentNullException(nameof(collection));
+            ArgumentNullException.ThrowIfNull(mongoDatabaseMock, nameof(mongoDatabaseMock));
+            ArgumentNullException.ThrowIfNull(collection, nameof(collection));
 
             var collectionMock = new Mock<IMongoCollection<TModel>>();
 
@@ -102,8 +99,7 @@ namespace Etherna.BeehiveManager.Persistence.Helpers
             Mock<IMongoCollection<TModel>> collectionMock,
             Func<FilterDefinition<TModel>, IEnumerable<TModel>> modelSelector)
         {
-            if (collectionMock is null)
-                throw new ArgumentNullException(nameof(collectionMock));
+            ArgumentNullException.ThrowIfNull(collectionMock, nameof(collectionMock));
 
             // Setup collection.
             collectionMock.Setup(c => c.FindAsync(

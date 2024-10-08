@@ -26,8 +26,7 @@ namespace Etherna.BeehiveManager.Attributes
     {
         public override void OnException(ExceptionContext context)
         {
-            if (context is null)
-                throw new ArgumentNullException(nameof(context));
+            ArgumentNullException.ThrowIfNull(context, nameof(context));
 
             // Log exception.
             Log.Warning(context.Exception, "API exception");

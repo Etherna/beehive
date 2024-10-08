@@ -16,6 +16,7 @@ using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Settings;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
@@ -32,8 +33,6 @@ namespace Etherna.BeehiveManager.Services.Tasks
         // Consts.
         public const string TaskId = "cashoutAllNodesTask";
 
-        private const int BzzDecimalPlaces = 16;
-
         // Fields.
         private readonly IBeeNodeLiveManager liveManager;
         private readonly ILogger<CashoutAllNodesChequesTask> logger;
@@ -45,8 +44,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
             ILogger<CashoutAllNodesChequesTask> logger,
             IOptions<CashoutAllNodesChequesSettings> options)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             this.liveManager = liveManager;
             this.logger = logger;
@@ -58,19 +56,19 @@ namespace Etherna.BeehiveManager.Services.Tasks
         {
             foreach (var node in liveManager.AllNodes)
             {
-                decimal totalBzzCashedOut = 0;
+                BzzBalance totalBzzCashedOut = 0;
                 var txs = new List<string>();
                 try
                 {
                     // Enumerate peers.
-                    var cheques = await node.Client.GetAllChequeBookChequesAsync();
+                    var cheques = await node.Client.GetAllChequebookChequesAsync();
                     foreach (var peer in cheques.Select(c => c.Peer))
                     {
-                        decimal? uncashedBzzAmount = null;
+                        BzzBalance? uncashedBzzAmount = null;
                         try
                         {
-                            var cashoutResponse = await node.Client.GetChequeBookCashoutForPeerAsync(peer);
-                            uncashedBzzAmount = Web3.Convert.FromWei(cashoutResponse.UncashedAmount, BzzDecimalPlaces);
+                            var cashoutResponse = await node.Client.GetChequebookCashoutForPeerAsync(peer);
+                            uncashedBzzAmount = cashoutResponse.UncashedAmount;
                         }
                         catch (BeeNetApiException) { }
 

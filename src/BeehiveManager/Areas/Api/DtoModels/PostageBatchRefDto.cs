@@ -12,19 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
-    public class PostageBatchRefDto
+    public class PostageBatchRefDto(
+        PostageBatchId batchId,
+        string nodeId)
     {
-        public PostageBatchRefDto(
-            string batchId,
-            string nodeId)
-        {
-            BatchId = batchId;
-            NodeId = nodeId;
-        }
-
-        public string BatchId { get; }
-        public string NodeId { get; }
+        public string BatchId { get; } = batchId.ToString();
+        public string NodeId { get; } = nodeId;
     }
 }

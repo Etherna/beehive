@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,8 +23,8 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     {
         // Fields.
         private readonly List<string> _errors = new();
-        private readonly HashSet<string> _pinnedHashes = new();
-        private readonly HashSet<string> _postageBatchesId = new();
+        private readonly HashSet<SwarmHash> _pinnedHashes = new();
+        private readonly HashSet<PostageBatchId> _postageBatchesId = new();
 
         // Constructor.
         public BeeNodeStatus()
@@ -36,18 +37,18 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         public IEnumerable<string> Errors => _errors;
         public DateTime HeartbeatTimeStamp { get; private set; }
         public bool IsAlive { get; private set; }
-        public IEnumerable<string> PinnedHashes => _pinnedHashes;
-        public IEnumerable<string> PostageBatchesId => _postageBatchesId;
+        public IEnumerable<SwarmHash> PinnedHashes => _pinnedHashes;
+        public IEnumerable<PostageBatchId> PostageBatchesId => _postageBatchesId;
         public bool RequireFullRefresh { get; private set; }
 
         // Internal methods.
-        internal void AddPinnedHash(string hash)
+        internal void AddPinnedHash(SwarmHash hash)
         {
             lock (_pinnedHashes)
                 _pinnedHashes.Add(hash);
         }
 
-        internal void AddPostageBatchId(string batchId)
+        internal void AddPostageBatchId(PostageBatchId batchId)
         {
             lock (_postageBatchesId)
                 _postageBatchesId.Add(batchId);
@@ -71,7 +72,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             Addresses = addresses;
         }
 
-        internal void RemovePinnedHash(string hash)
+        internal void RemovePinnedHash(SwarmHash hash)
         {
             lock (_pinnedHashes)
                 _pinnedHashes.Remove(hash);
@@ -80,8 +81,8 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         internal void SucceededHeartbeatAttempt(
             IEnumerable<string> errors,
             DateTime timestamp,
-            IEnumerable<string>? refreshedPinnedHashes,
-            IEnumerable<string>? refreshedPostageBatchesId)
+            IEnumerable<SwarmHash>? refreshedPinnedHashes,
+            IEnumerable<PostageBatchId>? refreshedPostageBatchesId)
         {
             lock (_errors)
             {

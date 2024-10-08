@@ -27,8 +27,7 @@ namespace Etherna.BeehiveManager.Areas.Api
 
         public void Configure(IWebHostBuilder builder)
         {
-            if (builder is null)
-                throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
             builder.ConfigureServices((context, services) => {
 

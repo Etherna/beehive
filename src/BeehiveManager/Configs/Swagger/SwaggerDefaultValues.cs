@@ -35,10 +35,8 @@ namespace Etherna.BeehiveManager.Configs.Swagger
         /// <param name="context">The current operation filter context.</param>
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
-            if (context is null)
-                throw new ArgumentNullException(nameof(context));
-            if (operation is null)
-                throw new ArgumentNullException(nameof(operation));
+            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            ArgumentNullException.ThrowIfNull(operation, nameof(operation));
 
             var apiDescription = context.ApiDescription;
 

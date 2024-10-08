@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Etherna.BeehiveManager.Domain</RootNamespace>
 
     <Authors>Etherna Sagl</Authors>
@@ -14,8 +14,8 @@
 
   <ItemGroup>
     <PackageReference Include="Etherna.DomainEvents" Version="1.4.0" />
-    <PackageReference Include="MongODM.Core" Version="0.24.0-alpha.110" />
-    <PackageReference Include="Nethereum.Web3" Version="4.20.0" />
+    <PackageReference Include="MongODM.Core" Version="0.24.0" />
+    <PackageReference Include="Nethereum.Web3" Version="4.26.0" />
   </ItemGroup>
 
 </Project>

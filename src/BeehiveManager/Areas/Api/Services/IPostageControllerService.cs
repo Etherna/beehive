@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
+using Etherna.BeeNet.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
@@ -20,12 +21,12 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
     public interface IPostageControllerService
     {
         Task<PostageBatchRefDto> BuyPostageBatchAsync(
-            long amount,
+            BzzBalance amount,
             int depth,
             bool immutable,
             string? label,
             string? nodeId);
-        Task<string> DilutePostageBatchAsync(string batchId, int depth);
-        Task<string> TopUpPostageBatchAsync(string batchId, long amount);
+        Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth);
+        Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount);
     }
 }

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System;
 
 namespace Etherna.BeehiveManager.Areas.Api.DtoModels
@@ -19,21 +20,20 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
     public class PostageBatchDto
     {
         // Constructors.
-        public PostageBatchDto(BeeNet.Models.PostageBatch postageBatch)
+        public PostageBatchDto(PostageBatch postageBatch)
         {
-            if (postageBatch is null)
-                throw new ArgumentNullException(nameof(postageBatch));
+            ArgumentNullException.ThrowIfNull(postageBatch, nameof(postageBatch));
 
-            Id = postageBatch.Id;
-            Value = postageBatch.AmountPaid;
-            BatchTTL = postageBatch.BatchTTL;
+            Id = postageBatch.Id.ToString();
+            Value = postageBatch.Amount.ToPlurLong();
+            BatchTTL = (long)postageBatch.Ttl.TotalSeconds;
             BlockNumber = postageBatch.BlockNumber;
-            BucketDepth = postageBatch.BucketDepth;
+            BucketDepth = PostageBatch.BucketDepth;
             Depth = postageBatch.Depth;
             Exists = postageBatch.Exists;
-            ImmutableFlag = postageBatch.ImmutableFlag;
+            ImmutableFlag = postageBatch.IsImmutable;
             Label = postageBatch.Label;
-            Usable = postageBatch.Usable;
+            Usable = postageBatch.IsUsable;
             Utilization = postageBatch.Utilization;
         }
 
@@ -47,7 +47,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         public bool ImmutableFlag { get; }
         public string? Label { get; }
         public bool Usable { get; }
-        public int? Utilization { get; }
+        public uint? Utilization { get; }
         public long? Value { get; }
     }
 }

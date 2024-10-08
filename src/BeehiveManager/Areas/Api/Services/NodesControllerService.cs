@@ -19,10 +19,10 @@ using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,29 +30,16 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
 {
-    public class NodesControllerService : INodesControllerService
+    public class NodesControllerService(
+        IBeehiveDbContext beehiveDbContext,
+        IBeeNodeLiveManager beeNodeLiveManager,
+        ILogger<NodesControllerService> logger)
+        : INodesControllerService
     {
-        // Fields.
-        private readonly IBeehiveDbContext beehiveDbContext;
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
-        private readonly ILogger<NodesControllerService> logger;
-
-        // Constructor.
-        public NodesControllerService(
-            IBeehiveDbContext beehiveDbContext,
-            IBeeNodeLiveManager beeNodeLiveManager,
-            ILogger<NodesControllerService> logger)
-        {
-            this.beehiveDbContext = beehiveDbContext;
-            this.beeNodeLiveManager = beeNodeLiveManager;
-            this.logger = logger;
-        }
-
         // Methods.
         public async Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput input)
         {
-            if (input is null)
-                throw new ArgumentNullException(nameof(input));
+            ArgumentNullException.ThrowIfNull(input, nameof(input));
 
             // Create node.
             var node = new BeeNode(
@@ -71,20 +58,16 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new BeeNodeDto(node);
         }
 
-        public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, string hash)
+        public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-            if (hash is null)
-                throw new ArgumentNullException(nameof(hash));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
+            ArgumentNullException.ThrowIfNull(hash, nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var result = await beeNodeInstance.Client.CheckIsContentAvailableAsync(hash);
-
-            return result.IsRetrievable;
+            return await beeNodeInstance.Client.IsContentRetrievableAsync(hash);
         }
 
-        public async Task DeletePinAsync(string id, string hash)
+        public async Task DeletePinAsync(string id, SwarmHash hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             await beeNodeInstance.RemovePinnedResourceAsync(hash);
@@ -114,7 +97,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
 
-        public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, string hash)
+        public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, SwarmHash hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
 
@@ -126,7 +109,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.NotPinned);
         }
 
-        public async Task<IEnumerable<string>> GetPinsByNodeAsync(string id)
+        public async Task<IEnumerable<SwarmHash>> GetPinsByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             var readyPins = await beeNodeInstance.Client.GetAllPinsAsync();
@@ -134,7 +117,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return readyPins.Union(inProgressPins);
         }
 
-        public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, string batchId)
+        public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             try
@@ -155,7 +138,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return batches.Select(b => new PostageBatchDto(b));
         }
 
-        public async Task NotifyPinningOfUploadedContentAsync(string id, string hash)
+        public async Task NotifyPinningOfUploadedContentAsync(string id, SwarmHash hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             beeNodeInstance.NotifyPinnedResource(hash);
@@ -163,20 +146,17 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         public async Task RemoveBeeNodeAsync(string id)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
 
             await beehiveDbContext.BeeNodes.DeleteAsync(id);
 
             logger.NodeRemoved(id);
         }
 
-        public async Task ReuploadResourceToNetworkFromNodeAsync(string id, string hash)
+        public async Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-            if (hash is null)
-                throw new ArgumentNullException(nameof(hash));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
+            ArgumentNullException.ThrowIfNull(hash, nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             await beeNodeInstance.Client.ReuploadContentAsync(hash);
@@ -184,10 +164,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-            if (config is null)
-                throw new ArgumentNullException(nameof(config));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
+            ArgumentNullException.ThrowIfNull(config, nameof(config));
 
             // Update live instance.
             var nodeLiveInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);

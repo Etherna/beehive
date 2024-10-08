@@ -36,8 +36,7 @@ namespace Etherna.BeehiveManager.Configs.SystemStore
         // Constructors.
         public XmlRepository(DbContextOptions options)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             // Initialize MongoDB driver.
             var client = new MongoClient(options.ConnectionString);
@@ -61,8 +60,7 @@ namespace Etherna.BeehiveManager.Configs.SystemStore
 
         public void StoreElement(XElement element, string friendlyName)
         {
-            if (element is null)
-                throw new ArgumentNullException(nameof(element));
+            ArgumentNullException.ThrowIfNull(element, nameof(element));
 
             //remove all comments. Json doesn't support it, but Json.NET serialize them anyway
             element.DescendantNodes().Where(x => x.NodeType == XmlNodeType.Comment).Remove();

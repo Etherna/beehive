@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
     public enum PinnedResourceStatusDto
@@ -21,20 +23,13 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         Pinned
     }
 
-    public class PinnedResourceDto
+    public class PinnedResourceDto(
+        SwarmHash hash,
+        string nodeId,
+        PinnedResourceStatusDto status)
     {
-        public PinnedResourceDto(
-            string hash,
-            string nodeId,
-            PinnedResourceStatusDto status)
-        {
-            Hash = hash;
-            NodeId = nodeId;
-            Status = status;
-        }
-
-        public string Hash { get; }
-        public string NodeId { get; }
-        public PinnedResourceStatusDto Status { get; }
+        public SwarmHash Hash { get; } = hash;
+        public string NodeId { get; } = nodeId;
+        public PinnedResourceStatusDto Status { get; } = status;
     }
 }

@@ -16,6 +16,7 @@ using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Clients;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,7 +30,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     public class BeeNodeLiveInstance
     {
         // Fields.
-        private readonly ConcurrentDictionary<string, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
+        private readonly ConcurrentDictionary<SwarmHash, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
 
         // Constructor.
         internal BeeNodeLiveInstance(
@@ -44,12 +45,12 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         // Properties.
         public string Id { get; }
         public BeeClient Client { get; }
-        public IEnumerable<string> InProgressPins => _inProgressPins.Keys;
+        public IEnumerable<SwarmHash> InProgressPins => _inProgressPins.Keys;
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
         // Public methods.
-        public async Task<string> BuyPostageBatchAsync(long amount, int depth, string? label, bool immutable)
+        public async Task<PostageBatchId> BuyPostageBatchAsync(BzzBalance amount, int depth, string? label, bool immutable)
         {
             var batchId = await Client.BuyPostageBatchAsync(amount, depth, label, immutable);
 
@@ -59,10 +60,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             return batchId;
         }
 
-        public Task<string> DilutePostageBatchAsync(string batchId, int depth) =>
+        public Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth) =>
             Client.DilutePostageBatchAsync(batchId, depth);
 
-        public async Task<bool> IsPinningResourceAsync(string hash)
+        public async Task<bool> IsPinningResourceAsync(SwarmHash hash)
         {
             try
             {
@@ -75,7 +76,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             }
         }
 
-        public void NotifyPinnedResource(string hash)
+        public void NotifyPinnedResource(SwarmHash hash)
         {
             //immediately add the pin to the node status
             Status.AddPinnedHash(hash);
@@ -100,7 +101,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             }
         }
 
-        public async Task RemovePinnedResourceAsync(string hash)
+        public async Task RemovePinnedResourceAsync(SwarmHash hash)
         {
             try
             {
@@ -113,7 +114,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
             }
         }
 
-        public Task<string> TopUpPostageBatchAsync(string batchId, long amount) =>
+        public Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount) =>
             Client.TopUpPostageBatchAsync(batchId, amount);
 
         /// <summary>
@@ -131,10 +132,10 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 //health
                 var healthResult = await Client.GetHealthAsync();
 
-                if (healthResult.Status != BeeNet.Models.StatusValues.Ok)
+                if (!healthResult.IsStatusOk)
                 {
                     Status.FailedHeartbeatAttempt(
-                        new[] { "Node is not healthy" },
+                        ["Node is not healthy"],
                         heartbeatTimeStamp);
                     return false;
                 }
@@ -145,7 +146,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 if (!isReady)
                 {
                     Status.FailedHeartbeatAttempt(
-                        new[] { "Node is not ready" },
+                        ["Node is not ready"],
                         heartbeatTimeStamp);
                     return false;
                 }
@@ -156,7 +157,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
                 e is SocketException)
             {
                 Status.FailedHeartbeatAttempt(
-                    new[] { "Exception invoking node API" },
+                    ["Exception invoking node API"],
                     heartbeatTimeStamp);
                 return false;
             }
@@ -184,8 +185,8 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
 
             // Full refresh if is required (or if is forced).
             var errors = new List<string>();
-            IEnumerable<string>? refreshedPinnedHashes = null;
-            IEnumerable<string>? refreshedPostageBatchesId = null;
+            IEnumerable<SwarmHash>? refreshedPinnedHashes = null;
+            IEnumerable<PostageBatchId>? refreshedPostageBatchesId = null;
 
             if (Status.RequireFullRefresh || forceFullRefresh)
             {
