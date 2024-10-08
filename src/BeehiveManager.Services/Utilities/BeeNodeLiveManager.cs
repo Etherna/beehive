@@ -1,22 +1,23 @@
-﻿//   Copyright 2021-present Etherna SA
+﻿// Copyright 2021-present Etherna SA
+// This file is part of BeehiveManager.
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// BeehiveManager is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+// BeehiveManager is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with BeehiveManager.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeehiveManager.Domain;
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
@@ -26,29 +27,25 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using ChainState = Etherna.BeehiveManager.Services.Utilities.Models.ChainState;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
     /// <summary>
     /// Manage live instances of bee nodes
     /// </summary>
-    internal sealed class BeeNodeLiveManager : IBeeNodeLiveManager, IDisposable
+    internal sealed class BeeNodeLiveManager(IBeehiveDbContext dbContext)
+        : IBeeNodeLiveManager, IDisposable
     {
         // Consts.
         private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
-        private readonly IBeehiveDbContext dbContext;
         private Timer? heartbeatTimer;
         private readonly Dictionary<string, BeeNodeLiveInstance?> lastSelectedNodesRoundRobin = new(); //selectionContext -> lastSelectedNodeRoundRobin
         private readonly ConcurrentDictionary<string, BeeNodeLiveInstance> beeNodeInstances = new(); //Id -> Live instance
 
-        // Constructor and dispose.
-        public BeeNodeLiveManager(
-            IBeehiveDbContext dbContext)
-        {
-            this.dbContext = dbContext;
-        }
+        // Dispose.
         public void Dispose()
         {
             heartbeatTimer?.Dispose();
@@ -82,7 +79,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             return await AddBeeNodeAsync(beeNode);
         }
 
-        public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId) =>
+        public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(PostageBatchId batchId) =>
             AllNodes.First(n => n.Status.PostageBatchesId.Contains(batchId));
 
         public IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes) =>
@@ -120,7 +117,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                 case BeeNodeSelectionMode.Random:
                     var availableNodes = beeNodeInstances.Values.Where(instance => instance.Status.IsAlive).ToList();
 
-                    while (availableNodes.Any())
+                    while (availableNodes.Count > 0)
                     {
 #pragma warning disable CA5394 // Do not use insecure randomness
                         int takeIndex = Random.Shared.Next(0, availableNodes.Count);
@@ -141,7 +138,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                 case BeeNodeSelectionMode.RoundRobin:
                     BeeNodeLiveInstance? selectedNode = null;
 
-                    if (!lastSelectedNodesRoundRobin.ContainsKey(selectionContext)) //take first node if never selected once in this context
+                    if (!lastSelectedNodesRoundRobin.TryGetValue(selectionContext, out BeeNodeLiveInstance? lastNode)) //take first node if never selected once in this context
                     {
                         selectedNode = await beeNodeInstances.Values
                             .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
@@ -151,10 +148,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
                     {
                         var lastSelectedNodeWithIndexList = beeNodeInstances.Values
                             .Select((node, index) => new { index, node })
-                            .Where(g => g.node == lastSelectedNodesRoundRobin[selectionContext])
+                            .Where(g => g.node == lastNode)
                             .ToList();
 
-                        if (lastSelectedNodeWithIndexList.Any()) //if prev node still exists
+                        if (lastSelectedNodeWithIndexList.Count > 0) //if prev node still exists
                         {
                             selectedNode = await beeNodeInstances.Values
                                 .Skip(lastSelectedNodeWithIndexList.First().index + 1)
@@ -195,10 +192,10 @@ namespace Etherna.BeehiveManager.Services.Utilities
             {
                 try
                 {
-                    ChainState = new ChainState(node.Id, await node.Client.DebugClient!.GetChainStateAsync());
+                    ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
                 }
                 catch (Exception e) when (
-                    e is BeeNetDebugApiException ||
+                    e is BeeNetApiException ||
                     e is HttpRequestException ||
                     e is SocketException)
                 { }

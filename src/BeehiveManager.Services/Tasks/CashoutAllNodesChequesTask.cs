@@ -1,21 +1,22 @@
-﻿//   Copyright 2021-present Etherna SA
+﻿// Copyright 2021-present Etherna SA
+// This file is part of BeehiveManager.
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// BeehiveManager is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+// BeehiveManager is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with BeehiveManager.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Settings;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
@@ -32,8 +33,6 @@ namespace Etherna.BeehiveManager.Services.Tasks
         // Consts.
         public const string TaskId = "cashoutAllNodesTask";
 
-        private const int BzzDecimalPlaces = 16;
-
         // Fields.
         private readonly IBeeNodeLiveManager liveManager;
         private readonly ILogger<CashoutAllNodesChequesTask> logger;
@@ -45,8 +44,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
             ILogger<CashoutAllNodesChequesTask> logger,
             IOptions<CashoutAllNodesChequesSettings> options)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             this.liveManager = liveManager;
             this.logger = logger;
@@ -58,39 +56,36 @@ namespace Etherna.BeehiveManager.Services.Tasks
         {
             foreach (var node in liveManager.AllNodes)
             {
-                if (node.Client.DebugClient is null)
-                    continue;
-
-                decimal totalBzzCashedOut = 0;
+                BzzBalance totalBzzCashedOut = 0;
                 var txs = new List<string>();
                 try
                 {
                     // Enumerate peers.
-                    var cheques = await node.Client.DebugClient.GetAllChequeBookChequesAsync();
+                    var cheques = await node.Client.GetAllChequebookChequesAsync();
                     foreach (var peer in cheques.Select(c => c.Peer))
                     {
-                        decimal? uncashedBzzAmount = null;
+                        BzzBalance? uncashedBzzAmount = null;
                         try
                         {
-                            var cashoutResponse = await node.Client.DebugClient.GetChequeBookCashoutForPeerAsync(peer);
-                            uncashedBzzAmount = Web3.Convert.FromWei(cashoutResponse.UncashedAmount, BzzDecimalPlaces);
+                            var cashoutResponse = await node.Client.GetChequebookCashoutForPeerAsync(peer);
+                            uncashedBzzAmount = cashoutResponse.UncashedAmount;
                         }
-                        catch (BeeNetDebugApiException) { }
+                        catch (BeeNetApiException) { }
 
                         // Cashout.
                         if (uncashedBzzAmount >= options.BzzMaxTrigger)
                         {
                             try
                             {
-                                var txHash = await node.Client.DebugClient.CashoutChequeForPeerAsync(peer);
+                                var txHash = await node.Client.CashoutChequeForPeerAsync(peer);
                                 totalBzzCashedOut += uncashedBzzAmount.Value;
                                 txs.Add(txHash);
                             }
-                            catch (BeeNetDebugApiException) { }
+                            catch (BeeNetApiException) { }
                         }
                     }
                 }
-                catch (BeeNetDebugApiException) { return; } //issues contacting the node instance api
+                catch (BeeNetApiException) { return; } //issues contacting the node instance api
                 catch (HttpRequestException) { return; }
 
                 // Add log.

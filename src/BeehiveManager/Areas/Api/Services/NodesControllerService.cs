@@ -1,16 +1,16 @@
-﻿//   Copyright 2021-present Etherna SA
+﻿// Copyright 2021-present Etherna SA
+// This file is part of BeehiveManager.
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// BeehiveManager is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+// BeehiveManager is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with BeehiveManager.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.InputModels;
@@ -19,10 +19,10 @@ using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Extensions;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,34 +30,20 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
 {
-    public class NodesControllerService : INodesControllerService
+    public class NodesControllerService(
+        IBeehiveDbContext beehiveDbContext,
+        IBeeNodeLiveManager beeNodeLiveManager,
+        ILogger<NodesControllerService> logger)
+        : INodesControllerService
     {
-        // Fields.
-        private readonly IBeehiveDbContext beehiveDbContext;
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
-        private readonly ILogger<NodesControllerService> logger;
-
-        // Constructor.
-        public NodesControllerService(
-            IBeehiveDbContext beehiveDbContext,
-            IBeeNodeLiveManager beeNodeLiveManager,
-            ILogger<NodesControllerService> logger)
-        {
-            this.beehiveDbContext = beehiveDbContext;
-            this.beeNodeLiveManager = beeNodeLiveManager;
-            this.logger = logger;
-        }
-
         // Methods.
         public async Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput input)
         {
-            if (input is null)
-                throw new ArgumentNullException(nameof(input));
+            ArgumentNullException.ThrowIfNull(input, nameof(input));
 
             // Create node.
             var node = new BeeNode(
                 input.ConnectionScheme,
-                input.DebugApiPort,
                 input.GatewayApiPort,
                 input.Hostname,
                 input.EnableBatchCreation);
@@ -67,26 +53,21 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 node.Id,
                 node.BaseUrl,
                 node.GatewayPort,
-                node.DebugPort,
                 node.IsBatchCreationEnabled);
 
             return new BeeNodeDto(node);
         }
 
-        public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, string hash)
+        public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-            if (hash is null)
-                throw new ArgumentNullException(nameof(hash));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
+            ArgumentNullException.ThrowIfNull(hash, nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var result = await beeNodeInstance.Client.GatewayClient!.CheckIsContentAvailableAsync(hash);
-
-            return result.IsRetrievable;
+            return await beeNodeInstance.Client.IsContentRetrievableAsync(hash);
         }
 
-        public async Task DeletePinAsync(string id, string hash)
+        public async Task DeletePinAsync(string id, SwarmHash hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             await beeNodeInstance.RemovePinnedResourceAsync(hash);
@@ -116,7 +97,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                         .ToListAsync()))
             .Select(n => new BeeNodeDto(n));
 
-        public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, string hash)
+        public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, SwarmHash hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
 
@@ -128,23 +109,23 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
                 return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.NotPinned);
         }
 
-        public async Task<IEnumerable<string>> GetPinsByNodeAsync(string id)
+        public async Task<IEnumerable<SwarmHash>> GetPinsByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var readyPins = await beeNodeInstance.Client.GatewayClient!.GetAllPinsAsync();
+            var readyPins = await beeNodeInstance.Client.GetAllPinsAsync();
             var inProgressPins = beeNodeInstance.InProgressPins;
             return readyPins.Union(inProgressPins);
         }
 
-        public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, string batchId)
+        public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             try
             {
-                var postageBatch = await beeNodeInstance.Client.DebugClient!.GetPostageBatchAsync(batchId);
+                var postageBatch = await beeNodeInstance.Client.GetPostageBatchAsync(batchId);
                 return new PostageBatchDto(postageBatch);
             }
-            catch (BeeNetDebugApiException ex) when (ex.StatusCode == 400)
+            catch (BeeNetApiException ex) when (ex.StatusCode == 400)
             {
                 throw new KeyNotFoundException();
             }
@@ -153,11 +134,11 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var batches = await beeNodeInstance.Client.DebugClient!.GetOwnedPostageBatchesByNodeAsync();
+            var batches = await beeNodeInstance.Client.GetOwnedPostageBatchesByNodeAsync();
             return batches.Select(b => new PostageBatchDto(b));
         }
 
-        public async Task NotifyPinningOfUploadedContentAsync(string id, string hash)
+        public async Task NotifyPinningOfUploadedContentAsync(string id, SwarmHash hash)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             beeNodeInstance.NotifyPinnedResource(hash);
@@ -165,42 +146,67 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         public async Task RemoveBeeNodeAsync(string id)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
 
             await beehiveDbContext.BeeNodes.DeleteAsync(id);
 
             logger.NodeRemoved(id);
         }
 
-        public async Task ReuploadResourceToNetworkFromNodeAsync(string id, string hash)
+        public async Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-            if (hash is null)
-                throw new ArgumentNullException(nameof(hash));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
+            ArgumentNullException.ThrowIfNull(hash, nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            await beeNodeInstance.Client.GatewayClient!.ReuploadContentAsync(hash);
+            await beeNodeInstance.Client.ReuploadContentAsync(hash);
         }
 
-        public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)
+        public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput newConfig)
         {
-            if (id is null)
-                throw new ArgumentNullException(nameof(id));
-            if (config is null)
-                throw new ArgumentNullException(nameof(config));
+            ArgumentNullException.ThrowIfNull(id, nameof(id));
+            ArgumentNullException.ThrowIfNull(newConfig, nameof(newConfig));
 
-            // Update live instance.
+            // Update live instance and db config.
+            bool rebuildLiveInstance = false;
             var nodeLiveInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            nodeLiveInstance.IsBatchCreationEnabled = config.EnableBatchCreation;
+            var nodeDb = await beehiveDbContext.BeeNodes.FindOneAsync(id);
+
+            if (newConfig.ConnectionScheme != null)
+            {
+                rebuildLiveInstance = true;
+                nodeDb.ConnectionScheme = newConfig.ConnectionScheme;
+            }
+
+            if (newConfig.EnableBatchCreation != null)
+            {
+                nodeLiveInstance.IsBatchCreationEnabled = newConfig.EnableBatchCreation.Value;
+                nodeDb.IsBatchCreationEnabled = newConfig.EnableBatchCreation.Value;
+            }
+
+            if (newConfig.ApiPort != null)
+            {
+                rebuildLiveInstance = true;
+                nodeDb.GatewayPort = newConfig.ApiPort.Value;
+            }
+
+            if (newConfig.Hostname != null)
+            {
+                rebuildLiveInstance = true;
+                nodeDb.Hostname = newConfig.Hostname;
+            }
 
             // Update config on db.
-            var node = await beehiveDbContext.BeeNodes.FindOneAsync(id);
-            node.IsBatchCreationEnabled = config.EnableBatchCreation;
             await beehiveDbContext.SaveChangesAsync();
+            
+            // Rebuild live instance if necessary (changed connection string)
+            if (rebuildLiveInstance)
+            {
+                beeNodeLiveManager.RemoveBeeNode(id);
+                await beeNodeLiveManager.AddBeeNodeAsync(nodeDb);
+            }
 
-            logger.NodeConfigurationUpdated(id, config.EnableBatchCreation);
+            logger.NodeConfigurationUpdated(id);
         }
     }
 }
