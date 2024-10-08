@@ -37,6 +37,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         Task NotifyPinningOfUploadedContentAsync(string id, SwarmHash hash);
         Task RemoveBeeNodeAsync(string id);
         Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash);
-        Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config);
+        Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput newConfig);
     }
 }

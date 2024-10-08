@@ -12,10 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with BeehiveManager.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace Etherna.BeehiveManager.Areas.Api.InputModels
 {
     public class UpdateNodeConfigInput
     {
-        public bool EnableBatchCreation { get; set; }
+        [Range(1, 65535)]
+        public int? ApiPort { get; set; }
+        
+        public string? ConnectionScheme { get; set; }
+        
+        public bool? EnableBatchCreation { get; set; }
+
+        public string? Hostname { get; set; }
     }
 }
