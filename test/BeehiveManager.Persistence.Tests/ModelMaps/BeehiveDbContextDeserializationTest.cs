@@ -1,16 +1,16 @@
-﻿//   Copyright 2021-present Etherna SA
+﻿// Copyright 2021-present Etherna SA
+// This file is part of BeehiveManager.
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// BeehiveManager is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+// BeehiveManager is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with BeehiveManager.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Persistence.Helpers;
@@ -23,11 +23,13 @@ using Etherna.MongODM.Core.Utility;
 using Moq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Xunit;
 
 namespace Etherna.BeehiveManager.Persistence.ModelMaps
 {
+    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable")]
     public class BeehiveDbContextDeserializationTest
     {
         // Fields.
@@ -75,7 +77,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                     expectedNodeMock.Setup(n => n.Id).Returns("62d9e1ab5b300b294022c2c6");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2022, 07, 21, 23, 47, 54, 036));
                     expectedNodeMock.Setup(n => n.ConnectionScheme).Returns("http");
-                    expectedNodeMock.Setup(n => n.DebugPort).Returns(1635);
                     expectedNodeMock.Setup(n => n.GatewayPort).Returns(1633);
                     expectedNodeMock.Setup(n => n.Hostname).Returns("127.0.0.1");
                     expectedNodeMock.Setup(n => n.IsBatchCreationEnabled).Returns(true);
@@ -108,7 +109,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
                     expectedNodeMock.Setup(n => n.Id).Returns("62d9e1ab5b300b294022c2c6");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2022, 07, 21, 23, 47, 54, 036));
                     expectedNodeMock.Setup(n => n.ConnectionScheme).Returns("http");
-                    expectedNodeMock.Setup(n => n.DebugPort).Returns(1635);
                     expectedNodeMock.Setup(n => n.GatewayPort).Returns(1633);
                     expectedNodeMock.Setup(n => n.Hostname).Returns("127.0.0.1");
                     expectedNodeMock.Setup(n => n.IsBatchCreationEnabled).Returns(false);
@@ -124,8 +124,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
         [Theory, MemberData(nameof(BeeNodeDeserializationTests))]
         public void BeeNodeDeserialization(DeserializationTestElement<BeeNode> testElement)
         {
-            if (testElement is null)
-                throw new ArgumentNullException(nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -141,7 +140,6 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
             Assert.Equal(testElement.ExpectedModel.Id, result.Id);
             Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
             Assert.Equal(testElement.ExpectedModel.ConnectionScheme, result.ConnectionScheme);
-            Assert.Equal(testElement.ExpectedModel.DebugPort, result.DebugPort);
             Assert.Equal(testElement.ExpectedModel.GatewayPort, result.GatewayPort);
             Assert.Equal(testElement.ExpectedModel.Hostname, result.Hostname);
             Assert.Equal(testElement.ExpectedModel.IsBatchCreationEnabled, result.IsBatchCreationEnabled);

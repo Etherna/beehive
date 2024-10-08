@@ -11,16 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
 		Dockerfile = Dockerfile
-		LICENSE = LICENSE
 		nuget.config = nuget.config
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1CD13F83-9A79-4873-A8E3-77A2D432D706}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "domain", "domain", "{873FF005-8941-4971-A051-55D8434DC8F9}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "infrastructure", "infrastructure", "{11FCB662-8945-484F-9459-C2C5823045E7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BeehiveManager.Domain", "src\BeehiveManager.Domain\BeehiveManager.Domain.csproj", "{125AB1B7-31FD-4BA5-8282-6AC48C3522BB}"
 EndProject
@@ -39,6 +34,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CE10A1ED-2695-44EC-97F1-CB91FC5412D8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BeehiveManager.Persistence.Tests", "test\BeehiveManager.Persistence.Tests\BeehiveManager.Persistence.Tests.csproj", "{74F4D982-085D-42F4-9E61-C288B25E64CB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{9EEC390E-0D81-4379-A02A-C1A7B55CF431}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\stable-release.yml = .github\workflows\stable-release.yml
+		.github\workflows\unstable-release.yml = .github\workflows\unstable-release.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,14 +72,13 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{E14D105A-A294-4F67-BC95-58C5178E2818} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
-		{873FF005-8941-4971-A051-55D8434DC8F9} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
-		{11FCB662-8945-484F-9459-C2C5823045E7} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
-		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB} = {873FF005-8941-4971-A051-55D8434DC8F9}
-		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0} = {873FF005-8941-4971-A051-55D8434DC8F9}
-		{74960F98-A78D-40A5-8CD1-20E05DB4DD35} = {11FCB662-8945-484F-9459-C2C5823045E7}
 		{791D69C2-725F-4E7A-B2F9-30CDC151A0C5} = {2100F089-0589-448E-93E0-45B069DDCE64}
 		{74F4D982-085D-42F4-9E61-C288B25E64CB} = {CE10A1ED-2695-44EC-97F1-CB91FC5412D8}
+		{9EEC390E-0D81-4379-A02A-C1A7B55CF431} = {61C3814F-A839-44D7-8335-0F365D3FFA8C}
+		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+		{74960F98-A78D-40A5-8CD1-20E05DB4DD35} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+		{E14D105A-A294-4F67-BC95-58C5178E2818} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {67056C24-38A7-45E5-A31A-0CF654008257}

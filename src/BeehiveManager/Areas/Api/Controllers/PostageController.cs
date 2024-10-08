@@ -1,20 +1,21 @@
-﻿//   Copyright 2021-present Etherna SA
+﻿// Copyright 2021-present Etherna SA
+// This file is part of BeehiveManager.
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// BeehiveManager is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+// BeehiveManager is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with BeehiveManager.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.Services;
 using Etherna.BeehiveManager.Attributes;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -61,11 +62,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             var beeNodeInfo = await loadBalancerService.FindBeeNodeOwnerOfPostageBatchAsync(id);
 
             // Copy response in headers (Nginx optimization).
-            HttpContext.Response.Headers.Add("bee-node-id", beeNodeInfo.Id);
-            HttpContext.Response.Headers.Add("bee-node-debug-port", beeNodeInfo.DebugPort.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNodeInfo.GatewayPort.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-hostname", beeNodeInfo.Hostname.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-scheme", beeNodeInfo.ConnectionScheme);
+            HttpContext.Response.Headers.Append("bee-node-id", beeNodeInfo.Id);
+            HttpContext.Response.Headers.Append("bee-node-gateway-port", beeNodeInfo.GatewayPort.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Append("bee-node-hostname", beeNodeInfo.Hostname.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Append("bee-node-scheme", beeNodeInfo.ConnectionScheme);
 
             return beeNodeInfo;
         }
@@ -92,7 +92,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             bool immutable = false,
             string? label = null,
             string? nodeId = null) =>
-            service.BuyPostageBatchAsync(amount, depth, immutable, label, nodeId);
+            service.BuyPostageBatchAsync(BzzBalance.FromPlurLong(amount), depth, immutable, label, nodeId);
 
         // Put.
 
@@ -104,10 +104,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<string> DilutePostageBatchAsync(
+        public async Task<string> DilutePostageBatchAsync(
             [Required] string id,
             [Required] int depth) =>
-            service.DilutePostageBatchAsync(id, depth);
+            (await service.DilutePostageBatchAsync(id, depth)).ToString();
 
         [HttpPatch("batches/{id}/topup/{amount}")]
         [SimpleExceptionFilter]
@@ -115,10 +115,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<string> TopUpPostageBatchAsync(
+        public async Task<string> TopUpPostageBatchAsync(
             [Required] string id,
             [Required] long amount) =>
-            service.TopUpPostageBatchAsync(id, amount);
+            (await service.TopUpPostageBatchAsync(id, BzzBalance.FromPlurLong(amount))).ToString();
 
         // Delete.
     }

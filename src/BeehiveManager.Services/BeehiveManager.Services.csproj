@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Etherna.BeehiveManager.Services</RootNamespace>
 
-    <Authors>Etherna Sagl</Authors>
+    <Authors>Etherna SA</Authors>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
@@ -13,10 +13,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net" Version="0.2.0-alpha.216" />
+    <PackageReference Include="Bee.Net.Client" Version="0.4.0-alpha.55" />
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.4.0" />
-    <PackageReference Include="MongODM.Hangfire" Version="0.24.0-alpha.101" />
-    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="4.17.1" />
+    <PackageReference Include="MongODM.Hangfire" Version="0.24.0" />
+    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="4.26.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 
