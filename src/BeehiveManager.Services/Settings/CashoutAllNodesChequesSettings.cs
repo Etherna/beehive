@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.BeehiveManager.Services.Settings
 {
     public class CashoutAllNodesChequesSettings
@@ -20,6 +22,6 @@ namespace Etherna.BeehiveManager.Services.Settings
         public const string ConfigPosition = "CashoutCheques";
 
         // Properties.
-        public decimal BzzMaxTrigger { get; set; } = 1;
+        public BzzBalance BzzMaxTrigger { get; set; } = 1;
     }
 }

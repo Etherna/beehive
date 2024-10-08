@@ -58,10 +58,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             var beeNodes = await service.FindBeeNodesPinningContentAsync(hash, requireAliveNodes);
 
             // Copy response in headers (Nginx optimization).
-            HttpContext.Response.Headers.Add("bee-node-id", beeNodes.Select(n => n.Id).ToArray());
-            HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNodes.Select(n => n.GatewayPort.ToString(CultureInfo.InvariantCulture)).ToArray());
-            HttpContext.Response.Headers.Add("bee-node-hostname", beeNodes.Select(n => n.Hostname.ToString(CultureInfo.InvariantCulture)).ToArray());
-            HttpContext.Response.Headers.Add("bee-node-scheme", beeNodes.Select(n => n.ConnectionScheme).ToArray());
+            HttpContext.Response.Headers.Append("bee-node-id", beeNodes.Select(n => n.Id).ToArray());
+            HttpContext.Response.Headers.Append("bee-node-gateway-port", beeNodes.Select(n => n.GatewayPort.ToString(CultureInfo.InvariantCulture)).ToArray());
+            HttpContext.Response.Headers.Append("bee-node-hostname", beeNodes.Select(n => n.Hostname.ToString(CultureInfo.InvariantCulture)).ToArray());
+            HttpContext.Response.Headers.Append("bee-node-scheme", beeNodes.Select(n => n.ConnectionScheme).ToArray());
 
             return beeNodes;
         }

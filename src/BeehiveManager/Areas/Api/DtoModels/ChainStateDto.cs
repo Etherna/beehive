@@ -21,14 +21,13 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
     {
         public ChainStateDto(ChainState chainState)
         {
-            if (chainState is null)
-                throw new ArgumentNullException(nameof(chainState));
+            ArgumentNullException.ThrowIfNull(chainState, nameof(chainState));
 
             Block = chainState.Block;
-            CurrentPrice = chainState.CurrentPrice;
+            CurrentPrice = chainState.CurrentPrice.ToPlurLong();
             SourceNodeId = chainState.SourceNodeId;
             TimeStamp = chainState.TimeStamp;
-            TotalAmount = chainState.TotalAmount;
+            TotalAmount = chainState.TotalAmount.ToPlurLong();
         }
 
         public long Block { get; }

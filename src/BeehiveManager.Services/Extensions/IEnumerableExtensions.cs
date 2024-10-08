@@ -24,10 +24,8 @@ namespace Etherna.BeehiveManager.Services.Extensions
             this IEnumerable<TSource> source,
             Func<TSource, Task<bool>> predicate)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
+            ArgumentNullException.ThrowIfNull(source, nameof(source));
+            ArgumentNullException.ThrowIfNull(predicate, nameof(predicate));
 
             return WhereImpl(source, predicate);
         }

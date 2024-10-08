@@ -15,6 +15,7 @@
 using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Settings;
 using Etherna.BeehiveManager.Services.Utilities;
+using Etherna.BeeNet.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Web3;
@@ -29,8 +30,6 @@ namespace Etherna.BeehiveManager.Services.Tasks
         // Consts.
         public const string TaskId = "nodesChequebookMaintainerTask";
 
-        private const int BzzDecimalPlaces = 16;
-
         // Fields.
         private readonly bool isEnabled;
         private readonly IBeeNodeLiveManager liveManager;
@@ -43,8 +42,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
             ILogger<NodesChequebookMaintainerTask> logger,
             IOptions<NodesChequebookMaintainerSettings> options)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             this.liveManager = liveManager;
             this.logger = logger;
@@ -62,11 +60,11 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
             foreach (var node in liveManager.AllNodes)
             {
-                decimal? availableBzzBalance = null;
+                BzzBalance? availableBzzBalance = null;
                 try
                 {
-                    var chequebookBalanceDto = await node.Client.GetChequeBookBalanceAsync();
-                    availableBzzBalance = Web3.Convert.FromWei(chequebookBalanceDto.AvailableBalance, BzzDecimalPlaces);
+                    var chequebookBalanceDto = await node.Client.GetChequebookBalanceAsync();
+                    availableBzzBalance = chequebookBalanceDto.AvailableBalance;
                 }
                 catch { }
 
@@ -78,7 +76,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                     try
                     {
-                        var tx = await node.Client.DepositIntoChequeBookAsync((long)Web3.Convert.ToWei(bzzDepositAmount, BzzDecimalPlaces));
+                        var tx = await node.Client.DepositIntoChequebookAsync(bzzDepositAmount);
                         logger.SuccededToDepositBzzOnNodeChequeBook(node.Id, bzzDepositAmount, tx);
                     }
                     catch (Exception ex)
@@ -95,7 +93,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
 
                     try
                     {
-                        var tx = await node.Client.WithdrawFromChequeBookAsync((long)Web3.Convert.ToWei(bzzWithdrawAmount, BzzDecimalPlaces));
+                        var tx = await node.Client.WithdrawFromChequebookAsync(bzzWithdrawAmount);
                         logger.SuccededToWithdrawBzzOnNodeChequeBook(node.Id, bzzWithdrawAmount, tx);
                     }
                     catch (Exception ex)

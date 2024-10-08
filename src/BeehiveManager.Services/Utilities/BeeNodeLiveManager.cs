@@ -17,6 +17,7 @@ using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using Etherna.BeeNet.Exceptions;
+using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
@@ -26,29 +27,25 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using ChainState = Etherna.BeehiveManager.Services.Utilities.Models.ChainState;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
     /// <summary>
     /// Manage live instances of bee nodes
     /// </summary>
-    internal sealed class BeeNodeLiveManager : IBeeNodeLiveManager, IDisposable
+    internal sealed class BeeNodeLiveManager(IBeehiveDbContext dbContext)
+        : IBeeNodeLiveManager, IDisposable
     {
         // Consts.
         private const int HeartbeatPeriod = 10000; //10s
 
         // Fields.
-        private readonly IBeehiveDbContext dbContext;
         private Timer? heartbeatTimer;
         private readonly Dictionary<string, BeeNodeLiveInstance?> lastSelectedNodesRoundRobin = new(); //selectionContext -> lastSelectedNodeRoundRobin
         private readonly ConcurrentDictionary<string, BeeNodeLiveInstance> beeNodeInstances = new(); //Id -> Live instance
 
-        // Constructor and dispose.
-        public BeeNodeLiveManager(
-            IBeehiveDbContext dbContext)
-        {
-            this.dbContext = dbContext;
-        }
+        // Dispose.
         public void Dispose()
         {
             heartbeatTimer?.Dispose();
@@ -82,7 +79,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
             return await AddBeeNodeAsync(beeNode);
         }
 
-        public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId) =>
+        public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(PostageBatchId batchId) =>
             AllNodes.First(n => n.Status.PostageBatchesId.Contains(batchId));
 
         public IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes) =>
@@ -120,7 +117,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                 case BeeNodeSelectionMode.Random:
                     var availableNodes = beeNodeInstances.Values.Where(instance => instance.Status.IsAlive).ToList();
 
-                    while (availableNodes.Any())
+                    while (availableNodes.Count > 0)
                     {
 #pragma warning disable CA5394 // Do not use insecure randomness
                         int takeIndex = Random.Shared.Next(0, availableNodes.Count);
@@ -154,7 +151,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
                             .Where(g => g.node == lastNode)
                             .ToList();
 
-                        if (lastSelectedNodeWithIndexList.Any()) //if prev node still exists
+                        if (lastSelectedNodeWithIndexList.Count > 0) //if prev node still exists
                         {
                             selectedNode = await beeNodeInstances.Values
                                 .Skip(lastSelectedNodeWithIndexList.First().index + 1)

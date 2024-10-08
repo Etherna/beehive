@@ -15,6 +15,7 @@
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Areas.Api.Services;
 using Etherna.BeehiveManager.Attributes;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -61,10 +62,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             var beeNodeInfo = await loadBalancerService.FindBeeNodeOwnerOfPostageBatchAsync(id);
 
             // Copy response in headers (Nginx optimization).
-            HttpContext.Response.Headers.Add("bee-node-id", beeNodeInfo.Id);
-            HttpContext.Response.Headers.Add("bee-node-gateway-port", beeNodeInfo.GatewayPort.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-hostname", beeNodeInfo.Hostname.ToString(CultureInfo.InvariantCulture));
-            HttpContext.Response.Headers.Add("bee-node-scheme", beeNodeInfo.ConnectionScheme);
+            HttpContext.Response.Headers.Append("bee-node-id", beeNodeInfo.Id);
+            HttpContext.Response.Headers.Append("bee-node-gateway-port", beeNodeInfo.GatewayPort.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Append("bee-node-hostname", beeNodeInfo.Hostname.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Response.Headers.Append("bee-node-scheme", beeNodeInfo.ConnectionScheme);
 
             return beeNodeInfo;
         }
@@ -91,7 +92,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             bool immutable = false,
             string? label = null,
             string? nodeId = null) =>
-            service.BuyPostageBatchAsync(amount, depth, immutable, label, nodeId);
+            service.BuyPostageBatchAsync(BzzBalance.FromPlurLong(amount), depth, immutable, label, nodeId);
 
         // Put.
 
@@ -103,10 +104,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<string> DilutePostageBatchAsync(
+        public async Task<string> DilutePostageBatchAsync(
             [Required] string id,
             [Required] int depth) =>
-            service.DilutePostageBatchAsync(id, depth);
+            (await service.DilutePostageBatchAsync(id, depth)).ToString();
 
         [HttpPatch("batches/{id}/topup/{amount}")]
         [SimpleExceptionFilter]
@@ -114,10 +115,10 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<string> TopUpPostageBatchAsync(
+        public async Task<string> TopUpPostageBatchAsync(
             [Required] string id,
             [Required] long amount) =>
-            service.TopUpPostageBatchAsync(id, amount);
+            (await service.TopUpPostageBatchAsync(id, BzzBalance.FromPlurLong(amount))).ToString();
 
         // Delete.
     }

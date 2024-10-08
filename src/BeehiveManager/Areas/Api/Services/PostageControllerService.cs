@@ -15,6 +15,7 @@
 using Etherna.BeehiveManager.Areas.Api.DtoModels;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeehiveManager.Services.Utilities.Models;
+using Etherna.BeeNet.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -34,7 +35,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
 
         // Methods.
         public async Task<PostageBatchRefDto> BuyPostageBatchAsync(
-            long amount,
+            BzzBalance amount,
             int depth,
             bool immutable,
             string? label,
@@ -66,7 +67,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return new PostageBatchRefDto(batchId, beeNodeInstance.Id);
         }
 
-        public async Task<string> DilutePostageBatchAsync(string batchId, int depth)
+        public async Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth)
         {
             var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
 
@@ -74,7 +75,7 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             return await beeNodeLiveInstance.DilutePostageBatchAsync(batchId, depth);
         }
 
-        public async Task<string> TopUpPostageBatchAsync(string batchId, long amount)
+        public async Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount)
         {
             var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
 

@@ -22,8 +22,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         // Constructors.
         public BeeNodeDto(BeeNode beeNode)
         {
-            if (beeNode is null)
-                throw new ArgumentNullException(nameof(beeNode));
+            ArgumentNullException.ThrowIfNull(beeNode, nameof(beeNode));
 
             Id = beeNode.Id;
             ConnectionScheme = beeNode.ConnectionScheme;

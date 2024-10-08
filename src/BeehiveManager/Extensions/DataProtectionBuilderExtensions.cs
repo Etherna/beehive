@@ -33,8 +33,7 @@ namespace Etherna.BeehiveManager.Extensions
             this IDataProtectionBuilder builder,
             DbContextOptions dbContextOptions)
         {
-            if (builder is null)
-                throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
             builder.Services.Configure<KeyManagementOptions>(options =>
             {

@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Controllers
@@ -108,9 +109,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IEnumerable<string>> GetPinsByNodeAsync(
+        public async Task<IEnumerable<string>> GetPinsByNodeAsync(
             [Required] string id) =>
-            service.GetPinsByNodeAsync(id);
+            (await service.GetPinsByNodeAsync(id)).Select(h => h.ToString());
 
         /// <summary>
         /// Get details of a pinned resource on a node

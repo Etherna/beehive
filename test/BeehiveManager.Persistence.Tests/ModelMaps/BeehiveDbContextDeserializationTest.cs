@@ -124,8 +124,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
         [Theory, MemberData(nameof(BeeNodeDeserializationTests))]
         public void BeeNodeDeserialization(DeserializationTestElement<BeeNode> testElement)
         {
-            if (testElement is null)
-                throw new ArgumentNullException(nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);

@@ -52,8 +52,7 @@ namespace Etherna.BeehiveManager.Services.Tasks
             ILogger<NodesAddressMaintainerTask> logger,
             IOptions<NodesAddressMaintainerSettings> options)
         {
-            if (options is null)
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             this.liveManager = liveManager;
             this.logger = logger;

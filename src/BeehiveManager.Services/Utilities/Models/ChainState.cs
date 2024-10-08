@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System;
 
 namespace Etherna.BeehiveManager.Services.Utilities.Models
@@ -20,8 +21,7 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
     {
         public ChainState(string nodeId, Etherna.BeeNet.Models.ChainState chainStateDto)
         {
-            if (chainStateDto is null)
-                throw new ArgumentNullException(nameof(chainStateDto));
+            ArgumentNullException.ThrowIfNull(chainStateDto, nameof(chainStateDto));
 
             Block = chainStateDto.Block;
             CurrentPrice = chainStateDto.CurrentPrice;
@@ -31,9 +31,9 @@ namespace Etherna.BeehiveManager.Services.Utilities.Models
         }
 
         public long Block { get; }
-        public long CurrentPrice { get; }
+        public BzzBalance CurrentPrice { get; }
         public string SourceNodeId { get; }
         public DateTime TimeStamp { get; }
-        public long TotalAmount { get; }
+        public BzzBalance TotalAmount { get; }
     }
 }

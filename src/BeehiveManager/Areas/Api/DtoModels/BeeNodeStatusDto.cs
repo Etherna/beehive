@@ -15,6 +15,7 @@
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Etherna.BeehiveManager.Areas.Api.DtoModels
 {
@@ -23,8 +24,7 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
         // Constructor.
         public BeeNodeStatusDto(string id, BeeNodeStatus status)
         {
-            if (status is null)
-                throw new ArgumentNullException(nameof(status));
+            ArgumentNullException.ThrowIfNull(status, nameof(status));
 
             Id = id;
             Errors = status.Errors;
@@ -32,8 +32,8 @@ namespace Etherna.BeehiveManager.Areas.Api.DtoModels
             HeartbeatTimeStamp = status.HeartbeatTimeStamp;
             IsAlive = status.IsAlive;
             OverlayAddress = status.Addresses?.Overlay;
-            PinnedHashes = status.PinnedHashes;
-            PostageBatchesId = status.PostageBatchesId;
+            PinnedHashes = status.PinnedHashes.Select(h => h.ToString());
+            PostageBatchesId = status.PostageBatchesId.Select(b => b.ToString());
             PssPublicKey = status.Addresses?.PssPublicKey;
             PublicKey = status.Addresses?.PublicKey;
         }

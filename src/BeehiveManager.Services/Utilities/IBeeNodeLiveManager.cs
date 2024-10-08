@@ -14,9 +14,11 @@
 
 using Etherna.BeehiveManager.Domain.Models;
 using Etherna.BeehiveManager.Services.Utilities.Models;
+using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ChainState = Etherna.BeehiveManager.Services.Utilities.Models.ChainState;
 
 namespace Etherna.BeehiveManager.Services.Utilities
 {
@@ -30,7 +32,7 @@ namespace Etherna.BeehiveManager.Services.Utilities
         // Methods.
         Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
         Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
-        BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(string batchId);
+        BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(PostageBatchId batchId);
         IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
