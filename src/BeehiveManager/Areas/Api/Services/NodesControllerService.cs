@@ -162,21 +162,51 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
             await beeNodeInstance.Client.ReuploadContentAsync(hash);
         }
 
-        public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput config)
+        public async Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput newConfig)
         {
             ArgumentNullException.ThrowIfNull(id, nameof(id));
-            ArgumentNullException.ThrowIfNull(config, nameof(config));
+            ArgumentNullException.ThrowIfNull(newConfig, nameof(newConfig));
 
-            // Update live instance.
+            // Update live instance and db config.
+            bool rebuildLiveInstance = false;
             var nodeLiveInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            nodeLiveInstance.IsBatchCreationEnabled = config.EnableBatchCreation;
+            var nodeDb = await beehiveDbContext.BeeNodes.FindOneAsync(id);
+
+            if (newConfig.ConnectionScheme != null)
+            {
+                rebuildLiveInstance = true;
+                nodeDb.ConnectionScheme = newConfig.ConnectionScheme;
+            }
+
+            if (newConfig.EnableBatchCreation != null)
+            {
+                nodeLiveInstance.IsBatchCreationEnabled = newConfig.EnableBatchCreation.Value;
+                nodeDb.IsBatchCreationEnabled = newConfig.EnableBatchCreation.Value;
+            }
+
+            if (newConfig.ApiPort != null)
+            {
+                rebuildLiveInstance = true;
+                nodeDb.GatewayPort = newConfig.ApiPort.Value;
+            }
+
+            if (newConfig.Hostname != null)
+            {
+                rebuildLiveInstance = true;
+                nodeDb.Hostname = newConfig.Hostname;
+            }
 
             // Update config on db.
-            var node = await beehiveDbContext.BeeNodes.FindOneAsync(id);
-            node.IsBatchCreationEnabled = config.EnableBatchCreation;
             await beehiveDbContext.SaveChangesAsync();
+            
+            // Rebuild live instance if necessary (changed connection string)
+            if (rebuildLiveInstance)
+            {
+                beeNodeLiveManager.RemoveBeeNode(id);
+                await beeNodeLiveManager.AddBeeNodeAsync(nodeDb);
+            }
 
-            logger.NodeConfigurationUpdated(id, config.EnableBatchCreation);
+            logger.NodeConfigurationUpdated(id);
         }
     }
 }
