@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net.Client" Version="0.4.0-alpha.55" />
+    <PackageReference Include="Bee.Net.Client" Version="0.4.0-alpha.58" />
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.4.0" />
     <PackageReference Include="MongODM.Hangfire" Version="0.24.0" />
     <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="4.26.0" />
