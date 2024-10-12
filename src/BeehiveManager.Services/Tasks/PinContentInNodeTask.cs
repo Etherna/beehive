@@ -13,28 +13,36 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeehiveManager.Services.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class PinContentInNodeTask : IPinContentInNodeTask
+    public class PinContentInNodeTask(IBeeNodeLiveManager beeNodeLiveManager)
+        : IPinContentInNodeTask
     {
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
-
-        public PinContentInNodeTask(
-            IBeeNodeLiveManager beeNodeLiveManager)
-        {
-            this.beeNodeLiveManager = beeNodeLiveManager;
-        }
-
+        public const int MaxRetries = 5;
+        public static readonly TimeSpan RetryWaitTime = TimeSpan.FromSeconds(5);
+        
         public async Task RunAsync(string contentHash, string nodeId)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(nodeId);
-
+            
             // Try to pin.
-            try { await beeNodeInstance.PinResourceAsync(contentHash); }
-            catch (KeyNotFoundException) { }
+            for (int i = 0; i < MaxRetries; i++)
+            {
+                try
+                {
+                    await beeNodeInstance.PinResourceAsync(contentHash);
+                }
+                catch (KeyNotFoundException)
+                {
+                    if (i + 1 == MaxRetries)
+                        throw;
+                    await Task.Delay(RetryWaitTime);
+                }
+            }
         }
     }
 }
