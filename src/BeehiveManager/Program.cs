@@ -209,11 +209,11 @@ namespace Etherna.BeehiveManager
                     }
                 };
             })
-                .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
+                .AddDbContext<IBeehiveDbContext, BeehiveManagerDbContext>(sp =>
                 {
                     var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
                     var seedDbSettings = sp.GetRequiredService<IOptions<SeedDbSettings>>().Value;
-                    return new BeehiveDbContext(
+                    return new BeehiveManagerDbContext(
                         eventDispatcher,
                         seedDbSettings.BeeNodes.Where(n => n is not null)
                                                .Select(n => new BeeNode(n.Scheme, n.GatewayPort, n.Hostname, n.EnableBatchCreation)));

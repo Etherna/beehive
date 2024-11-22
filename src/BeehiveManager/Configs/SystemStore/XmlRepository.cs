@@ -25,7 +25,7 @@ using System.Xml.Linq;
 
 namespace Etherna.BeehiveManager.Configs.SystemStore
 {
-    public class XmlRepository : IXmlRepository
+    internal sealed class XmlRepository : IXmlRepository
     {
         // Consts.
         public const string CollectionName = "dataProtectionKeys";
@@ -39,7 +39,9 @@ namespace Etherna.BeehiveManager.Configs.SystemStore
             ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             // Initialize MongoDB driver.
+#pragma warning disable CA2000 // Dispose objects before losing scope
             var client = new MongoClient(options.ConnectionString);
+#pragma warning restore CA2000 // Dispose objects before losing scope
             var database = client.GetDatabase(options.DbName);
             collection = database.GetCollection<BsonDocument>(CollectionName);
         }

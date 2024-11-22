@@ -23,6 +23,9 @@ dotnet_diagnostic.CA1054.severity = none    # Asp.Net Core uses strings natively
 # CA1308: Normalize strings to uppercase
 dotnet_diagnostic.CA1308.severity = none    # I choose if use upper or lower case
 
+# CA1515: Because an application's API isn't typically referenced from outside the assembly, types can be made internal (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1515)
+dotnet_diagnostic.CA1515.severity = none    # Rises a lot of false positives
+
 # CA1707: Identifiers should not contain underscores
 dotnet_diagnostic.CA1707.severity = none    # I like underscores into constants name
 

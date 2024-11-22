@@ -18,7 +18,7 @@ using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities.Models;
 using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
-using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

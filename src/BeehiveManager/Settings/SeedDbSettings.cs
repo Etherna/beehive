@@ -18,10 +18,10 @@ namespace Etherna.BeehiveManager.Settings
 {
 #pragma warning disable CA1034 // Nested types should not be visible
 #pragma warning disable CA1819 // Properties should not return arrays
-    public class SeedDbSettings
+    internal sealed class SeedDbSettings
     {
         // Internal classes.
-        public class BeeNode
+        internal sealed class BeeNode
         {
             public bool EnableBatchCreation { get; set; } = true;
             public int GatewayPort { get; set; } = 1633;

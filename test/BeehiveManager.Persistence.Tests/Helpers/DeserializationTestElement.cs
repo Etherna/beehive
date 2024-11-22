@@ -19,24 +19,17 @@ using System;
 
 namespace Etherna.BeehiveManager.Persistence.Helpers
 {
-    public class DeserializationTestElement<TModel>
+    public class DeserializationTestElement<TModel>(
+        string sourceDocument,
+        TModel expectedModel,
+        Action<Mock<IMongoDatabase>, IBeehiveDbContext> setupAction)
     {
         public DeserializationTestElement(string sourceDocument, TModel expectedModel) :
             this(sourceDocument, expectedModel, (_, _) => { })
         { }
 
-        public DeserializationTestElement(
-            string sourceDocument,
-            TModel expectedModel,
-            Action<Mock<IMongoDatabase>, IBeehiveDbContext> setupAction)
-        {
-            SourceDocument = sourceDocument;
-            ExpectedModel = expectedModel;
-            SetupAction = setupAction;
-        }
-
-        public string SourceDocument { get; }
-        public TModel ExpectedModel { get; }
-        public Action<Mock<IMongoDatabase>, IBeehiveDbContext> SetupAction { get; }
+        public string SourceDocument { get; } = sourceDocument;
+        public TModel ExpectedModel { get; } = expectedModel;
+        public Action<Mock<IMongoDatabase>, IBeehiveDbContext> SetupAction { get; } = setupAction;
     }
 }

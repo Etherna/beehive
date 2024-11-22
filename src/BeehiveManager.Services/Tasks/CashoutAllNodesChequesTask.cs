@@ -19,8 +19,6 @@ using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nethereum.Web3;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -28,28 +26,17 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.Tasks
 {
-    public class CashoutAllNodesChequesTask : ICashoutAllNodesChequesTask
+    public class CashoutAllNodesChequesTask(
+        IBeeNodeLiveManager liveManager,
+        ILogger<CashoutAllNodesChequesTask> logger,
+        IOptions<CashoutAllNodesChequesSettings> options)
+        : ICashoutAllNodesChequesTask
     {
         // Consts.
         public const string TaskId = "cashoutAllNodesTask";
 
         // Fields.
-        private readonly IBeeNodeLiveManager liveManager;
-        private readonly ILogger<CashoutAllNodesChequesTask> logger;
-        private readonly CashoutAllNodesChequesSettings options;
-
-        // Constructors.
-        public CashoutAllNodesChequesTask(
-            IBeeNodeLiveManager liveManager,
-            ILogger<CashoutAllNodesChequesTask> logger,
-            IOptions<CashoutAllNodesChequesSettings> options)
-        {
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
-
-            this.liveManager = liveManager;
-            this.logger = logger;
-            this.options = options.Value;
-        }
+        private readonly CashoutAllNodesChequesSettings options = options.Value;
 
         // Methods.
         public async Task RunAsync()

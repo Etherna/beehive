@@ -29,41 +29,32 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Persistence
 {
-    public class BeehiveDbContext : DbContext, IBeehiveDbContext, IEventDispatcherDbContext
+    public class BeehiveManagerDbContext(
+        IEventDispatcher eventDispatcher,
+        IEnumerable<BeeNode>? seedDbBeeNodes)
+        : DbContext, IBeehiveDbContext, IEventDispatcherDbContext
     {
         // Consts.
         private const string SerializersNamespace = "Etherna.BeehiveManager.Persistence.ModelMaps";
-
-        // Fields.
-        private readonly IEnumerable<BeeNode>? seedDbBeeNodes;
-
-        // Constructor.
-        public BeehiveDbContext(
-            IEventDispatcher eventDispatcher,
-            IEnumerable<BeeNode>? seedDbBeeNodes)
-        {
-            EventDispatcher = eventDispatcher;
-            this.seedDbBeeNodes = seedDbBeeNodes;
-        }
 
         // Properties.
         //repositories
         public IRepository<BeeNode, string> BeeNodes { get; } = new DomainRepository<BeeNode, string>(
             new RepositoryOptions<BeeNode>("beeNodes")
             {
-                IndexBuilders = new[]
-                {
+                IndexBuilders =
+                [
                     (Builders<BeeNode>.IndexKeys.Ascending(n => n.GatewayPort)
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
-                }
+                ]
             });
 
         //other properties
-        public IEventDispatcher EventDispatcher { get; }
+        public IEventDispatcher EventDispatcher { get; } = eventDispatcher;
 
         // Protected properties.
         protected override IEnumerable<IModelMapsCollector> ModelMapsCollectors =>
-            from t in typeof(BeehiveDbContext).GetTypeInfo().Assembly.GetTypes()
+            from t in typeof(BeehiveManagerDbContext).GetTypeInfo().Assembly.GetTypes()
             where t.IsClass && t.Namespace == SerializersNamespace
             where t.GetInterfaces().Contains(typeof(IModelMapsCollector))
             select Activator.CreateInstance(t) as IModelMapsCollector;
@@ -72,8 +63,7 @@ namespace Etherna.BeehiveManager.Persistence
         public override async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             // Dispatch events.
-            foreach (var model in ChangedModelsList.Where(m => m is EntityModelBase)
-                                                   .Select(m => (EntityModelBase)m))
+            foreach (var model in ChangedModelsList.OfType<EntityModelBase>())
             {
                 await EventDispatcher.DispatchAsync(model.Events);
                 model.ClearEvents();
