@@ -20,18 +20,9 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Services.EventHandlers
 {
-    internal sealed class OnBeeNodeCreatedThenAddNodeStatusHandler : EventHandlerBase<EntityCreatedEvent<BeeNode>>
+    internal sealed class OnBeeNodeCreatedThenAddNodeStatusHandler(IBeeNodeLiveManager beeNodeLiveManager)
+        : EventHandlerBase<EntityCreatedEvent<BeeNode>>
     {
-        // Fields.
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
-
-        // Constructor.
-        public OnBeeNodeCreatedThenAddNodeStatusHandler(
-            IBeeNodeLiveManager beeNodeLiveManager)
-        {
-            this.beeNodeLiveManager = beeNodeLiveManager;
-        }
-
         // Methods.
         public override async Task HandleAsync(EntityCreatedEvent<BeeNode> @event)
         {

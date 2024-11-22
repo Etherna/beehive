@@ -20,7 +20,7 @@ using Etherna.BeehiveManager.Services.Extensions;
 using Etherna.BeehiveManager.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
-using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.BeehiveManager.Areas.Api.Services
 {
-    public class NodesControllerService(
+    internal sealed class NodesControllerService(
         IBeehiveDbContext beehiveDbContext,
         IBeeNodeLiveManager beeNodeLiveManager,
         ILogger<NodesControllerService> logger)
@@ -61,7 +61,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash)
         {
             ArgumentNullException.ThrowIfNull(id, nameof(id));
-            ArgumentNullException.ThrowIfNull(hash, nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             return await beeNodeInstance.Client.IsContentRetrievableAsync(hash);
@@ -156,7 +155,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Services
         public async Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash)
         {
             ArgumentNullException.ThrowIfNull(id, nameof(id));
-            ArgumentNullException.ThrowIfNull(hash, nameof(hash));
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             await beeNodeInstance.Client.ReuploadContentAsync(hash);

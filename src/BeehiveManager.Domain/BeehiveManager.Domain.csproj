@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Etherna.BeehiveManager.Domain</RootNamespace>
 
     <Authors>Etherna SA</Authors>
@@ -10,11 +10,13 @@
     <Nullable>enable</Nullable>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    
+    <NoWarn>NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Etherna.DomainEvents" Version="1.4.0" />
-    <PackageReference Include="MongODM.Core" Version="0.24.0" />
+    <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.6" />
     <PackageReference Include="Nethereum.Web3" Version="4.26.0" />
   </ItemGroup>
 

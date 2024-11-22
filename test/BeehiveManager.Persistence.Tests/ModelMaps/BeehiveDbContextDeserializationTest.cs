@@ -33,7 +33,7 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
     public class BeehiveDbContextDeserializationTest
     {
         // Fields.
-        private readonly BeehiveDbContext dbContext;
+        private readonly BeehiveManagerDbContext managerDbContext;
         private readonly Mock<IMongoDatabase> mongoDatabaseMock = new();
 
         // Constructor.
@@ -41,9 +41,9 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
         {
             // Setup dbContext.
             var eventDispatcherMock = new Mock<IEventDispatcher>();
-            dbContext = new BeehiveDbContext(eventDispatcherMock.Object, null);
+            managerDbContext = new BeehiveManagerDbContext(eventDispatcherMock.Object, null);
 
-            DbContextMockHelper.InitializeDbContextMock(dbContext, mongoDatabaseMock);
+            DbContextMockHelper.InitializeDbContextMock(managerDbContext, mongoDatabaseMock);
         }
 
         // Data.
@@ -128,12 +128,12 @@ namespace Etherna.BeehiveManager.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<BeeNode>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<BeeNode>(managerDbContext);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
-            testElement.SetupAction(mongoDatabaseMock, dbContext);
+            testElement.SetupAction(mongoDatabaseMock, managerDbContext);
 
             // Action.
-            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            using var dbExecutionContext = new DbExecutionContextHandler(managerDbContext); //run into a db execution context
             var result = modelMapSerializer.Deserialize(deserializationContext);
 
             // Assert.

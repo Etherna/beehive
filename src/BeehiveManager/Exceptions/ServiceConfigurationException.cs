@@ -16,7 +16,7 @@ using System;
 
 namespace Etherna.BeehiveManager.Exceptions
 {
-    public class ServiceConfigurationException : Exception
+    internal sealed class ServiceConfigurationException : Exception
     {
         public ServiceConfigurationException()
         { }
