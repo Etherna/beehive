@@ -28,17 +28,8 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
     [ApiController]
     [ApiVersion("0.3")]
     [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class PinningController : ControllerBase
+    public class PinningController(IPinningControllerService service) : ControllerBase
     {
-        // Fields.
-        private readonly IPinningControllerService service;
-
-        // Constructor.
-        public PinningController(IPinningControllerService service)
-        {
-            this.service = service;
-        }
-
         // Get.
 
         /// <summary>

@@ -23,17 +23,9 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
     [ApiController]
     [ApiVersion("0.3")]
     [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class ChainController : ControllerBase
+    public class ChainController(IChainControllerService service)
+        : ControllerBase
     {
-        // Fields.
-        private readonly IChainControllerService service;
-
-        // Constructor.
-        public ChainController(IChainControllerService service)
-        {
-            this.service = service;
-        }
-
         // Get.
 
         /// <summary>

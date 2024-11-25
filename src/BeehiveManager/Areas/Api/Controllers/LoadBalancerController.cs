@@ -27,21 +27,13 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
     [ApiController]
     [ApiVersion("0.3")]
     [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class LoadBalancerController : ControllerBase
+    public class LoadBalancerController(ILoadBalancerControllerService service)
+        : ControllerBase
     {
-        // Fields.
-        private readonly ILoadBalancerControllerService service;
-        
-        // Constructor.
-        public LoadBalancerController(ILoadBalancerControllerService service)
-        {
-            this.service = service;
-        }
-
         // Get.
 
         /// <summary>
-        /// Select an healthy bee node
+        /// Select a healthy bee node
         /// </summary>
         /// <response code="200">Bee node info</response>
         [HttpGet]
@@ -86,22 +78,6 @@ namespace Etherna.BeehiveManager.Areas.Api.Controllers
             [Required, SwarmResourceValidation] string hash)
         {
             var beeNode = await service.SelectDownloadNodeAsync(hash);
-            WriteNodeInfoInHeaders(beeNode); //nginx optimization
-            return beeNode;
-        }
-
-        /// <summary>
-        /// Select best node for download a specific content
-        /// </summary>
-        /// <response code="200">Selected Bee node</response>
-        [HttpGet("soc/{address}")]
-        [Obsolete("Dropped feature, no more necessary")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<BeeNodeDto> SelectSocNodeAsync()
-        {
-            var beeNode = await service.SelectHealthyNodeAsync();
             WriteNodeInfoInHeaders(beeNode); //nginx optimization
             return beeNode;
         }
