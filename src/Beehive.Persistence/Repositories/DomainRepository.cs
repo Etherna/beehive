@@ -28,7 +28,7 @@ namespace Etherna.Beehive.Persistence.Repositories
         Repository<TModel, TKey>
         where TModel : EntityModelBase<TKey>
     {
-        // Constructors and initialization.
+        // Constructors.
         public DomainRepository(string name)
             : base(name)
         { }
@@ -86,20 +86,20 @@ namespace Etherna.Beehive.Persistence.Repositories
         {
             ArgumentNullException.ThrowIfNull(model, nameof(model));
 
-            // Dispatch custom events.
-            if (EventDispatcher != null)
-            {
-                await EventDispatcher.DispatchAsync(model.Events);
-                model.ClearEvents();
-            }
-
             // Delete entity.
             await base.DeleteAsync(model, cancellationToken);
 
-            // Dispatch deleted event.
+            // Dispatch events.
             if (EventDispatcher != null)
+            {
+                //deleted event
                 await EventDispatcher.DispatchAsync(
                     new EntityDeletedEvent<TModel>(model));
+                
+                //custom events
+                await EventDispatcher.DispatchAsync(model.Events);
+                model.ClearEvents();
+            }
         }
     }
 }
