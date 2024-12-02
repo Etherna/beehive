@@ -1,0 +1,86 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32819.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Beehive", "src\Beehive\Beehive.csproj", "{E14D105A-A294-4F67-BC95-58C5178E2818}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{61C3814F-A839-44D7-8335-0F365D3FFA8C}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		Dockerfile = Dockerfile
+		nuget.config = nuget.config
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1CD13F83-9A79-4873-A8E3-77A2D432D706}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Beehive.Domain", "src\Beehive.Domain\Beehive.Domain.csproj", "{125AB1B7-31FD-4BA5-8282-6AC48C3522BB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Beehive.Services", "src\Beehive.Services\Beehive.Services.csproj", "{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Beehive.Persistence", "src\Beehive.Persistence\Beehive.Persistence.csproj", "{74960F98-A78D-40A5-8CD1-20E05DB4DD35}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{2100F089-0589-448E-93E0-45B069DDCE64}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker-beehive-sample", "docker-beehive-sample", "{791D69C2-725F-4E7A-B2F9-30CDC151A0C5}"
+	ProjectSection(SolutionItems) = preProject
+		samples\docker-beehive-sample\docker-compose.yml = samples\docker-beehive-sample\docker-compose.yml
+		samples\docker-beehive-sample\README.md = samples\docker-beehive-sample\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CE10A1ED-2695-44EC-97F1-CB91FC5412D8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Beehive.Persistence.Tests", "test\Beehive.Persistence.Tests\Beehive.Persistence.Tests.csproj", "{74F4D982-085D-42F4-9E61-C288B25E64CB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{9EEC390E-0D81-4379-A02A-C1A7B55CF431}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\stable-release.yml = .github\workflows\stable-release.yml
+		.github\workflows\unstable-release.yml = .github\workflows\unstable-release.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E14D105A-A294-4F67-BC95-58C5178E2818}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E14D105A-A294-4F67-BC95-58C5178E2818}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E14D105A-A294-4F67-BC95-58C5178E2818}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E14D105A-A294-4F67-BC95-58C5178E2818}.Release|Any CPU.Build.0 = Release|Any CPU
+		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74960F98-A78D-40A5-8CD1-20E05DB4DD35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74960F98-A78D-40A5-8CD1-20E05DB4DD35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74960F98-A78D-40A5-8CD1-20E05DB4DD35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74960F98-A78D-40A5-8CD1-20E05DB4DD35}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74F4D982-085D-42F4-9E61-C288B25E64CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74F4D982-085D-42F4-9E61-C288B25E64CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74F4D982-085D-42F4-9E61-C288B25E64CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74F4D982-085D-42F4-9E61-C288B25E64CB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{791D69C2-725F-4E7A-B2F9-30CDC151A0C5} = {2100F089-0589-448E-93E0-45B069DDCE64}
+		{74F4D982-085D-42F4-9E61-C288B25E64CB} = {CE10A1ED-2695-44EC-97F1-CB91FC5412D8}
+		{9EEC390E-0D81-4379-A02A-C1A7B55CF431} = {61C3814F-A839-44D7-8335-0F365D3FFA8C}
+		{125AB1B7-31FD-4BA5-8282-6AC48C3522BB} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+		{36854E0C-B2C5-4F32-95BB-8FB0EE57EFF0} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+		{74960F98-A78D-40A5-8CD1-20E05DB4DD35} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+		{E14D105A-A294-4F67-BC95-58C5178E2818} = {1CD13F83-9A79-4873-A8E3-77A2D432D706}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {67056C24-38A7-45E5-A31A-0CF654008257}
+	EndGlobalSection
+EndGlobal

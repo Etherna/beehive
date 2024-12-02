@@ -1,10 +1,10 @@
 version: "3.8"
 services:
 
-  beehive-manager:
-    image: etherna/beehive-manager:latest
+  beehive:
+    image: etherna/beehive:latest
     environment:
-      - ConnectionStrings__BeehiveManagerDb=mongodb://mongo/beehive                 # application db
+      - ConnectionStrings__BeehiveDb=mongodb://mongo/beehive                        # application db
       - ConnectionStrings__DataProtectionDb=mongodb://mongo/beehiveDataProtection   # system db
       - ConnectionStrings__HangfireDb=mongodb://mongo/beehiveHangfire               # async worker db
     networks:
