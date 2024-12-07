@@ -14,9 +14,9 @@
 
 using Etherna.BeeNet.Models;
 
-namespace Etherna.Beehive.Services.Settings
+namespace Etherna.Beehive.Services.Options
 {
-    public class CashoutAllNodesChequesSettings
+    public class CashoutAllNodesChequesOptions
     {
         // Consts.
         public const string ConfigPosition = "CashoutCheques";

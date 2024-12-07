@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Services.Settings
+namespace Etherna.Beehive.Services.Options
 {
-    public class NodesChequebookMaintainerSettings
+    public class NodesChequebookMaintainerOptions
     {
         // Consts.
         public const string ConfigPosition = "ChequebookLimits";

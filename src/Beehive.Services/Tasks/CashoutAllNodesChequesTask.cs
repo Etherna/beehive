@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Services.Settings;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Extensions;
+using Etherna.Beehive.Services.Options;
+using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using Microsoft.Extensions.Logging;
@@ -29,14 +29,14 @@ namespace Etherna.Beehive.Services.Tasks
     public class CashoutAllNodesChequesTask(
         IBeeNodeLiveManager liveManager,
         ILogger<CashoutAllNodesChequesTask> logger,
-        IOptions<CashoutAllNodesChequesSettings> options)
+        IOptions<CashoutAllNodesChequesOptions> options)
         : ICashoutAllNodesChequesTask
     {
         // Consts.
         public const string TaskId = "cashoutAllNodesTask";
 
         // Fields.
-        private readonly CashoutAllNodesChequesSettings options = options.Value;
+        private readonly CashoutAllNodesChequesOptions options = options.Value;
 
         // Methods.
         public async Task RunAsync()

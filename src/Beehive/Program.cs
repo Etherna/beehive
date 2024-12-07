@@ -16,19 +16,22 @@ using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Configs.MongODM;
 using Etherna.Beehive.Configs.Swagger;
+using Etherna.Beehive.Converters;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Exceptions;
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.Options;
 using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services;
-using Etherna.Beehive.Services.Settings;
+using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
-using Etherna.Beehive.Settings;
+using Etherna.Beehive.Tools;
+using Etherna.BeeNet.Hashing.Store;
+using Etherna.BeeNet.Models;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
-using Etherna.MongODM.Core.Options;
 using Hangfire;
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
@@ -44,6 +47,7 @@ using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -94,6 +98,17 @@ namespace Etherna.Beehive
         }
 
         // Helpers.
+        private static ElasticsearchSinkOptions ConfigureElasticSink(IConfigurationRoot configuration, string environment)
+        {
+            string assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
+            string envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
+            return new ElasticsearchSinkOptions((configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException()).Select(u => new Uri(u)))
+            {
+                AutoRegisterTemplate = true,
+                IndexFormat = $"{assemblyName}-{envName}-{DateTime.UtcNow:yyyy-MM}"
+            };
+        }
+
         private static void ConfigureLogging()
         {
             var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? throw new ServiceConfigurationException();
@@ -115,32 +130,31 @@ namespace Etherna.Beehive
                 .CreateLogger();
         }
 
-        private static ElasticsearchSinkOptions ConfigureElasticSink(IConfigurationRoot configuration, string environment)
-        {
-            string assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
-            string envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
-            return new ElasticsearchSinkOptions((configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException()).Select(u => new Uri(u)))
-            {
-                AutoRegisterTemplate = true,
-                IndexFormat = $"{assemblyName}-{envName}-{DateTime.UtcNow:yyyy-MM}"
-            };
-        }
-
         private static void ConfigureServices(WebApplicationBuilder builder)
         {
-            var services = builder.Services;
             var config = builder.Configuration;
             var env = builder.Environment;
+            var services = builder.Services;
+            
+            // Register global TypeConverters.
+            TypeDescriptor.AddAttributes(typeof(PostageBatchId), new TypeConverterAttribute(typeof(PostageBatchIdTypeConverter)));
+            TypeDescriptor.AddAttributes(typeof(SwarmAddress), new TypeConverterAttribute(typeof(SwarmAddressTypeConverter)));
+            TypeDescriptor.AddAttributes(typeof(SwarmHash), new TypeConverterAttribute(typeof(SwarmHashTypeConverter)));
+            TypeDescriptor.AddAttributes(typeof(SwarmUri), new TypeConverterAttribute(typeof(SwarmUriTypeConverter)));
 
             // Configure Asp.Net Core framework services.
-            services.AddDataProtection()
-                .PersistKeysToDbContext(new DbContextOptions { ConnectionString = config["ConnectionStrings:DataProtectionDb"] ?? throw new ServiceConfigurationException() });
-
+            services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.JsonSerializerOptions.Converters.Add(new PostageBatchIdJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmAddressJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmHashJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmUriJsonConverter());
+            });
             services.AddCors();
             services.AddRazorPages();
-            services.AddControllers()
-                .AddJsonOptions(options =>
-                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            
+            // Configure APIs.
             services.AddApiVersioning(options =>
             {
                 options.ReportApiVersions = true;
@@ -155,21 +169,22 @@ namespace Etherna.Beehive
                 // can also be used to control the format of the API version in route templates
                 options.SubstituteApiVersionInUrl = true;
             });
+            
+            // Configure reverse proxy.
+            services.AddHttpForwarder();
 
             // Configure Hangfire server.
             if (!env.IsStaging()) //don't start server in staging
             {
-                //register hangfire server
                 services.AddHangfireServer(options =>
                 {
-                    options.Queues = new[]
-                    {
+                    options.Queues =
+                    [
                         Queues.DOMAIN_MAINTENANCE,
                         Queues.PIN_CONTENTS,
                         Queues.NODE_MAINTENANCE,
                         "default"
-                    };
-                    options.WorkerCount = Environment.ProcessorCount * 2;
+                    ];
                 });
             }
 
@@ -190,16 +205,17 @@ namespace Etherna.Beehive
                 options.IncludeXmlComments(xmlPath);
             });
 
-            // Configure setting.
-            services.Configure<CashoutAllNodesChequesSettings>(config.GetSection(CashoutAllNodesChequesSettings.ConfigPosition));
-            services.Configure<NodesAddressMaintainerSettings>(config.GetSection(NodesAddressMaintainerSettings.ConfigPosition));
-            services.Configure<NodesChequebookMaintainerSettings>(config.GetSection(NodesChequebookMaintainerSettings.ConfigPosition));
-            services.Configure<SeedDbSettings>(config.GetSection(SeedDbSettings.ConfigPosition));
+            // Configure options.
+            services.Configure<CashoutAllNodesChequesOptions>(config.GetSection(CashoutAllNodesChequesOptions.ConfigPosition));
+            services.Configure<NodesAddressMaintainerOptions>(config.GetSection(NodesAddressMaintainerOptions.ConfigPosition));
+            services.Configure<NodesChequebookMaintainerOptions>(config.GetSection(NodesChequebookMaintainerOptions.ConfigPosition));
+            services.Configure<SeedDbOptions>(config.GetSection(SeedDbOptions.ConfigPosition));
 
             // Configure Hangfire and persistence.
             services.AddMongODMWithHangfire(configureHangfireOptions: options =>
             {
-                options.ConnectionString = config["ConnectionStrings:HangfireDb"] ?? throw new ServiceConfigurationException();
+                options.ConnectionString = config["ConnectionStrings:HangfireDb"] ??
+                                           throw new ServiceConfigurationException("Hangfire connection string is not defined");
                 options.StorageOptions = new MongoStorageOptions
                 {
                     MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception
@@ -212,30 +228,51 @@ namespace Etherna.Beehive
                 .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
                 {
                     var eventDispatcher = sp.GetRequiredService<IEventDispatcher>();
-                    var seedDbSettings = sp.GetRequiredService<IOptions<SeedDbSettings>>().Value;
+                    var seedDbSettings = sp.GetRequiredService<IOptions<SeedDbOptions>>().Value;
                     return new BeehiveDbContext(
                         eventDispatcher,
-                        Enumerable.Where(seedDbSettings.BeeNodes, n => n is not null)
-                                               .Select(n => new BeeNode(n.Scheme, n.GatewayPort, n.Hostname, n.EnableBatchCreation)));
+                        seedDbSettings.BeeNodes
+                            .Select(n => new BeeNode(n.Scheme, n.GatewayPort, n.Hostname, n.EnableBatchCreation))
+                            .ToArray());
                 },
                 options =>
                 {
-                    options.ConnectionString = config["ConnectionStrings:BeehiveDb"] ?? throw new ServiceConfigurationException();
+                    options.ConnectionString = config["ConnectionStrings:BeehiveDb"] ??
+                                               throw new ServiceConfigurationException("BeehiveDb connection string is not defined");
                 });
 
             services.AddMongODMAdminDashboard(new DashboardOptions
             {
-                AuthFilters = new[] { new AllowAllFilter() },
+                AuthFilters = [new AllowAllFilter()],
                 BasePath = CommonConsts.DatabaseAdminPath
             });
 
-            // Configure domain services.
+            // Configure domain services and tools.
             services.AddDomainServices();
+            services.AddSingleton<IChunkStore, DbChunkStore>();
         }
 
         private static void ConfigureApplication(WebApplication app)
         {
             var env = app.Environment;
+
+            app.UseCors(builder =>
+            {
+                if (env.IsDevelopment())
+                {
+                    builder.SetIsOriginAllowed(_ => true)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
+                else
+                {
+                    builder.WithOrigins("https://etherna.io")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
+            });
 
             if (env.IsDevelopment())
             {
@@ -245,12 +282,11 @@ namespace Etherna.Beehive
 
             app.UseStaticFiles();
             app.UseRouting();
-            app.UseAuthorization();
 
             // Add Hangfire.
             app.UseHangfireDashboard(
                 CommonConsts.HangfireAdminPath,
-                new Hangfire.DashboardOptions { Authorization = new[] { new Configs.Hangfire.AllowAllFilter() } });
+                new Hangfire.DashboardOptions { Authorization = [new Configs.Hangfire.AllowAllFilter()] });
 
             // Add Swagger and SwaggerUI.
             var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();

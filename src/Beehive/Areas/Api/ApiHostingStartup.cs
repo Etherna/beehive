@@ -29,7 +29,7 @@ namespace Etherna.Beehive.Areas.Api
         {
             ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
-            builder.ConfigureServices((context, services) => {
+            builder.ConfigureServices((_, services) => {
 
                 var currentType = typeof(Program).GetTypeInfo();
                 var servicesNamespace = $"{currentType.Namespace}.{ServicesSubNamespace}";
