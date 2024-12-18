@@ -17,6 +17,7 @@ using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,13 +25,14 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
+    [Route("chunks")]
+    [Route("v1/chunks")]
     public class ChunksController(IChunksControllerService service)
         : ControllerBase
     {
         // Get.
 
-        [HttpGet("/chunks/{*address:minlength(1)}")]
-        [HttpGet("/v1/chunks/{*address:minlength(1)}")]
+        [HttpGet("{*address:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -40,8 +42,15 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 
         // Post.
 
-        [HttpPost("/chunks/bulk-upload")] //obsolete route
-        [HttpPost("/ev1/chunks/bulk-upload")]
+        [HttpPost("~/chunks/bulk-upload")]
+        [Obsolete("Used with BeeTurbo")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public Task ChunksBulkUploadBeeTurboAsync() =>
+            ChunksBulkUploadAsync();
+
+        [HttpPost("~/ev1/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

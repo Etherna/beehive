@@ -22,13 +22,14 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
+    [Route("bzz")]
+    [Route("v1/bzz")]
     public class BzzController(IBzzControllerService service)
         : ControllerBase
     {
         // Get.
 
-        [HttpGet("/bzz/{*address:minlength(1)}")]
-        [HttpGet("/v1/bzz/{*address:minlength(1)}")]
+        [HttpGet("{*address:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

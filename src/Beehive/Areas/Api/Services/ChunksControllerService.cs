@@ -16,10 +16,10 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Bmt;
 using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -33,7 +33,7 @@ namespace Etherna.Beehive.Areas.Api.Services
 {
     public class ChunksControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IChunkStore chunkStore,
+        IDbChunkStore chunkStore,
         IBeehiveDbContext dbContext,
         IHttpForwarder forwarder,
         IHttpContextAccessor httpContextAccessor)
