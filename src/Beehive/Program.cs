@@ -28,7 +28,6 @@ using Etherna.Beehive.Services;
 using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Tools;
-using Etherna.BeeNet.Hashing.Store;
 using Etherna.BeeNet.Models;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
@@ -250,7 +249,7 @@ namespace Etherna.Beehive
 
             // Configure domain services and tools.
             services.AddDomainServices();
-            services.AddSingleton<IChunkStore, DbChunkStore>();
+            services.AddSingleton<IDbChunkStore, DbChunkStore>();
         }
 
         private static void ConfigureApplication(WebApplication app)

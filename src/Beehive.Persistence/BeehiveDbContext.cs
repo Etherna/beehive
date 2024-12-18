@@ -17,6 +17,7 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Persistence.Repositories;
 using Etherna.DomainEvents;
 using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Repositories;
 using Etherna.MongODM.Core.Serialization;
@@ -31,11 +32,14 @@ namespace Etherna.Beehive.Persistence
 {
     public class BeehiveDbContext(
         IEventDispatcher eventDispatcher,
-        IEnumerable<BeeNode>? seedDbBeeNodes)
+        BeeNode[]? seedDbBeeNodes)
         : DbContext, IBeehiveDbContext, IEventDispatcherDbContext
     {
         // Consts.
-        private const string SerializersNamespace = "Etherna.Beehive.Persistence.ModelMaps";
+        private const string ModelMapsNamespace = "Etherna.Beehive.Persistence.ModelMaps";
+
+        // Fields.
+        private GridFSBucket? _chunksBucket;
 
         // Properties.
         //repositories
@@ -48,6 +52,29 @@ namespace Etherna.Beehive.Persistence
                                                 .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
                 ]
             });
+        public IRepository<UploadedChunkRef, string> ChunkPushQueue { get; } =
+            new Repository<UploadedChunkRef, string>("chunkPushQueue");
+        public IRepository<Chunk, string> Chunks { get; } =
+            new Repository<Chunk, string>(new RepositoryOptions<Chunk>("chunks")
+            {
+                IndexBuilders =
+                [
+                    (Builders<Chunk>.IndexKeys.Ascending(c => c.CreationDateTime), new CreateIndexOptions<Chunk>()),
+                    (Builders<Chunk>.IndexKeys.Ascending(c => c.Hash), new CreateIndexOptions<Chunk>())
+                ]
+            });
+        public GridFSBucket ChunksBucket
+        {
+            get
+            {
+                return _chunksBucket ??= new GridFSBucket(Database, new GridFSBucketOptions
+                {
+                    BucketName = "chunks",
+                    WriteConcern = WriteConcern.WMajority,
+                    ReadPreference = ReadPreference.Secondary
+                });
+            }
+        }
 
         //other properties
         public IEventDispatcher EventDispatcher { get; } = eventDispatcher;
@@ -55,7 +82,7 @@ namespace Etherna.Beehive.Persistence
         // Protected properties.
         protected override IEnumerable<IModelMapsCollector> ModelMapsCollectors =>
             from t in typeof(BeehiveDbContext).GetTypeInfo().Assembly.GetTypes()
-            where t.IsClass && t.Namespace == SerializersNamespace
+            where t.IsClass && t.Namespace == ModelMapsNamespace
             where t.GetInterfaces().Contains(typeof(IModelMapsCollector))
             select Activator.CreateInstance(t) as IModelMapsCollector;
 

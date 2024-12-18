@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,31 +12,28 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Asp.Versioning;
-using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
-    [ApiVersion("0.3")]
-    [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class ChainController(IChainControllerService service)
+    public class BzzController(IBzzControllerService service)
         : ControllerBase
     {
         // Get.
 
-        /// <summary>
-        /// Get chain state
-        /// </summary>
-        /// <response code="200">Last valid chain state</response>
-        [HttpGet("state")]
+        [HttpGet("/bzz/{*address:minlength(1)}")]
+        [HttpGet("/v1/bzz/{*address:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ChainStateDto? GetChainState() =>
-            service.GetChainState();
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> DownloadBzzAsync(SwarmAddress address) =>
+            service.DownloadBzzAsync(address);
     }
 }

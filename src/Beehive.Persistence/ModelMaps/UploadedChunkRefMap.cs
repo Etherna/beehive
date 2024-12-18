@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,23 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.DomainEvents;
-using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.MongODM.Core.Serialization;
 
-namespace Etherna.Beehive.Domain
+namespace Etherna.Beehive.Persistence.ModelMaps
 {
-    public interface IBeehiveDbContext : IDbContext
+    internal sealed class UploadedChunkRefMap : IModelMapsCollector
     {
-        // Properties.
-        //repositories
-        IRepository<BeeNode, string> BeeNodes { get; }
-        IRepository<UploadedChunkRef, string> ChunkPushQueue { get; }
-        IRepository<Chunk, string> Chunks { get; }
-        GridFSBucket ChunksBucket { get; }
-
-        //others
-        IEventDispatcher EventDispatcher { get; }
+        public void Register(IDbContext dbContext)
+        {
+            dbContext.MapRegistry.AddModelMap<UploadedChunkRef>(
+                "30e3473f-5d56-4821-9c66-aa8922b46942"); //v0.4.0
+        }
     }
 }

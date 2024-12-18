@@ -14,9 +14,10 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Hashing.Store;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
 using Etherna.MongODM.Core.Utility;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,11 +25,11 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Tools
 {
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-    internal sealed class DbChunkStore(
+    public sealed class DbChunkStore(
         IBeehiveDbContext dbContext)
-        : IChunkStore
+        : ChunkStoreBase, IDbChunkStore
     {
-        public async Task<SwarmChunk> GetAsync(SwarmHash hash)
+        protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash)
         {
             using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
 
@@ -41,20 +42,10 @@ namespace Etherna.Beehive.Tools
             return SwarmChunk.BuildFromSpanAndData(hash, payload);
         }
 
-        public async Task<SwarmChunk?> TryGetAsync(SwarmHash hash)
+        protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)
         {
-            try
-            {
-                return await GetAsync(hash);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public async Task<bool> AddAsync(SwarmChunk chunk)
-        {
+            ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
+            
             try
             {
                 var domainChunk = new Chunk(chunk.Hash, chunk.GetSpanAndData());
