@@ -307,7 +307,7 @@ namespace Etherna.Beehive
                 options.DocumentTitle = "Beehive API";
 
                 // build a swagger endpoint for each discovered API version
-                foreach (var description in apiProvider.ApiVersionDescriptions)
+                foreach (var description in apiProvider.ApiVersionDescriptions.Reverse())
                 {
                     options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
                 }
