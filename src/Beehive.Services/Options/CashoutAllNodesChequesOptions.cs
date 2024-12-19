@@ -12,24 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Etherna.DomainEvents;
-using Etherna.MongoDB.Driver.GridFS;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.BeeNet.Models;
 
-namespace Etherna.Beehive.Domain
+namespace Etherna.Beehive.Services.Options
 {
-    public interface IBeehiveDbContext : IDbContext
+    public class CashoutAllNodesChequesOptions
     {
-        // Properties.
-        //repositories
-        IRepository<BeeNode, string> BeeNodes { get; }
-        IRepository<UploadedChunkRef, string> ChunkPushQueue { get; }
-        IRepository<Chunk, string> Chunks { get; }
-        GridFSBucket ChunksBucket { get; }
+        // Consts.
+        public const string ConfigPosition = "CashoutCheques";
 
-        //others
-        IEventDispatcher EventDispatcher { get; }
+        // Properties.
+        public BzzBalance BzzMaxTrigger { get; set; } = 1;
     }
 }

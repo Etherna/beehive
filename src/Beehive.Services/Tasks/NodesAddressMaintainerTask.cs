@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Services.Settings;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Extensions;
+using Etherna.Beehive.Services.Options;
+using Etherna.Beehive.Services.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nethereum.Contracts.Standards.ERC20.ContractDefinition;
@@ -42,7 +42,7 @@ namespace Etherna.Beehive.Services.Tasks
         private readonly bool isEnabled;
         private readonly IBeeNodeLiveManager liveManager;
         private readonly ILogger<NodesAddressMaintainerTask> logger;
-        private readonly NodesAddressMaintainerSettings options;
+        private readonly NodesAddressMaintainerOptions options;
         private readonly Web3? tresureChestWeb3;
         private readonly WebSocketClient? websocketClient;
 
@@ -50,7 +50,7 @@ namespace Etherna.Beehive.Services.Tasks
         public NodesAddressMaintainerTask(
             IBeeNodeLiveManager liveManager,
             ILogger<NodesAddressMaintainerTask> logger,
-            IOptions<NodesAddressMaintainerSettings> options)
+            IOptions<NodesAddressMaintainerOptions> options)
         {
             ArgumentNullException.ThrowIfNull(options, nameof(options));
 

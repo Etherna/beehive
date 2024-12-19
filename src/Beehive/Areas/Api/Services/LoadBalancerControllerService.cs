@@ -23,24 +23,12 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public class LoadBalancerControllerService : ILoadBalancerControllerService
+    public class LoadBalancerControllerService(
+        IBeeNodeLiveManager beeNodeLiveManager,
+        IBeeNodeService beeNodeService,
+        IBeehiveDbContext dbContext)
+        : ILoadBalancerControllerService
     {
-        // Fields.
-        private readonly IBeeNodeLiveManager beeNodeLiveManager;
-        private readonly IBeeNodeService beeNodeService;
-        private readonly IBeehiveDbContext dbContext;
-
-        // Constructor.
-        public LoadBalancerControllerService(
-            IBeeNodeLiveManager beeNodeLiveManager,
-            IBeeNodeService beeNodeService,
-            IBeehiveDbContext dbContext)
-        {
-            this.beeNodeLiveManager = beeNodeLiveManager;
-            this.beeNodeService = beeNodeService;
-            this.dbContext = dbContext;
-        }
-
         // Methods.
         public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
         {

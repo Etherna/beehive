@@ -21,15 +21,10 @@ namespace Etherna.Beehive.Domain.Models
 {
     public abstract class EntityModelBase : ModelBase, IEntityModel
     {
-        private DateTime _creationDateTime;
+        private DateTime _creationDateTime = DateTime.UtcNow;
         private readonly HashSet<IDomainEvent> _events = new();
 
-        // Constructors and dispose.
-        protected EntityModelBase()
-        {
-            _creationDateTime = DateTime.UtcNow;
-        }
-
+        // Dispose.
         public virtual void DisposeForDelete() { }
 
         // Properties.

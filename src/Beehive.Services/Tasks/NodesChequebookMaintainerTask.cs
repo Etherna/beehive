@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Services.Extensions;
-using Etherna.Beehive.Services.Settings;
+using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Microsoft.Extensions.Logging;
@@ -33,13 +33,13 @@ namespace Etherna.Beehive.Services.Tasks
         private readonly bool isEnabled;
         private readonly IBeeNodeLiveManager liveManager;
         private readonly ILogger<NodesChequebookMaintainerTask> logger;
-        private readonly NodesChequebookMaintainerSettings options;
+        private readonly NodesChequebookMaintainerOptions options;
 
         // Constructor.
         public NodesChequebookMaintainerTask(
             IBeeNodeLiveManager liveManager,
             ILogger<NodesChequebookMaintainerTask> logger,
-            IOptions<NodesChequebookMaintainerSettings> options)
+            IOptions<NodesChequebookMaintainerOptions> options)
         {
             ArgumentNullException.ThrowIfNull(options, nameof(options));
 

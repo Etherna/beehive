@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,18 +12,24 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Services.Settings
-{
-    public class NodesChequebookMaintainerSettings
-    {
-        // Consts.
-        public const string ConfigPosition = "ChequebookLimits";
+using Etherna.Beehive.Domain.Models;
+using Etherna.MongoDB.Bson.Serialization.Serializers;
+using Etherna.MongODM.Core;
+using Etherna.MongODM.Core.Serialization;
 
-        // Properties.
-        public decimal? BzzMaxTrigger { get; set; }
-        public decimal? BzzMinTrigger { get; set; }
-        public decimal? BzzTargetAmount { get; set; }
-        public bool RunDeposits => BzzTargetAmount.HasValue && BzzMinTrigger.HasValue;
-        public bool RunWithdraws => BzzTargetAmount.HasValue && BzzMaxTrigger.HasValue;
+namespace Etherna.Beehive.Persistence.ModelMaps
+{
+    internal sealed class ChunkMap : IModelMapsCollector
+    {
+        public void Register(IDbContext dbContext)
+        {
+            dbContext.MapRegistry.AddModelMap<Chunk>( //v0.4.0
+                "06aaf593-07af-4fca-99a9-bdc3718547d8",
+                mm =>
+                {
+                    mm.AutoMap();
+                    mm.MapProperty(c => c.Payload).SetSerializer(ByteArraySerializer.Instance);
+                });
+        }
     }
 }

@@ -1,12 +1,4 @@
 ﻿{
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:11261",
-      "sslPort": 0
-    }
-  },
   "profiles": {
     "Beehive": {
       "commandName": "Project",
@@ -15,7 +7,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:11261"
+      "applicationUrl": "http://localhost:1633"
     }
   }
 }

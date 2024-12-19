@@ -19,6 +19,7 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver.Linq;
+using MoreLinq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -96,6 +97,20 @@ namespace Etherna.Beehive.Services.Utilities
 
         public bool RemoveBeeNode(string nodeId) =>
             beeNodeInstances.TryRemove(nodeId, out _);
+
+        public BeeNodeLiveInstance SelectDownloadNode(SwarmAddress address)
+        {
+            // Select all alive nodes.
+            var beeNodeLiveInstances = HealthyNodes.ToArray();
+            if (beeNodeLiveInstances.Length == 0)
+                throw new InvalidOperationException("Can't select a valid node");
+            
+            //select a random one
+            return beeNodeLiveInstances.RandomSubset(1).First();
+        }
+
+        public BeeNodeLiveInstance SelectDownloadNode(SwarmHash hash) =>
+            SelectDownloadNode(new SwarmAddress(hash));
 
         public void StartHealthHeartbeat() =>
             heartbeatTimer = new Timer(async _ => await HeartbeatCallbackAsync(), null, 0, HeartbeatPeriod);

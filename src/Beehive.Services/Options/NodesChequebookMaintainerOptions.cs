@@ -12,24 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Etherna.DomainEvents;
-using Etherna.MongoDB.Driver.GridFS;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
-
-namespace Etherna.Beehive.Domain
+namespace Etherna.Beehive.Services.Options
 {
-    public interface IBeehiveDbContext : IDbContext
+    public class NodesChequebookMaintainerOptions
     {
-        // Properties.
-        //repositories
-        IRepository<BeeNode, string> BeeNodes { get; }
-        IRepository<UploadedChunkRef, string> ChunkPushQueue { get; }
-        IRepository<Chunk, string> Chunks { get; }
-        GridFSBucket ChunksBucket { get; }
+        // Consts.
+        public const string ConfigPosition = "ChequebookLimits";
 
-        //others
-        IEventDispatcher EventDispatcher { get; }
+        // Properties.
+        public decimal? BzzMaxTrigger { get; set; }
+        public decimal? BzzMinTrigger { get; set; }
+        public decimal? BzzTargetAmount { get; set; }
+        public bool RunDeposits => BzzTargetAmount.HasValue && BzzMinTrigger.HasValue;
+        public bool RunWithdraws => BzzTargetAmount.HasValue && BzzMaxTrigger.HasValue;
     }
 }

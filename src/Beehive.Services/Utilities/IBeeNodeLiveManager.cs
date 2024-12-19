@@ -36,6 +36,8 @@ namespace Etherna.Beehive.Services.Utilities
         IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
+        BeeNodeLiveInstance SelectDownloadNode(SwarmAddress address);
+        BeeNodeLiveInstance SelectDownloadNode(SwarmHash hash);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
         Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(

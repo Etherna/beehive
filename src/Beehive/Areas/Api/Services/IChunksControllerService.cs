@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,31 +12,29 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Asp.Versioning;
-using Etherna.Beehive.Areas.Api.DtoModels;
-using Etherna.Beehive.Areas.Api.Services;
-using Etherna.Beehive.Attributes;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Controllers
+namespace Etherna.Beehive.Areas.Api.Services
 {
-    [ApiController]
-    [ApiVersion("0.3")]
-    [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class ChainController(IChainControllerService service)
-        : ControllerBase
+    public interface IChunksControllerService
     {
-        // Get.
+        /// <summary>
+        /// Handle bulk chunks upload
+        /// </summary>
+        /// <param name="batchId">Postage batch Id</param>
+        /// <param name="payload">Bulk upload payload</param>
+        /// <returns>Status code</returns>
+        Task<int> ChunksBulkUploadAsync(
+            PostageBatchId batchId,
+            byte[] payload);
 
         /// <summary>
-        /// Get chain state
+        /// Download a single chunk
         /// </summary>
-        /// <response code="200">Last valid chain state</response>
-        [HttpGet("state")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public ChainStateDto? GetChainState() =>
-            service.GetChainState();
+        /// <param name="hash">The chunk's hash</param>
+        /// <returns>Request result</returns>
+        Task<IResult> DownloadChunkAsync(SwarmHash hash);
     }
 }
