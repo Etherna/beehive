@@ -12,11 +12,14 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Configs.MongODM;
 using Etherna.Beehive.Configs.Swagger;
+using Etherna.Beehive.Configs.Swagger.OperationFilters;
+using Etherna.Beehive.Configs.Swagger.SchemaFilters;
 using Etherna.Beehive.Converters;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
@@ -156,6 +159,8 @@ namespace Etherna.Beehive
             // Configure APIs.
             services.AddApiVersioning(options =>
             {
+                options.AssumeDefaultVersionWhenUnspecified = true;
+                options.DefaultApiVersion = new ApiVersion(1);
                 options.ReportApiVersions = true;
             });
             services.AddApiVersioning()
@@ -197,7 +202,13 @@ namespace Etherna.Beehive
                 options.UseInlineDefinitionsForEnums();
 
                 //add a custom operation filter which sets default values
-                options.OperationFilter<SwaggerDefaultValues>();
+                options.OperationFilter<SwaggerDefaultValuesFilter>();
+                
+                //add schema filters
+                options.SchemaFilter<PostageBatchIdSchemaFilter>();
+                options.SchemaFilter<SwarmAddressSchemaFilter>();
+                options.SchemaFilter<SwarmHashSchemaFilter>();
+                options.SchemaFilter<SwarmUriSchemaFilter>();
 
                 //integrate xml comments
                 var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";

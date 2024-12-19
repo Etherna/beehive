@@ -19,14 +19,14 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Linq;
 
-namespace Etherna.Beehive.Configs.Swagger
+namespace Etherna.Beehive.Configs.Swagger.OperationFilters
 {
     /// <summary>
     /// Represents the Swagger/Swashbuckle operation filter used to document the implicit API version parameter.
     /// </summary>
     /// <remarks>This <see cref="IOperationFilter"/> is only required due to bugs in the <see cref="SwaggerGenerator"/>.
     /// Once they are fixed and published, this class can be removed.</remarks>
-    public class SwaggerDefaultValues : IOperationFilter
+    public class SwaggerDefaultValuesFilter : IOperationFilter
     {
         /// <summary>
         /// Applies the filter to the specified operation using the given context.
@@ -46,6 +46,9 @@ namespace Etherna.Beehive.Configs.Swagger
             {
                 return;
             }
+            
+            // Remove default "api-version" unspecified parameters.
+            operation.Parameters = operation.Parameters.Where(p => p.Name != "api-version").ToList();
 
             // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
             // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413

@@ -26,13 +26,13 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
     [Route("chunks")]
-    [Route("v1/chunks")]
+    [Route("v{api-version:apiVersion}/chunks")]
     public class ChunksController(IChunksControllerService service)
         : ControllerBase
     {
         // Get.
 
-        [HttpGet("{*address:minlength(1)}")]
+        [HttpGet("{*hash:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

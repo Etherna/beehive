@@ -23,7 +23,7 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
     [Route("bzz")]
-    [Route("v1/bzz")]
+    [Route("v{api-version:apiVersion}/bzz")]
     public class BzzController(IBzzControllerService service)
         : ControllerBase
     {
