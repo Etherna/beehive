@@ -23,5 +23,8 @@ namespace Etherna.Beehive.Areas.Api.Services
         Task<IResult> DownloadBzzAsync(
             SwarmAddress address,
             HttpContext httpContext);
+
+        Task<IResult> UploadBzzAsync(
+            HttpContext httpContext);
     }
 }

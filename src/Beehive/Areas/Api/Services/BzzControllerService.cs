@@ -19,6 +19,7 @@ using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
 using Microsoft.AspNetCore.Http;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,6 +67,18 @@ namespace Etherna.Beehive.Areas.Api.Services
 
             // Select node and forward request.
             var node = beeNodeLiveManager.SelectDownloadNode(address);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
+        }
+
+        public async Task<IResult> UploadBzzAsync(HttpContext httpContext)
+        {
+            // Get postage batch Id.
+            var batchId = httpContext.TryGetPostageBatchId();
+            if (batchId is null)
+                throw new InvalidOperationException();
+            
+            // Select node and forward request.
+            var node = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId.Value);
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }

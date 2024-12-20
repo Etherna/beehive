@@ -22,8 +22,8 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
-    [Route("bzz")]
-    [Route("v{api-version:apiVersion}/bzz")]
+    [Route("bytes")]
+    [Route("v{api-version:apiVersion}/bytes")]
     public class BytesController(IBytesControllerService service)
         : ControllerBase
     {
