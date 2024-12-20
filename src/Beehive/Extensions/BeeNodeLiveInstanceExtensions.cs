@@ -26,7 +26,8 @@ namespace Etherna.Beehive.Extensions
         public static async Task<IResult> ForwardRequestAsync(
             this BeeNodeLiveInstance node,
             IHttpForwarder forwarder,
-            HttpContext httpContext)
+            HttpContext httpContext,
+            HttpTransformer? httpTransformer = null)
         {
             ArgumentNullException.ThrowIfNull(node, nameof(node));
             ArgumentNullException.ThrowIfNull(forwarder, nameof(forwarder));
@@ -38,7 +39,9 @@ namespace Etherna.Beehive.Extensions
             var error = await forwarder.SendAsync(
                 httpContext,
                 node.Client.BeeUrl.ToString(),
-                httpClient);
+                httpClient,
+                ForwarderRequestConfig.Empty,
+                httpTransformer ?? HttpTransformer.Default);
 
             if (error != ForwarderError.None)
             {

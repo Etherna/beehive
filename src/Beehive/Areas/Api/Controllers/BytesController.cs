@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -26,6 +27,16 @@ namespace Etherna.Beehive.Areas.Api.Controllers
     public class BytesController(IBytesControllerService service)
         : ControllerBase
     {
+        // Get.
+        
+        [HttpGet("{*hash:minlength(1)}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> DownloadBytesAsync(SwarmHash hash) =>
+            service.DownloadBytesAsync(hash, HttpContext);
+        
         // Post.
 
         [HttpPost]

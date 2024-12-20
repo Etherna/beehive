@@ -13,7 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Threading.Tasks;
@@ -26,6 +28,18 @@ namespace Etherna.Beehive.Areas.Api.Services
         IHttpForwarder forwarder)
         : IBytesControllerService
     {
+        public async Task<IResult> DownloadBytesAsync(
+            SwarmHash hash,
+            HttpContext httpContext)
+        {
+            // Select healthy node and forward with download http transformer.
+            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+            return await node.ForwardRequestAsync(
+                forwarder,
+                httpContext,
+                new DownloadHttpTransformer());
+        }
+
         public async Task<IResult> UploadBytesAsync(HttpContext httpContext)
         {
             // Get postage batch Id.
