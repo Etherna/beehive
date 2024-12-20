@@ -41,15 +41,25 @@ namespace Etherna.Beehive.Areas.Api.Services
     {
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        public async Task<int> ChunksBulkUploadAsync(
-            PostageBatchId batchId,
-            byte[] payload)
+        public async Task ChunksBulkUploadAsync(
+            HttpContext httpContext)
         {
-            ArgumentNullException.ThrowIfNull(payload, nameof(payload));
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
+            // Get headers.
+            httpContext.Request.Headers.TryGetValue(
+                SwarmHttpConsts.SwarmPostageBatchIdHeader,
+                out var batchIdHeaderValue);
+            var batchId = PostageBatchId.FromString(batchIdHeaderValue.Single()!);
+            
+            // Read payload.
+            await using var memoryStream = new MemoryStream();
+            await httpContext.Request.Body.CopyToAsync(memoryStream);
+            var payload = memoryStream.ToArray();
+            
+            // Try consume data from request.
             try
             {
-                // Consume data from request.
                 var hasher = new Hasher();
                 List<Chunk> chunks = [];
                 List<UploadedChunkRef> chunkRefs = [];
@@ -85,11 +95,11 @@ namespace Etherna.Beehive.Areas.Api.Services
                 await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
 
                 // Reply.
-                return StatusCodes.Status201Created;
+                httpContext.Response.StatusCode =  StatusCodes.Status201Created;
             }
             catch(InvalidDataException)
             {
-                return StatusCodes.Status400BadRequest;
+                httpContext.Response.StatusCode =  StatusCodes.Status400BadRequest;
             }
         }
 

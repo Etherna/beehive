@@ -48,30 +48,13 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public Task ChunksBulkUploadBeeTurboAsync() =>
-            ChunksBulkUploadAsync();
+            service.ChunksBulkUploadAsync(HttpContext);
 
         [HttpPost("~/ev1/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task ChunksBulkUploadAsync()
-        {
-            // Get headers.
-            HttpContext.Request.Headers.TryGetValue(
-                SwarmHttpConsts.SwarmPostageBatchId,
-                out var batchIdHeaderValue);
-            var batchId = PostageBatchId.FromString(batchIdHeaderValue.Single()!);
-            
-            // Read payload.
-            await using var memoryStream = new MemoryStream();
-            await HttpContext.Request.Body.CopyToAsync(memoryStream);
-            var payload = memoryStream.ToArray();
-            
-            // Invoke service.
-            var statusCode = await service.ChunksBulkUploadAsync(
-                batchId,
-                payload);
-            HttpContext.Response.StatusCode = statusCode;
-        }
+        public Task ChunksBulkUploadAsync() =>
+            service.ChunksBulkUploadAsync(HttpContext);
     }
 }
