@@ -112,6 +112,15 @@ namespace Etherna.Beehive.Services.Utilities
         public BeeNodeLiveInstance SelectDownloadNode(SwarmHash hash) =>
             SelectDownloadNode(new SwarmAddress(hash));
 
+        public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
+            BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
+            string? selectionContext = null,
+            Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null)
+        {
+            var node = await TrySelectHealthyNodeAsync(mode, selectionContext, isValidPredicate);
+            return node ?? throw new InvalidOperationException();
+        }
+
         public void StartHealthHeartbeat() =>
             heartbeatTimer = new Timer(async _ => await HeartbeatCallbackAsync(), null, 0, HeartbeatPeriod);
 
@@ -119,7 +128,7 @@ namespace Etherna.Beehive.Services.Utilities
             heartbeatTimer?.Change(Timeout.Infinite, 0);
 
         public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
-            BeeNodeSelectionMode mode,
+            BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
             string? selectionContext = null,
             Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null)
         {

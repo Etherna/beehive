@@ -38,10 +38,14 @@ namespace Etherna.Beehive.Services.Utilities
         bool RemoveBeeNode(string nodeId);
         BeeNodeLiveInstance SelectDownloadNode(SwarmAddress address);
         BeeNodeLiveInstance SelectDownloadNode(SwarmHash hash);
+        Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
+            BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
+            string? selectionContext = null,
+            Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
         Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
-            BeeNodeSelectionMode mode,
+            BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
             string? selectionContext = null,
             Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null);
     }

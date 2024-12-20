@@ -29,13 +29,14 @@ namespace Etherna.Beehive.Areas.Api.Services
     public class BzzControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IDbChunkStore chunkStore,
-        IHttpForwarder forwarder,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpForwarder forwarder)
         : IBzzControllerService
     {
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
-        public async Task<IResult> DownloadBzzAsync(SwarmAddress address)
+        public async Task<IResult> DownloadBzzAsync(
+            SwarmAddress address,
+            HttpContext httpContext)
         {
             // Try to get from chunk's db.
             try
@@ -65,7 +66,7 @@ namespace Etherna.Beehive.Areas.Api.Services
 
             // Select node and forward request.
             var node = beeNodeLiveManager.SelectDownloadNode(address);
-            return await node.ForwardRequestAsync(forwarder, httpContextAccessor.HttpContext!);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }
 }

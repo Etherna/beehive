@@ -12,16 +12,28 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Controllers
 {
-    public interface IBzzControllerService
+    [ApiController]
+    [Route("bzz")]
+    [Route("v{api-version:apiVersion}/bzz")]
+    public class BytesController(IBytesControllerService service)
+        : ControllerBase
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
-            HttpContext httpContext);
+        // Post.
+
+        [HttpPost]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        public Task<IResult> UploadBytesAsync() =>
+            service.UploadBytesAsync(HttpContext);
     }
 }

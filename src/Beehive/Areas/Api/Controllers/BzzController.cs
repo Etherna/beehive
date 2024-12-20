@@ -35,6 +35,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IResult> DownloadBzzAsync(SwarmAddress address) =>
-            service.DownloadBzzAsync(address);
+            service.DownloadBzzAsync(address, HttpContext);
     }
 }

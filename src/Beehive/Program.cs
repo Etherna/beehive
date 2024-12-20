@@ -40,6 +40,7 @@ using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -75,6 +76,11 @@ namespace Etherna.Beehive
 
                 // Configs.
                 builder.Host.UseSerilog();
+                builder.WebHost.ConfigureKestrel(serverOptions =>
+                {
+                    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+                    serverOptions.Limits.MaxRequestBodySize = null;
+                });
 
                 ConfigureServices(builder);
 
