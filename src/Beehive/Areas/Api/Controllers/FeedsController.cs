@@ -12,18 +12,31 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Controllers
 {
-    public interface IBytesControllerService
+    [ApiController]
+    [Route("feeds")]
+    [Route("v{api-version:apiVersion}/feeds")]
+    public class FeedsController(IFeedsControllerService service)
+        : ControllerBase
     {
-        Task<IResult> DownloadBytesAsync(
-            SwarmHash hash,
-            HttpContext httpContext);
-        
-        Task<IResult> UploadBytesAsync(HttpContext httpContext);
+        // Get.
+
+        [HttpGet("{owner:length(40)}/{topic}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> FindFeedUpdateAsync(string owner, string topic) =>
+            service.FindFeedUpdateAsync(owner, topic, HttpContext);
+
+        // Post.
+
     }
 }

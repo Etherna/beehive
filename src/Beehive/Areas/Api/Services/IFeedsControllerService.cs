@@ -12,18 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface IBytesControllerService
+    public interface IFeedsControllerService
     {
-        Task<IResult> DownloadBytesAsync(
-            SwarmHash hash,
+        Task<IResult> FindFeedUpdateAsync(
+            string owner,
+            string topic,
             HttpContext httpContext);
-        
-        Task<IResult> UploadBytesAsync(HttpContext httpContext);
     }
 }

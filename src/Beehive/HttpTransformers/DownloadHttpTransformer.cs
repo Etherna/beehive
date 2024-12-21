@@ -21,7 +21,7 @@ using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.HttpTransformers
 {
-    public class DownloadHttpTransformer : HttpTransformer
+    public class DownloadHttpTransformer(bool forceNoCache = false) : HttpTransformer
     {
         public override async ValueTask<bool> TransformResponseAsync(
             HttpContext httpContext,
@@ -35,7 +35,7 @@ namespace Etherna.Beehive.HttpTransformers
                 return false;
             
             // Set no cache in case of a feed response.
-            if (httpContext.Response.Headers.TryGetValue("swarm-feed-index", out _))
+            if (httpContext.Response.Headers.TryGetValue("swarm-feed-index", out _) || forceNoCache)
                 httpContext.Response.Headers["Cache-Control"] = "no-cache";
 
             return true;
