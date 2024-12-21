@@ -23,33 +23,22 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
-    [Route("feeds")]
-    [Route("v{api-version:apiVersion}/feeds")]
-    public class FeedsController(IFeedsControllerService service)
+    [Route("pss")]
+    [Route("v{api-version:apiVersion}/pss")]
+    public class PssController(IPssControllerService service)
         : ControllerBase
     {
-        // Get.
-
-        [HttpGet("{owner:length(40)}/{topic}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> FindFeedUpdateAsync(string owner, string topic) =>
-            service.FindFeedUpdateAsync(owner, topic, HttpContext);
-
         // Post.
-
-        [HttpPost("{owner:length(40)}/{topic}")]
+        
+        [HttpPost("send/{topic}/{targets}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> CreateFeedRootManifestAsync(
-            string owner,
+        public Task<IResult> SendPssMessageAsync(
             string topic,
+            string targets,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.CreateFeedRootManifestAsync(owner, topic, batchId, HttpContext);
+            service.SendPssMessageAsync(topic, targets, batchId, HttpContext);
     }
 }

@@ -18,6 +18,7 @@ using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Controllers
@@ -45,7 +46,8 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadBzzAsync() =>
-            service.UploadBzzAsync(HttpContext);
+        public Task<IResult> UploadBzzAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.UploadBzzAsync(batchId, HttpContext);
     }
 }

@@ -40,15 +40,12 @@ namespace Etherna.Beehive.Areas.Api.Services
                 new DownloadHttpTransformer());
         }
 
-        public async Task<IResult> UploadBytesAsync(HttpContext httpContext)
+        public async Task<IResult> UploadBytesAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext)
         {
-            // Get postage batch Id.
-            var batchId = httpContext.TryGetPostageBatchId();
-            if (batchId is null)
-                throw new InvalidOperationException();
-            
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId.Value);
+            var node = beeNodeLiveManager.SelectUploadNode(batchId);
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }

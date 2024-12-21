@@ -25,6 +25,7 @@ namespace Etherna.Beehive.Areas.Api.Services
             HttpContext httpContext);
 
         Task<IResult> UploadBzzAsync(
+            PostageBatchId batchId,
             HttpContext httpContext);
     }
 }

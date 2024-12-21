@@ -45,15 +45,10 @@ namespace Etherna.Beehive.Areas.Api.Services
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
         public async Task BulkUploadChunksAsync(
+            PostageBatchId batchId,
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
-            // Get headers.
-            httpContext.Request.Headers.TryGetValue(
-                SwarmHttpConsts.SwarmPostageBatchIdHeader,
-                out var batchIdHeaderValue);
-            var batchId = PostageBatchId.FromString(batchIdHeaderValue.Single()!);
             
             // Read payload.
             await using var memoryStream = new MemoryStream();
@@ -132,15 +127,11 @@ namespace Etherna.Beehive.Areas.Api.Services
                 new DownloadHttpTransformer());
         }
 
-        public async Task<IActionResult> UploadChunkAsync(HttpContext httpContext)
+        public async Task<IActionResult> UploadChunkAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
-            // Get headers.
-            httpContext.Request.Headers.TryGetValue(
-                SwarmHttpConsts.SwarmPostageBatchIdHeader,
-                out var batchIdHeaderValue);
-            var batchId = PostageBatchId.FromString(batchIdHeaderValue.Single()!);
             
             // Read payload.
             await using var memoryStream = new MemoryStream();

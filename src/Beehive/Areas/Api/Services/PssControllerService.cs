@@ -12,20 +12,29 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Extensions;
+using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface IBytesControllerService
+    public class PssControllerService(
+        IBeeNodeLiveManager beeNodeLiveManager,
+        IHttpForwarder forwarder)
+        : IPssControllerService
     {
-        Task<IResult> DownloadBytesAsync(
-            SwarmHash hash,
-            HttpContext httpContext);
-        
-        Task<IResult> UploadBytesAsync(
+        public async Task<IResult> SendPssMessageAsync(
+            string topic,
+            string targets,
             PostageBatchId batchId,
-            HttpContext httpContext);
+            HttpContext httpContext)
+        {
+            // Select node and forward request.
+            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
+        }
     }
 }

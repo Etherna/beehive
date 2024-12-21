@@ -19,6 +19,7 @@ using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Controllers
@@ -46,22 +47,25 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IActionResult> UploadChunkAsync() =>
-            service.UploadChunkAsync(HttpContext);
+        public Task<IActionResult> UploadChunkAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.UploadChunkAsync(batchId, HttpContext);
 
         [Obsolete("Used with BeeTurbo")]
         [HttpPost("~/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task BulkUploadChunksBeeTurboAsync() =>
-            service.BulkUploadChunksAsync(HttpContext);
+        public Task BulkUploadChunksBeeTurboAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.BulkUploadChunksAsync(batchId, HttpContext);
 
         [HttpPost("~/ev1/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task BulkUploadChunksAsync() =>
-            service.BulkUploadChunksAsync(HttpContext);
+        public Task BulkUploadChunksAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.BulkUploadChunksAsync(batchId, HttpContext);
     }
 }

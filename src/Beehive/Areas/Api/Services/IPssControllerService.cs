@@ -18,13 +18,11 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface IBytesControllerService
+    public interface IPssControllerService
     {
-        Task<IResult> DownloadBytesAsync(
-            SwarmHash hash,
-            HttpContext httpContext);
-        
-        Task<IResult> UploadBytesAsync(
+        Task<IResult> SendPssMessageAsync(
+            string topic,
+            string targets,
             PostageBatchId batchId,
             HttpContext httpContext);
     }
