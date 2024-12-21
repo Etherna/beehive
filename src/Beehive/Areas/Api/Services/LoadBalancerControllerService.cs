@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Areas.Api.Services
         // Methods.
         public async Task<BeeNodeDto> FindBeeNodeOwnerOfPostageBatchAsync(string batchId)
         {
-            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+            var beeNodeLiveInstance = beeNodeLiveManager.SelectUploadNode(batchId);
             var beeNode = await dbContext.BeeNodes.FindOneAsync(beeNodeLiveInstance.Id);
 
             return new BeeNodeDto(beeNode);

@@ -19,7 +19,6 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver.Linq;
-using MoreLinq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,7 +38,7 @@ namespace Etherna.Beehive.Services.Utilities
         : IBeeNodeLiveManager, IDisposable
     {
         // Consts.
-        private const int HeartbeatPeriod = 10000; //10s
+        private readonly TimeSpan HeartbeatPeriod = TimeSpan.FromSeconds(10);
 
         // Fields.
         private Timer? heartbeatTimer;
@@ -80,9 +79,6 @@ namespace Etherna.Beehive.Services.Utilities
             return await AddBeeNodeAsync(beeNode);
         }
 
-        public BeeNodeLiveInstance GetBeeNodeLiveInstanceByOwnedPostageBatch(PostageBatchId batchId) =>
-            AllNodes.First(n => n.Status.PostageBatchesId.Contains(batchId));
-
         public IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes) =>
             AllNodes.Where(n => n.Status.PinnedHashes.Contains(hash) &&
                                 (!requireAliveNodes || n.Status.IsAlive));
@@ -98,19 +94,11 @@ namespace Etherna.Beehive.Services.Utilities
         public bool RemoveBeeNode(string nodeId) =>
             beeNodeInstances.TryRemove(nodeId, out _);
 
-        public BeeNodeLiveInstance SelectDownloadNode(SwarmAddress address)
-        {
-            // Select all alive nodes.
-            var beeNodeLiveInstances = HealthyNodes.ToArray();
-            if (beeNodeLiveInstances.Length == 0)
-                throw new InvalidOperationException("Can't select a valid node");
-            
-            //select a random one
-            return beeNodeLiveInstances.RandomSubset(1).First();
-        }
+        public Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmAddress address) =>
+            SelectDownloadNodeAsync(address.Hash);
 
-        public BeeNodeLiveInstance SelectDownloadNode(SwarmHash hash) =>
-            SelectDownloadNode(new SwarmAddress(hash));
+        public Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmHash hash) =>
+            SelectHealthyNodeAsync();
 
         public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
@@ -121,8 +109,12 @@ namespace Etherna.Beehive.Services.Utilities
             return node ?? throw new InvalidOperationException();
         }
 
+        public BeeNodeLiveInstance SelectUploadNode(PostageBatchId batchId) =>
+            AllNodes.First(n => n.Status.PostageBatchesId.Contains(batchId));
+
         public void StartHealthHeartbeat() =>
-            heartbeatTimer = new Timer(async _ => await HeartbeatCallbackAsync(), null, 0, HeartbeatPeriod);
+            heartbeatTimer = new Timer(async _ =>
+                await HeartbeatCallbackAsync(), null, 0, (int)HeartbeatPeriod.TotalMilliseconds);
 
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);

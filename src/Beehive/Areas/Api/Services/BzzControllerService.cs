@@ -67,7 +67,7 @@ namespace Etherna.Beehive.Areas.Api.Services
             } //proceed with forward on any error
 
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectDownloadNode(address);
+            var node = await beeNodeLiveManager.SelectDownloadNodeAsync(address);
             return await node.ForwardRequestAsync(
                 forwarder,
                 httpContext,
@@ -82,7 +82,7 @@ namespace Etherna.Beehive.Areas.Api.Services
                 throw new InvalidOperationException();
             
             // Select node and forward request.
-            var node = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId.Value);
+            var node = beeNodeLiveManager.SelectUploadNode(batchId.Value);
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }

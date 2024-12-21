@@ -48,7 +48,7 @@ namespace Etherna.Beehive.Areas.Api.Services
                 throw new InvalidOperationException();
             
             // Select node and forward request.
-            var node = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId.Value);
+            var node = beeNodeLiveManager.SelectUploadNode(batchId.Value);
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }

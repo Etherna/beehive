@@ -19,6 +19,11 @@ namespace Etherna.Beehive.Areas.Api.Services
 {
     public interface IFeedsControllerService
     {
+        Task<IResult> CreateFeedRootManifestAsync(
+            string owner,
+            string topic,
+            HttpContext httpContext);
+        
         Task<IResult> FindFeedUpdateAsync(
             string owner,
             string topic,

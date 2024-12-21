@@ -16,6 +16,7 @@ using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Microsoft.AspNetCore.Http;
+using System;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -26,6 +27,18 @@ namespace Etherna.Beehive.Areas.Api.Services
         IHttpForwarder forwarder)
         : IFeedsControllerService
     {
+        public async Task<IResult> CreateFeedRootManifestAsync(string owner, string topic, HttpContext httpContext)
+        {
+            // Get postage batch Id.
+            var batchId = httpContext.TryGetPostageBatchId();
+            if (batchId is null)
+                throw new InvalidOperationException();
+            
+            // Select node and forward request.
+            var node = beeNodeLiveManager.SelectUploadNode(batchId.Value);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
+        }
+
         public async Task<IResult> FindFeedUpdateAsync(string owner, string topic, HttpContext httpContext)
         {
             // Select node and forward request.

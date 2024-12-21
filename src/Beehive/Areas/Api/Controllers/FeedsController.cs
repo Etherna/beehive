@@ -38,5 +38,13 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 
         // Post.
 
+        [HttpPost("{owner:length(40)}/{topic}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        public Task<IResult> CreateFeedRootManifestAsync(string owner, string topic) =>
+            service.CreateFeedRootManifestAsync(owner, topic, HttpContext);
     }
 }

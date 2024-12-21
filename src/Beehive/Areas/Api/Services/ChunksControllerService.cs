@@ -125,7 +125,7 @@ namespace Etherna.Beehive.Areas.Api.Services
             } //proceed with forward on any error
 
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectDownloadNode(hash);
+            var node = await beeNodeLiveManager.SelectDownloadNodeAsync(hash);
             return await node.ForwardRequestAsync(
                 forwarder,
                 httpContextAccessor.HttpContext!,
