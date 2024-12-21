@@ -149,6 +149,7 @@ namespace Etherna.Beehive
             TypeDescriptor.AddAttributes(typeof(SwarmAddress), new TypeConverterAttribute(typeof(SwarmAddressTypeConverter)));
             TypeDescriptor.AddAttributes(typeof(SwarmHash), new TypeConverterAttribute(typeof(SwarmHashTypeConverter)));
             TypeDescriptor.AddAttributes(typeof(SwarmUri), new TypeConverterAttribute(typeof(SwarmUriTypeConverter)));
+            TypeDescriptor.AddAttributes(typeof(TagId), new TypeConverterAttribute(typeof(TagIdTypeConverter)));
 
             // Configure Asp.Net Core framework services.
             services.AddControllers().AddJsonOptions(options =>
@@ -158,6 +159,7 @@ namespace Etherna.Beehive
                 options.JsonSerializerOptions.Converters.Add(new SwarmAddressJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new SwarmHashJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new SwarmUriJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new TagIdJsonConverter());
             });
             services.AddCors();
             services.AddRazorPages();
@@ -215,6 +217,7 @@ namespace Etherna.Beehive
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();
+                options.SchemaFilter<TagIdSchemaFilter>();
 
                 //integrate xml comments
                 var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";
