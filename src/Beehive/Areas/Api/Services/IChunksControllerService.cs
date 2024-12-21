@@ -25,10 +25,7 @@ namespace Etherna.Beehive.Areas.Api.Services
         /// Handle bulk chunks upload
         /// </summary>
         /// <returns>Status code</returns>
-        Task ChunksBulkUploadAsync(
-            HttpContext httpContext);
-        
-        Task<IActionResult> ChunkUploadAsync(HttpContext httpContext);
+        Task BulkUploadChunksAsync(HttpContext httpContext);
 
         /// <summary>
         /// Download a single chunk
@@ -36,5 +33,7 @@ namespace Etherna.Beehive.Areas.Api.Services
         /// <param name="hash">The chunk's hash</param>
         /// <returns>Request result</returns>
         Task<IResult> DownloadChunkAsync(SwarmHash hash);
+        
+        Task<IActionResult> UploadChunkAsync(HttpContext httpContext);
     }
 }

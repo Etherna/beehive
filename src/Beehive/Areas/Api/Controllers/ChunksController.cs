@@ -46,22 +46,22 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IActionResult> ChunkUploadAsync() =>
-            service.ChunkUploadAsync(HttpContext);
+        public Task<IActionResult> UploadChunkAsync() =>
+            service.UploadChunkAsync(HttpContext);
 
         [Obsolete("Used with BeeTurbo")]
         [HttpPost("~/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task ChunksBulkUploadBeeTurboAsync() =>
-            service.ChunksBulkUploadAsync(HttpContext);
+        public Task BulkUploadChunksBeeTurboAsync() =>
+            service.BulkUploadChunksAsync(HttpContext);
 
         [HttpPost("~/ev1/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task ChunksBulkUploadAsync() =>
-            service.ChunksBulkUploadAsync(HttpContext);
+        public Task BulkUploadChunksAsync() =>
+            service.BulkUploadChunksAsync(HttpContext);
     }
 }

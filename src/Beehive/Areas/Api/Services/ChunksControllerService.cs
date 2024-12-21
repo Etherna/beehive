@@ -16,6 +16,7 @@ using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Hashing;
@@ -43,7 +44,7 @@ namespace Etherna.Beehive.Areas.Api.Services
     {
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        public async Task ChunksBulkUploadAsync(
+        public async Task BulkUploadChunksAsync(
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
@@ -105,7 +106,33 @@ namespace Etherna.Beehive.Areas.Api.Services
             }
         }
 
-        public async Task<IActionResult> ChunkUploadAsync(HttpContext httpContext)
+        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
+        [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
+        public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
+        {
+            // Try to get from chunk's db.
+            try
+            {
+                var chunk = await chunkStore.GetAsync(hash, true, true);
+
+                return Results.File(
+                    chunk.GetSpanAndData(),
+                    "application/octet-stream",
+                    hash.ToString());
+            }
+            catch
+            {
+            } //proceed with forward on any error
+
+            // Select node and forward request.
+            var node = beeNodeLiveManager.SelectDownloadNode(hash);
+            return await node.ForwardRequestAsync(
+                forwarder,
+                httpContextAccessor.HttpContext!,
+                new DownloadHttpTransformer());
+        }
+
+        public async Task<IActionResult> UploadChunkAsync(HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
@@ -148,29 +175,6 @@ namespace Etherna.Beehive.Areas.Api.Services
             {
                 return new BadRequestResult();
             }
-        }
-
-        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
-        public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
-        {
-            // Try to get from chunk's db.
-            try
-            {
-                var chunk = await chunkStore.GetAsync(hash, true, true);
-
-                return Results.File(
-                    chunk.GetSpanAndData(),
-                    "application/octet-stream",
-                    hash.ToString());
-            }
-            catch
-            {
-            } //proceed with forward on any error
-
-            // Select node and forward request.
-            var node = beeNodeLiveManager.SelectDownloadNode(hash);
-            return await node.ForwardRequestAsync(forwarder, httpContextAccessor.HttpContext!);
         }
 
         // Helpers.
