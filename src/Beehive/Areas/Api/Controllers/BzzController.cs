@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
@@ -41,7 +42,7 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         
         [HttpPost]
         [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         public Task<IResult> UploadBzzAsync() =>

@@ -12,14 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Controllers
@@ -42,8 +41,16 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 
         // Post.
 
-        [HttpPost("~/chunks/bulk-upload")]
+        [HttpPost]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        public Task<IActionResult> ChunkUploadAsync() =>
+            service.ChunkUploadAsync(HttpContext);
+
         [Obsolete("Used with BeeTurbo")]
+        [HttpPost("~/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -52,7 +59,7 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 
         [HttpPost("~/ev1/chunks/bulk-upload")]
         [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public Task ChunksBulkUploadAsync() =>
             service.ChunksBulkUploadAsync(HttpContext);

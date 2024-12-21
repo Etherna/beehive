@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Manifest;
@@ -67,7 +68,10 @@ namespace Etherna.Beehive.Areas.Api.Services
 
             // Select node and forward request.
             var node = beeNodeLiveManager.SelectDownloadNode(address);
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            return await node.ForwardRequestAsync(
+                forwarder,
+                httpContext,
+                new DownloadHttpTransformer());
         }
 
         public async Task<IResult> UploadBzzAsync(HttpContext httpContext)
