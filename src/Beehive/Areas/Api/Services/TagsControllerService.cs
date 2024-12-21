@@ -35,10 +35,24 @@ namespace Etherna.Beehive.Areas.Api.Services
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
 
+        public async Task<IResult> DeleteTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
+        {
+            // Select node and forward request.
+            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
+        }
+
         public async Task<IResult> GetTagAsync(
             TagId tagId,
             PostageBatchId batchId,
             HttpContext httpContext)
+        {
+            // Select node and forward request.
+            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
+        }
+
+        public async Task<IResult> UpdateTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
         {
             // Select node and forward request.
             var node = beeNodeLiveManager.SelectUploadNode(batchId);

@@ -51,7 +51,24 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         
         // Patch.
         
+        [HttpPatch("{tagId}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> UpdateTagAsync(
+            TagId tagId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.UpdateTagAsync(tagId, batchId, HttpContext);
+        
         // Delete.
         
+        [HttpDelete("{tagId}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> DeleteTagAsync(
+            TagId tagId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.DeleteTagAsync(tagId, batchId, HttpContext);
     }
 }

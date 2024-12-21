@@ -23,8 +23,18 @@ namespace Etherna.Beehive.Areas.Api.Services
         Task<IResult> CreateTagAsync(
             PostageBatchId batchId,
             HttpContext httpContext);
+        
+        Task<IResult> DeleteTagAsync(
+            TagId tagId,
+            PostageBatchId batchId,
+            HttpContext httpContext);
 
         Task<IResult> GetTagAsync(
+            TagId tagId,
+            PostageBatchId batchId,
+            HttpContext httpContext);
+
+        Task<IResult> UpdateTagAsync(
             TagId tagId,
             PostageBatchId batchId,
             HttpContext httpContext);
