@@ -13,19 +13,27 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
+using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Converters
 {
-    public interface IBzzControllerService
+    public class TagIdJsonConverter : JsonConverter<TagId>
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
-            HttpContext httpContext);
+        public override TagId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.Number)
+                throw new JsonException();
 
-        Task<IResult> UploadBzzAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext);
+            return new TagId(reader.GetUInt64());
+        }
+
+        public override void Write(Utf8JsonWriter writer, TagId value, JsonSerializerOptions options)
+        {
+            ArgumentNullException.ThrowIfNull(writer, nameof(writer));
+            
+            writer.WriteNumberValue(value.Value);
+        }
     }
 }

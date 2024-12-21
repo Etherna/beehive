@@ -24,30 +24,30 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
-    [Route("bzz")]
-    [Route("v{api-version:apiVersion}/bzz")]
-    public class BzzController(IBzzControllerService service)
+    [Route("bytes")]
+    [Route("v{api-version:apiVersion}/bytes")]
+    public class BytesController(IBytesControllerService service)
         : ControllerBase
     {
         // Get.
-
-        [HttpGet("{*address:minlength(1)}")]
+        
+        [HttpGet("{*hash:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DownloadBzzAsync(SwarmAddress address) =>
-            service.DownloadBzzAsync(address, HttpContext);
+        public Task<IResult> DownloadBytesAsync(SwarmHash hash) =>
+            service.DownloadBytesAsync(hash, HttpContext);
         
         // Post.
-        
+
         [HttpPost]
         [SimpleExceptionFilter]
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadBzzAsync(
+        public Task<IResult> UploadBytesAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadBzzAsync(batchId, HttpContext);
+            service.UploadBytesAsync(batchId, HttpContext);
     }
 }

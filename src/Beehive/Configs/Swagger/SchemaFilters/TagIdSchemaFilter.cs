@@ -13,19 +13,24 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public interface IBzzControllerService
+    public class TagIdSchemaFilter : ISchemaFilter
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
-            HttpContext httpContext);
-
-        Task<IResult> UploadBzzAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext);
+        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        {
+            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
+            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            
+            if (context.Type == typeof(TagId))
+            {
+                schema.Type = "integer";
+                schema.Format = "int64";
+            }
+        }
     }
 }

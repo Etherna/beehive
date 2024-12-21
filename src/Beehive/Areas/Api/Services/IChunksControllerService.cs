@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
@@ -23,12 +24,10 @@ namespace Etherna.Beehive.Areas.Api.Services
         /// <summary>
         /// Handle bulk chunks upload
         /// </summary>
-        /// <param name="batchId">Postage batch Id</param>
-        /// <param name="payload">Bulk upload payload</param>
         /// <returns>Status code</returns>
-        Task<int> ChunksBulkUploadAsync(
+        Task BulkUploadChunksAsync(
             PostageBatchId batchId,
-            byte[] payload);
+            HttpContext httpContext);
 
         /// <summary>
         /// Download a single chunk
@@ -36,5 +35,9 @@ namespace Etherna.Beehive.Areas.Api.Services
         /// <param name="hash">The chunk's hash</param>
         /// <returns>Request result</returns>
         Task<IResult> DownloadChunkAsync(SwarmHash hash);
+        
+        Task<IActionResult> UploadChunkAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext);
     }
 }

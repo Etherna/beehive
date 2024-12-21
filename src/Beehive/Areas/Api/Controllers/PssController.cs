@@ -12,7 +12,6 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
@@ -24,30 +23,22 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
-    [Route("bzz")]
-    [Route("v{api-version:apiVersion}/bzz")]
-    public class BzzController(IBzzControllerService service)
+    [Route("pss")]
+    [Route("v{api-version:apiVersion}/pss")]
+    public class PssController(IPssControllerService service)
         : ControllerBase
     {
-        // Get.
-
-        [HttpGet("{*address:minlength(1)}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DownloadBzzAsync(SwarmAddress address) =>
-            service.DownloadBzzAsync(address, HttpContext);
-        
         // Post.
         
-        [HttpPost]
+        [HttpPost("send/{topic}/{targets}")]
         [SimpleExceptionFilter]
-        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadBzzAsync(
+        public Task<IResult> SendPssMessageAsync(
+            string topic,
+            string targets,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadBzzAsync(batchId, HttpContext);
+            service.SendPssMessageAsync(topic, targets, batchId, HttpContext);
     }
 }

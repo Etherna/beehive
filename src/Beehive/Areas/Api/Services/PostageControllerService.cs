@@ -69,7 +69,7 @@ namespace Etherna.Beehive.Areas.Api.Services
 
         public async Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth)
         {
-            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+            var beeNodeLiveInstance = beeNodeLiveManager.SelectUploadNode(batchId);
 
             // Top up.
             return await beeNodeLiveInstance.DilutePostageBatchAsync(batchId, depth);
@@ -77,7 +77,7 @@ namespace Etherna.Beehive.Areas.Api.Services
 
         public async Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount)
         {
-            var beeNodeLiveInstance = beeNodeLiveManager.GetBeeNodeLiveInstanceByOwnedPostageBatch(batchId);
+            var beeNodeLiveInstance = beeNodeLiveManager.SelectUploadNode(batchId);
 
             // Top up.
             return await beeNodeLiveInstance.TopUpPostageBatchAsync(batchId, amount);

@@ -12,14 +12,14 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.IO;
-using System.Linq;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Controllers
@@ -42,36 +42,30 @@ namespace Etherna.Beehive.Areas.Api.Controllers
 
         // Post.
 
-        [HttpPost("~/chunks/bulk-upload")]
+        [HttpPost]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        public Task<IActionResult> UploadChunkAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.UploadChunkAsync(batchId, HttpContext);
+
         [Obsolete("Used with BeeTurbo")]
+        [HttpPost("~/chunks/bulk-upload")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task ChunksBulkUploadBeeTurboAsync() =>
-            ChunksBulkUploadAsync();
+        public Task BulkUploadChunksBeeTurboAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.BulkUploadChunksAsync(batchId, HttpContext);
 
         [HttpPost("~/ev1/chunks/bulk-upload")]
         [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task ChunksBulkUploadAsync()
-        {
-            // Get headers.
-            HttpContext.Request.Headers.TryGetValue(
-                SwarmHttpConsts.SwarmPostageBatchId,
-                out var batchIdHeaderValue);
-            var batchId = PostageBatchId.FromString(batchIdHeaderValue.Single()!);
-            
-            // Read payload.
-            await using var memoryStream = new MemoryStream();
-            await HttpContext.Request.Body.CopyToAsync(memoryStream);
-            var payload = memoryStream.ToArray();
-            
-            // Invoke service.
-            var statusCode = await service.ChunksBulkUploadAsync(
-                batchId,
-                payload);
-            HttpContext.Response.StatusCode = statusCode;
-        }
+        public Task BulkUploadChunksAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.BulkUploadChunksAsync(batchId, HttpContext);
     }
 }

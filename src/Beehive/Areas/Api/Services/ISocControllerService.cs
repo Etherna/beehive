@@ -18,13 +18,12 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface IBzzControllerService
+    public interface ISocControllerService
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
-            HttpContext httpContext);
-
-        Task<IResult> UploadBzzAsync(
+        Task<IResult> UploadSocAsync(
+            string owner,
+            string id,
+            string signature,
             PostageBatchId batchId,
             HttpContext httpContext);
     }

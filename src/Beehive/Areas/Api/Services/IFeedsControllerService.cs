@@ -18,14 +18,17 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface IBzzControllerService
+    public interface IFeedsControllerService
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
-            HttpContext httpContext);
-
-        Task<IResult> UploadBzzAsync(
+        Task<IResult> CreateFeedRootManifestAsync(
+            string owner,
+            string topic,
             PostageBatchId batchId,
+            HttpContext httpContext);
+        
+        Task<IResult> FindFeedUpdateAsync(
+            string owner,
+            string topic,
             HttpContext httpContext);
     }
 }

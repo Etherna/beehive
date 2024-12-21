@@ -13,12 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
 using Microsoft.AspNetCore.Http;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,13 +31,14 @@ namespace Etherna.Beehive.Areas.Api.Services
     public class BzzControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IDbChunkStore chunkStore,
-        IHttpForwarder forwarder,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpForwarder forwarder)
         : IBzzControllerService
     {
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
-        public async Task<IResult> DownloadBzzAsync(SwarmAddress address)
+        public async Task<IResult> DownloadBzzAsync(
+            SwarmAddress address,
+            HttpContext httpContext)
         {
             // Try to get from chunk's db.
             try
@@ -64,8 +67,20 @@ namespace Etherna.Beehive.Areas.Api.Services
             } //proceed with forward on any error
 
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectDownloadNode(address);
-            return await node.ForwardRequestAsync(forwarder, httpContextAccessor.HttpContext!);
+            var node = await beeNodeLiveManager.SelectDownloadNodeAsync(address);
+            return await node.ForwardRequestAsync(
+                forwarder,
+                httpContext,
+                new DownloadHttpTransformer());
+        }
+
+        public async Task<IResult> UploadBzzAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext)
+        {
+            // Select node and forward request.
+            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }
 }

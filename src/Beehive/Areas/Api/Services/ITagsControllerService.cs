@@ -18,13 +18,24 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface IBzzControllerService
+    public interface ITagsControllerService
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
+        Task<IResult> CreateTagAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext);
+        
+        Task<IResult> DeleteTagAsync(
+            TagId tagId,
+            PostageBatchId batchId,
             HttpContext httpContext);
 
-        Task<IResult> UploadBzzAsync(
+        Task<IResult> GetTagAsync(
+            TagId tagId,
+            PostageBatchId batchId,
+            HttpContext httpContext);
+
+        Task<IResult> UpdateTagAsync(
+            TagId tagId,
             PostageBatchId batchId,
             HttpContext httpContext);
     }

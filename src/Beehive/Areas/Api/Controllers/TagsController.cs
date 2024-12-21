@@ -12,7 +12,6 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
@@ -24,30 +23,52 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Controllers
 {
     [ApiController]
-    [Route("bzz")]
-    [Route("v{api-version:apiVersion}/bzz")]
-    public class BzzController(IBzzControllerService service)
+    [Route("tags")]
+    [Route("v{api-version:apiVersion}/tags")]
+    public class TagsController(ITagsControllerService service)
         : ControllerBase
     {
         // Get.
-
-        [HttpGet("{*address:minlength(1)}")]
+        
+        [HttpGet("{tagId}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DownloadBzzAsync(SwarmAddress address) =>
-            service.DownloadBzzAsync(address, HttpContext);
+        public Task<IResult> GetTagAsync(
+            TagId tagId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.GetTagAsync(tagId, batchId, HttpContext);
         
         // Post.
         
         [HttpPost]
         [SimpleExceptionFilter]
-        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadBzzAsync(
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public Task<IResult> CreateTagAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadBzzAsync(batchId, HttpContext);
+            service.CreateTagAsync(batchId, HttpContext);
+        
+        // Patch.
+        
+        [HttpPatch("{tagId}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> UpdateTagAsync(
+            TagId tagId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.UpdateTagAsync(tagId, batchId, HttpContext);
+        
+        // Delete.
+        
+        [HttpDelete("{tagId}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> DeleteTagAsync(
+            TagId tagId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.DeleteTagAsync(tagId, batchId, HttpContext);
     }
 }

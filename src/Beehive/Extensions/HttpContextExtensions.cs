@@ -14,18 +14,20 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
+using System;
+using System.Linq;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Extensions
 {
-    public interface IBzzControllerService
+    public static class HttpContextExtensions
     {
-        Task<IResult> DownloadBzzAsync(
-            SwarmAddress address,
-            HttpContext httpContext);
-
-        Task<IResult> UploadBzzAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext);
+        // Methods.
+        public static PostageBatchId? TryGetPostageBatchId(this HttpContext httpContext)
+        {
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            
+            var postageBatchId = httpContext.Request.Headers[SwarmHttpConsts.SwarmPostageBatchIdHeader].FirstOrDefault();
+            return postageBatchId is null ? (PostageBatchId?)null : new PostageBatchId(postageBatchId);
+        }
     }
 }

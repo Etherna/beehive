@@ -12,15 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Bmt;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -41,15 +44,20 @@ namespace Etherna.Beehive.Areas.Api.Services
     {
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        public async Task<int> ChunksBulkUploadAsync(
+        public async Task BulkUploadChunksAsync(
             PostageBatchId batchId,
-            byte[] payload)
+            HttpContext httpContext)
         {
-            ArgumentNullException.ThrowIfNull(payload, nameof(payload));
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
+            // Read payload.
+            await using var memoryStream = new MemoryStream();
+            await httpContext.Request.Body.CopyToAsync(memoryStream);
+            var payload = memoryStream.ToArray();
+            
+            // Try consume data from request.
             try
             {
-                // Consume data from request.
                 var hasher = new Hasher();
                 List<Chunk> chunks = [];
                 List<UploadedChunkRef> chunkRefs = [];
@@ -85,11 +93,11 @@ namespace Etherna.Beehive.Areas.Api.Services
                 await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
 
                 // Reply.
-                return StatusCodes.Status201Created;
+                httpContext.Response.StatusCode =  StatusCodes.Status201Created;
             }
             catch(InvalidDataException)
             {
-                return StatusCodes.Status400BadRequest;
+                httpContext.Response.StatusCode =  StatusCodes.Status400BadRequest;
             }
         }
 
@@ -112,8 +120,52 @@ namespace Etherna.Beehive.Areas.Api.Services
             } //proceed with forward on any error
 
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectDownloadNode(hash);
-            return await node.ForwardRequestAsync(forwarder, httpContextAccessor.HttpContext!);
+            var node = await beeNodeLiveManager.SelectDownloadNodeAsync(hash);
+            return await node.ForwardRequestAsync(
+                forwarder,
+                httpContextAccessor.HttpContext!,
+                new DownloadHttpTransformer());
+        }
+
+        public async Task<IActionResult> UploadChunkAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext)
+        {
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            
+            // Read payload.
+            await using var memoryStream = new MemoryStream();
+            await httpContext.Request.Body.CopyToAsync(memoryStream);
+            var payload = memoryStream.ToArray();
+            
+            // Try consume data from request.
+            try
+            {
+                var hasher = new Hasher();
+                
+                //read and store chunk payload
+                var hash = SwarmChunkBmtHasher.Hash(
+                    payload[..SwarmChunk.SpanSize].ToArray(),
+                    payload[SwarmChunk.SpanSize..].ToArray(),
+                    hasher);
+                var chunkRef = new UploadedChunkRef(hash, batchId);
+
+                var chunk = new Chunk(hash, payload);
+                
+                // Push data to db.
+                await dbContext.Chunks.CreateAsync(chunk);
+                await dbContext.ChunkPushQueue.CreateAsync(chunkRef);
+
+                // Reply.
+                return new JsonResult(new ChunkReferenceDto(hash))
+                {
+                    StatusCode = StatusCodes.Status201Created
+                };
+            }
+            catch(InvalidDataException)
+            {
+                return new BadRequestResult();
+            }
         }
 
         // Helpers.
