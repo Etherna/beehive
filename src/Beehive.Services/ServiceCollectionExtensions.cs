@@ -50,6 +50,7 @@ namespace Etherna.Beehive.Services
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesChequesTask, CashoutAllNodesChequesTask>();
+            services.AddTransient<ICleanupOldFailedTasksTask, CleanupOldFailedTasksTask>();
             services.AddTransient<INodesAddressMaintainerTask, NodesAddressMaintainerTask>();
             services.AddTransient<INodesChequebookMaintainerTask, NodesChequebookMaintainerTask>();
             services.AddTransient<IPinContentInNodeTask, PinContentInNodeTask>();

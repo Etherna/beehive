@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,13 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Hangfire;
+using System.Threading.Tasks;
+
 namespace Etherna.Beehive.Services.Tasks
 {
-    public static class Queues
+    /// <summary>
+    /// Delete failed tasks older than a month from Hangfire
+    /// </summary>
+    public interface ICleanupOldFailedTasksTask
     {
-        public const string DB_MAINTENANCE = "db_maintenance";
-        public const string DOMAIN_MAINTENANCE = "domain_maintenance";
-        public const string NODE_MAINTENANCE = "node_maintenance";
-        public const string PIN_CONTENTS = "pin_contents";
+        [Queue(Queues.DB_MAINTENANCE)]
+        Task RunAsync();
     }
 }

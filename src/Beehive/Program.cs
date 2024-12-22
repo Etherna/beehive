@@ -194,6 +194,7 @@ namespace Etherna.Beehive
                     options.Queues =
                     [
                         Queues.DOMAIN_MAINTENANCE,
+                        Queues.DB_MAINTENANCE,
                         Queues.PIN_CONTENTS,
                         Queues.NODE_MAINTENANCE,
                         "default"
@@ -331,6 +332,11 @@ namespace Etherna.Beehive
                 CashoutAllNodesChequesTask.TaskId,
                 task => task.RunAsync(),
                 Cron.Daily(5));
+            
+            RecurringJob.AddOrUpdate<ICleanupOldFailedTasksTask>(
+                CleanupOldFailedTasksTask.TaskId,
+                task => task.RunAsync(),
+                Cron.Daily);
 
             RecurringJob.AddOrUpdate<INodesAddressMaintainerTask>(
                 NodesAddressMaintainerTask.TaskId,
