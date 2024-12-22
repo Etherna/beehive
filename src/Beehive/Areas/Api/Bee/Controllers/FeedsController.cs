@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
@@ -20,27 +20,36 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Controllers
+namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
-    [Route("soc")]
-    [Route("v{api-version:apiVersion}/soc")]
-    public class SocController(ISocControllerService service)
+    [Route("feeds")]
+    [Route("v{api-version:apiVersion}/feeds")]
+    public class FeedsController(IFeedsControllerService service)
         : ControllerBase
     {
+        // Get.
+
+        [HttpGet("{owner:length(40)}/{topic}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> FindFeedUpdateAsync(string owner, string topic) =>
+            service.FindFeedUpdateAsync(owner, topic, HttpContext);
+
         // Post.
-        
-        [HttpPost("{owner:length(40)}/{id}")]
+
+        [HttpPost("{owner:length(40)}/{topic}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadSocAsync(
+        public Task<IResult> CreateFeedRootManifestAsync(
             string owner,
-            string id,
-            [FromQuery(Name = "sig"), Required] string signature,
+            string topic,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadSocAsync(owner, id, signature, batchId, HttpContext);
+            service.CreateFeedRootManifestAsync(owner, topic, batchId, HttpContext);
     }
 }

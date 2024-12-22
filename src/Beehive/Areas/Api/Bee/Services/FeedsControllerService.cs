@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class FeedsControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,

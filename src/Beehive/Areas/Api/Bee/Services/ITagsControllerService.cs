@@ -16,14 +16,26 @@ using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface ISocControllerService
+    public interface ITagsControllerService
     {
-        Task<IResult> UploadSocAsync(
-            string owner,
-            string id,
-            string signature,
+        Task<IResult> CreateTagAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext);
+        
+        Task<IResult> DeleteTagAsync(
+            TagId tagId,
+            PostageBatchId batchId,
+            HttpContext httpContext);
+
+        Task<IResult> GetTagAsync(
+            TagId tagId,
+            PostageBatchId batchId,
+            HttpContext httpContext);
+
+        Task<IResult> UpdateTagAsync(
+            TagId tagId,
             PostageBatchId batchId,
             HttpContext httpContext);
     }

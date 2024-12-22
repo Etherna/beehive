@@ -19,40 +19,19 @@ using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public class TagsControllerService(
+    public class SocControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IHttpForwarder forwarder)
-        : ITagsControllerService
+        : ISocControllerService
     {
-        public async Task<IResult> CreateTagAsync(
+        public async Task<IResult> UploadSocAsync(
+            string owner,
+            string id,
+            string signature,
             PostageBatchId batchId,
             HttpContext httpContext)
-        {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
-            return await node.ForwardRequestAsync(forwarder, httpContext);
-        }
-
-        public async Task<IResult> DeleteTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
-        {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
-            return await node.ForwardRequestAsync(forwarder, httpContext);
-        }
-
-        public async Task<IResult> GetTagAsync(
-            TagId tagId,
-            PostageBatchId batchId,
-            HttpContext httpContext)
-        {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
-            return await node.ForwardRequestAsync(forwarder, httpContext);
-        }
-
-        public async Task<IResult> UpdateTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
         {
             // Select node and forward request.
             var node = beeNodeLiveManager.SelectUploadNode(batchId);

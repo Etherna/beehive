@@ -12,7 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
@@ -20,36 +21,33 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Controllers
+namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
-    [Route("feeds")]
-    [Route("v{api-version:apiVersion}/feeds")]
-    public class FeedsController(IFeedsControllerService service)
+    [Route("bzz")]
+    [Route("v{api-version:apiVersion}/bzz")]
+    public class BzzController(IBzzControllerService service)
         : ControllerBase
     {
         // Get.
 
-        [HttpGet("{owner:length(40)}/{topic}")]
+        [HttpGet("{*address:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> FindFeedUpdateAsync(string owner, string topic) =>
-            service.FindFeedUpdateAsync(owner, topic, HttpContext);
-
+        public Task<IResult> DownloadBzzAsync(SwarmAddress address) =>
+            service.DownloadBzzAsync(address, HttpContext);
+        
         // Post.
-
-        [HttpPost("{owner:length(40)}/{topic}")]
+        
+        [HttpPost]
         [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> CreateFeedRootManifestAsync(
-            string owner,
-            string topic,
+        public Task<IResult> UploadBzzAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.CreateFeedRootManifestAsync(owner, topic, batchId, HttpContext);
+            service.UploadBzzAsync(batchId, HttpContext);
     }
 }

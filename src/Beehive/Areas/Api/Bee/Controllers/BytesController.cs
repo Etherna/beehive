@@ -12,7 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
@@ -20,25 +21,33 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Controllers
+namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
-    [Route("pss")]
-    [Route("v{api-version:apiVersion}/pss")]
-    public class PssController(IPssControllerService service)
+    [Route("bytes")]
+    [Route("v{api-version:apiVersion}/bytes")]
+    public class BytesController(IBytesControllerService service)
         : ControllerBase
     {
-        // Post.
+        // Get.
         
-        [HttpPost("send/{topic}/{targets}")]
+        [HttpGet("{*hash:minlength(1)}")]
         [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IResult> DownloadBytesAsync(SwarmHash hash) =>
+            service.DownloadBytesAsync(hash, HttpContext);
+        
+        // Post.
+
+        [HttpPost]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> SendPssMessageAsync(
-            string topic,
-            string targets,
+        public Task<IResult> UploadBytesAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.SendPssMessageAsync(topic, targets, batchId, HttpContext);
+            service.UploadBytesAsync(batchId, HttpContext);
     }
 }

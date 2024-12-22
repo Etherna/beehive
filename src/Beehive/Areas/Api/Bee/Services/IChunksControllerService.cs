@@ -12,29 +12,32 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Extensions;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public class PssControllerService(
-        IBeeNodeLiveManager beeNodeLiveManager,
-        IHttpForwarder forwarder)
-        : IPssControllerService
+    public interface IChunksControllerService
     {
-        public async Task<IResult> SendPssMessageAsync(
-            string topic,
-            string targets,
+        /// <summary>
+        /// Handle bulk chunks upload
+        /// </summary>
+        /// <returns>Status code</returns>
+        Task BulkUploadChunksAsync(
             PostageBatchId batchId,
-            HttpContext httpContext)
-        {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
-            return await node.ForwardRequestAsync(forwarder, httpContext);
-        }
+            HttpContext httpContext);
+
+        /// <summary>
+        /// Download a single chunk
+        /// </summary>
+        /// <param name="hash">The chunk's hash</param>
+        /// <returns>Request result</returns>
+        Task<IResult> DownloadChunkAsync(SwarmHash hash);
+        
+        Task<IActionResult> UploadChunkAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext);
     }
 }

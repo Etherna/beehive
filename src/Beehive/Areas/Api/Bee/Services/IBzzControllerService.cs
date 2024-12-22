@@ -16,13 +16,15 @@ using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface IPssControllerService
+    public interface IBzzControllerService
     {
-        Task<IResult> SendPssMessageAsync(
-            string topic,
-            string targets,
+        Task<IResult> DownloadBzzAsync(
+            SwarmAddress address,
+            HttpContext httpContext);
+
+        Task<IResult> UploadBzzAsync(
             PostageBatchId batchId,
             HttpContext httpContext);
     }

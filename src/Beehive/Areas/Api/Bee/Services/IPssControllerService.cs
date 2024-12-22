@@ -14,29 +14,15 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface IChunksControllerService
+    public interface IPssControllerService
     {
-        /// <summary>
-        /// Handle bulk chunks upload
-        /// </summary>
-        /// <returns>Status code</returns>
-        Task BulkUploadChunksAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext);
-
-        /// <summary>
-        /// Download a single chunk
-        /// </summary>
-        /// <param name="hash">The chunk's hash</param>
-        /// <returns>Request result</returns>
-        Task<IResult> DownloadChunkAsync(SwarmHash hash);
-        
-        Task<IActionResult> UploadChunkAsync(
+        Task<IResult> SendPssMessageAsync(
+            string topic,
+            string targets,
             PostageBatchId batchId,
             HttpContext httpContext);
     }

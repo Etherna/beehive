@@ -13,11 +13,19 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.DtoModels
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public class ChunkReferenceDto(SwarmHash hash)
+    public interface IBytesControllerService
     {
-        public SwarmHash Reference { get; } = hash; //from bee
+        Task<IResult> DownloadBytesAsync(
+            SwarmHash hash,
+            HttpContext httpContext);
+        
+        Task<IResult> UploadBytesAsync(
+            PostageBatchId batchId,
+            HttpContext httpContext);
     }
 }

@@ -12,63 +12,60 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Controllers
+namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
-    [Route("tags")]
-    [Route("v{api-version:apiVersion}/tags")]
-    public class TagsController(ITagsControllerService service)
+    [Route("chunks")]
+    [Route("v{api-version:apiVersion}/chunks")]
+    public class ChunksController(IChunksControllerService service)
         : ControllerBase
     {
         // Get.
-        
-        [HttpGet("{tagId}")]
+
+        [HttpGet("{*hash:minlength(1)}")]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> GetTagAsync(
-            TagId tagId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.GetTagAsync(tagId, batchId, HttpContext);
-        
+        public Task<IResult> DownloadChunkAsync(SwarmHash hash) =>
+            service.DownloadChunkAsync(hash);
+
         // Post.
-        
+
         [HttpPost]
         [SimpleExceptionFilter]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        public Task<IActionResult> UploadChunkAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.UploadChunkAsync(batchId, HttpContext);
+
+        [Obsolete("Used with BeeTurbo")]
+        [HttpPost("~/chunks/bulk-upload")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public Task BulkUploadChunksBeeTurboAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
+            service.BulkUploadChunksAsync(batchId, HttpContext);
+
+        [HttpPost("~/ev1/chunks/bulk-upload")]
+        [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
-        public Task<IResult> CreateTagAsync(
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public Task BulkUploadChunksAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.CreateTagAsync(batchId, HttpContext);
-        
-        // Patch.
-        
-        [HttpPatch("{tagId}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> UpdateTagAsync(
-            TagId tagId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UpdateTagAsync(tagId, batchId, HttpContext);
-        
-        // Delete.
-        
-        [HttpDelete("{tagId}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DeleteTagAsync(
-            TagId tagId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.DeleteTagAsync(tagId, batchId, HttpContext);
+            service.BulkUploadChunksAsync(batchId, HttpContext);
     }
 }
