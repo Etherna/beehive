@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 11
+     * Last event id is: 13
      */
     public static class LoggerExtensions
     {
@@ -29,6 +29,18 @@ namespace Etherna.Beehive.Services.Extensions
         //*** DEBUG LOGS ***
 
         //*** INFORMATION LOGS ***
+        private static readonly Action<ILogger, long, Exception> _cleanupOldFailedTasksTaskCompleted =
+            LoggerMessage.Define<long>(
+                LogLevel.Information,
+                new EventId(12, nameof(CleanupOldFailedTasksTaskCompleted)),
+                "Clean up failed-tasks task completed removing {RemovedFailedTasks} tasks");
+        
+        private static readonly Action<ILogger, Exception> _cleanupOldFailedTasksTaskStarted =
+            LoggerMessage.Define(
+                LogLevel.Information,
+                new EventId(13, nameof(CleanupOldFailedTasksTaskStarted)),
+                "Clean up failed-tasks task started");
+        
         private static readonly Action<ILogger, string, BzzBalance, IEnumerable<string>, Exception> _nodeCashedOut =
             LoggerMessage.Define<string, BzzBalance, IEnumerable<string>>(
                 LogLevel.Information,
@@ -105,6 +117,13 @@ namespace Etherna.Beehive.Services.Extensions
                 "Withdraw on node {BeeNodeId} chequebook failed with {BzzAmount} BZZ");
 
         // Methods.
+        public static void CleanupOldFailedTasksTaskCompleted(
+            this ILogger logger,
+            long deletedTasks) => _cleanupOldFailedTasksTaskCompleted(logger, deletedTasks, null!);
+        
+        public static void CleanupOldFailedTasksTaskStarted(
+            this ILogger logger) => _cleanupOldFailedTasksTaskStarted(logger, null!);
+
         public static void FailedToDepositBzzOnNodeChequeBook(this ILogger logger, string nodeId, BzzBalance bzzDeposit, Exception exception) =>
             _failedToDepositBzzOnNodeChequeBook(logger, nodeId, bzzDeposit, exception);
 
