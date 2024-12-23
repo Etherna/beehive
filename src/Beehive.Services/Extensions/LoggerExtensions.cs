@@ -53,11 +53,11 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(7, nameof(NodeConfigurationUpdated)),
                 "Node {BeeNodeId} updated configuration");
 
-        private static readonly Action<ILogger, string, Uri, int, bool, Exception> _nodeRegistered =
-            LoggerMessage.Define<string, Uri, int, bool>(
+        private static readonly Action<ILogger, string, Uri, bool, Exception> _nodeRegistered =
+            LoggerMessage.Define<string, Uri, bool>(
                 LogLevel.Information,
                 new EventId(5, nameof(NodeRegistered)),
-                "Node {BeeNodeId} registered on url {NodeUrl} on port {GatewayPort}. Batch creation enabled: {IsBatchCreationEnabled}");
+                "Node {BeeNodeId} registered with connection string {ConnectionString}. Batch creation enabled: {IsBatchCreationEnabled}");
 
         private static readonly Action<ILogger, string, Exception> _nodeRemoved =
             LoggerMessage.Define<string>(
@@ -142,8 +142,8 @@ namespace Etherna.Beehive.Services.Extensions
         public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid) =>
             _nodeConfigurationUpdated(logger, beeNodeid, null!);
 
-        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri nodeUrl, int gatewayPort, bool isBatchCreationEnabled) =>
-            _nodeRegistered(logger, beeNodeId, nodeUrl, gatewayPort, isBatchCreationEnabled, null!);
+        public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri connectionString, bool isBatchCreationEnabled) =>
+            _nodeRegistered(logger, beeNodeId, connectionString, isBatchCreationEnabled, null!);
 
         public static void NodeRemoved(this ILogger logger, string beeNodeId) =>
             _nodeRemoved(logger, beeNodeId, null!);

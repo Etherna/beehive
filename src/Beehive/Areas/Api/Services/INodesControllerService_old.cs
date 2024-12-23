@@ -13,30 +13,24 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.DtoModels;
-using Etherna.Beehive.Areas.Api.InputModels;
 using Etherna.BeeNet.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
 {
-    public interface INodesControllerService
+    public interface INodesControllerService_old
     {
-        Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput input);
         Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash);
         Task DeletePinAsync(string id, SwarmHash hash);
-        Task<BeeNodeDto> FindByIdAsync(string id);
         Task<bool> ForceFullStatusRefreshAsync(string id);
         IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus();
         Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id);
-        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take);
         Task<PinnedResourceDto> GetPinDetailsAsync(string id, SwarmHash hash);
         Task<IEnumerable<SwarmHash>> GetPinsByNodeAsync(string id);
         Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId);
         Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id);
         Task NotifyPinningOfUploadedContentAsync(string id, SwarmHash hash);
-        Task RemoveBeeNodeAsync(string id);
         Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash);
-        Task UpdateNodeConfigAsync(string id, UpdateNodeConfigInput newConfig);
     }
 }

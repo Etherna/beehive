@@ -253,7 +253,7 @@ namespace Etherna.Beehive
                     return new BeehiveDbContext(
                         eventDispatcher,
                         seedDbSettings.BeeNodes
-                            .Select(n => new BeeNode(n.Scheme, n.GatewayPort, n.Hostname, n.EnableBatchCreation))
+                            .Select(n => new BeeNode(new Uri(n.ConnectionString, UriKind.Absolute), n.EnableBatchCreation))
                             .ToArray());
                 },
                 options =>

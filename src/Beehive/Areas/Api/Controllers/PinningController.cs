@@ -31,32 +31,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
     [Route("api/v{api-version:apiVersion}/[controller]")]
     public class PinningController(IPinningControllerService service) : ControllerBase
     {
-        // Get.
-
-        /// <summary>
-        /// Find bee node pinning a specific content
-        /// </summary>
-        /// <param name="hash">Reference hash of the content</param>
-        /// <param name="requireAliveNodes">True if nodes needs to be alive</param>
-        /// <response code="200">List of Bee nodes</response>
-        [HttpGet("{hash}/nodes")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IEnumerable<BeeNodeDto>> FindBeeNodesPinningContentAsync(
-            [Required, SwarmResourceValidation] string hash,
-            bool requireAliveNodes)
-        {
-            var beeNodes = await service.FindBeeNodesPinningContentAsync(hash, requireAliveNodes);
-
-            // Copy response in headers (Nginx optimization).
-            HttpContext.Response.Headers.Append("bee-node-id", beeNodes.Select(n => n.Id).ToArray());
-            HttpContext.Response.Headers.Append("bee-node-gateway-port", beeNodes.Select(n => n.GatewayPort.ToString(CultureInfo.InvariantCulture)).ToArray());
-            HttpContext.Response.Headers.Append("bee-node-hostname", beeNodes.Select(n => n.Hostname.ToString(CultureInfo.InvariantCulture)).ToArray());
-            HttpContext.Response.Headers.Append("bee-node-scheme", beeNodes.Select(n => n.ConnectionScheme).ToArray());
-
-            return beeNodes;
-        }
 
         // Post.
 

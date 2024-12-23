@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,21 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
 
-namespace Etherna.Beehive.Attributes
+namespace Etherna.Beehive.Areas.Api.V0_4.InputModels
 {
-    public sealed partial class SwarmResourceValidationAttribute : ValidationAttribute
+    public class BeeNodeInput
     {
-        [GeneratedRegex("^[A-Fa-f0-9]{64}$")]
-        private static partial Regex SwarmResourceRegex();
-
-        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
-        {
-            if (value is string stringValue && SwarmResourceRegex().IsMatch(stringValue))
-                return ValidationResult.Success;
-
-            return new ValidationResult("Argument is not a valid swarm resource");
-        }
+        [Required]
+        public required string ConnectionString { get; set; }
+        
+        public bool EnableBatchCreation { get; set; } = true;
     }
 }

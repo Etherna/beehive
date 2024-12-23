@@ -47,16 +47,6 @@ namespace Etherna.Beehive.Areas.Api.Services
         }
 
         // Methods.
-        public async Task<IEnumerable<BeeNodeDto>> FindBeeNodesPinningContentAsync(string hash, bool requireAliveNodes)
-        {
-            var beeNodeLiveInstances = beeNodeLiveManager.GetBeeNodeLiveInstancesByPinnedContent(hash, requireAliveNodes);
-            var beeNodes = new List<BeeNode>();
-            foreach (var instance in beeNodeLiveInstances)
-                beeNodes.Add(await dbContext.BeeNodes.FindOneAsync(instance.Id));
-
-            return beeNodes.Select(n => new BeeNodeDto(n));
-        }
-
         public async Task<string> PinContentInNodeAsync(string hash, string? nodeId)
         {
             // Try to select an healthy node that doesn't already own the pin, if not specified.

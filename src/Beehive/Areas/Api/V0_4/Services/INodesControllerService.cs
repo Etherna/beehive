@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,20 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.ComponentModel.DataAnnotations;
+using Etherna.Beehive.Areas.Api.V0_4.DtoModels;
+using Etherna.Beehive.Areas.Api.V0_4.InputModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.InputModels
+namespace Etherna.Beehive.Areas.Api.V0_4.Services
 {
-    public class BeeNodeInput
+    public interface INodesControllerService
     {
-        public string ConnectionScheme { get; set; } = "http";
-
-        public bool EnableBatchCreation { get; set; } = true;
-
-        [Range(1, 65535)]
-        public int GatewayApiPort { get; set; }
-
-        [Required]
-        public string Hostname { get; set; } = default!;
+        Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput nodeInput);
+        Task<BeeNodeDto> FindByIdAsync(string id);
+        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take);
+        Task RemoveBeeNodeAsync(string id);
+        Task UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
     }
 }

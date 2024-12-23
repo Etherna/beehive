@@ -36,7 +36,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
             BeeNode beeNode)
         {
             Id = beeNode.Id;
-            Client = new BeeClient(beeNode.GatewayUrl);
+            Client = new BeeClient(beeNode.ConnectionString);
             IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }

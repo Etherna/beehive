@@ -14,7 +14,6 @@
 
 using Asp.Versioning;
 using Etherna.Beehive.Areas.Api.DtoModels;
-using Etherna.Beehive.Areas.Api.InputModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Http;
@@ -29,37 +28,10 @@ namespace Etherna.Beehive.Areas.Api.Controllers
     [ApiController]
     [ApiVersion("0.3")]
     [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class NodesController(INodesControllerService service) : ControllerBase
+    public class NodesController(INodesControllerService_old service)
+        : ControllerBase
     {
         // Get.
-
-        /// <summary>
-        /// Get list of registered bee nodes
-        /// </summary>
-        /// <param name="page">Current page of results</param>
-        /// <param name="take">Number of items to retrieve. Max 100</param>
-        /// <response code="200">Current page on list</response>
-        [HttpGet]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(
-            [Range(0, int.MaxValue)] int page,
-            [Range(1, 100)] int take = 25) =>
-            service.GetBeeNodesAsync(page, take);
-
-        /// <summary>
-        /// Get node info by its id
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        /// <response code="200">Bee node info</response>
-        [HttpGet("{id}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<BeeNodeDto> FindByIdAsync(
-            [Required] string id) =>
-            service.FindByIdAsync(id);
 
         /// <summary>
         /// Get all postage batches owned by a node
@@ -118,7 +90,7 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<PinnedResourceDto> GetPinDetailsAsync(
             [Required] string id,
-            [Required, SwarmResourceValidation] string hash) =>
+            [Required] string hash) =>
             service.GetPinDetailsAsync(id, hash);
 
         /// <summary>
@@ -148,7 +120,7 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<bool> CheckResourceAvailabilityFromNodeAsync(
             [Required] string id,
-            [Required, SwarmResourceValidation] string hash) =>
+            [Required] string hash) =>
             service.CheckResourceAvailabilityFromNodeAsync(id, hash);
 
         /// <summary>
@@ -164,19 +136,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         // Post.
 
         /// <summary>
-        /// Register a new bee node.
-        /// </summary>
-        /// <param name="nodeInput">Info of new node</param>
-        /// <response code="200">Bee node info</response>
-        [HttpPost]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task<BeeNodeDto> RegisterAsync(
-            [Required] BeeNodeInput nodeInput) =>
-            service.AddBeeNodeAsync(nodeInput);
-
-        /// <summary>
         /// Notify live manager of pinned content during upload
         /// </summary>
         /// <param name="id">Id of the bee node</param>
@@ -188,20 +147,10 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task NotifyPinningOfUploadedContentAsync(
             [Required] string id,
-            [Required, SwarmResourceValidation] string hash) =>
+            [Required] string hash) =>
             service.NotifyPinningOfUploadedContentAsync(id, hash);
 
         // Put.
-
-        [HttpPut("{id}/config")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task UpdateNodeConfigAsync(
-            [Required] string id,
-            [Required] UpdateNodeConfigInput config) =>
-            service.UpdateNodeConfigAsync(id, config);
 
         /// <summary>
         /// Force full status refresh on a Bee node
@@ -230,23 +179,10 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task ReuploadResourceToNetworkFromNodeAsync(
             [Required] string id,
-            [Required, SwarmResourceValidation] string hash) =>
+            [Required] string hash) =>
             service.ReuploadResourceToNetworkFromNodeAsync(id, hash);
 
         // Delete.
-
-        /// <summary>
-        /// Remove a bee node.
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        [HttpDelete("{id}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task RemoveAsync(
-            [Required] string id) =>
-            service.RemoveBeeNodeAsync(id);
 
         /// <summary>
         /// Delete a pinned resource from a node
@@ -260,7 +196,7 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task DeletePinAsync(
             [Required] string id,
-            [Required, SwarmResourceValidation] string hash) =>
+            [Required] string hash) =>
             service.DeletePinAsync(id, hash);
     }
 }

@@ -48,8 +48,7 @@ namespace Etherna.Beehive.Persistence
             {
                 IndexBuilders =
                 [
-                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.GatewayPort)
-                                                .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
+                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.ConnectionString), new CreateIndexOptions<BeeNode> { Unique = true })
                 ]
             });
         public IRepository<UploadedChunkRef, string> ChunkPushQueue { get; } =

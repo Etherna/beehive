@@ -20,7 +20,6 @@ namespace Etherna.Beehive.Areas.Api.Services
 {
     public interface IPinningControllerService
     {
-        Task<IEnumerable<BeeNodeDto>> FindBeeNodesPinningContentAsync(string hash, bool requireAliveNodes);
         Task<string> PinContentInNodeAsync(string hash, string? nodeId);
     }
 }

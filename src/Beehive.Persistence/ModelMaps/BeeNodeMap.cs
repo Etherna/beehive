@@ -31,7 +31,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     mm.AutoMap();
 
                     // Set default values.
-                    mm.GetMemberMap(n => n.IsBatchCreationEnabled).SetDefaultValue(true);
+                    mm.GetMemberMap(n => n.IsBatchCreationEnabled);
                 });
         }
 
@@ -68,9 +68,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 });
                 config.AddModelMap<BeeNode>("a833d25f-4613-4cbc-b36a-4cdfa62501f4", mm =>
                 {
-                    mm.MapMember(n => n.ConnectionScheme);
-                    mm.MapMember(n => n.GatewayPort);
-                    mm.MapMember(n => n.Hostname);
+                    mm.MapMember(n => n.ConnectionString);
                 });
             });
     }
