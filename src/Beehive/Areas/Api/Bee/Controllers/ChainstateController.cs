@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,31 +12,30 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Asp.Versioning;
-using Etherna.Beehive.Areas.Api.DtoModels;
-using Etherna.Beehive.Areas.Api.Services;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Etherna.Beehive.Areas.Api.Controllers
+namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
-    [ApiVersion("0.3")]
-    [Route("api/v{api-version:apiVersion}/[controller]")]
-    public class ChainController(IChainControllerService service)
+    [Route("chainstate")]
+    [Route("v{api-version:apiVersion}/chainstate")]
+    public class ChainstateController(IChainstateControllerService service)
         : ControllerBase
     {
         // Get.
-
+        
         /// <summary>
         /// Get chain state
         /// </summary>
         /// <response code="200">Last valid chain state</response>
-        [HttpGet("state")]
+        [HttpGet]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ChainStateDto? GetChainState() =>
-            service.GetChainState();
+        public ChainstateDto GetChainstate() =>
+            service.GetChainstate();
     }
 }

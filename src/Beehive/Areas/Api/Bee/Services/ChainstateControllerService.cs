@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,17 +12,26 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Services.Utilities;
+using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public class ChainControllerService(IBeeNodeLiveManager liveManager)
-        : IChainControllerService
+    public class ChainstateControllerService(IBeeNodeLiveManager beeNodeLiveManager)
+        : IChainstateControllerService
     {
-        // Methods.
-        public ChainStateDto? GetChainState() =>
-            liveManager.ChainState is null ? null :
-            new ChainStateDto(liveManager.ChainState);
+        public ChainstateDto GetChainstate()
+        {
+            var chainstate = beeNodeLiveManager.ChainState;
+            if (chainstate is null)
+                throw new KeyNotFoundException();
+            return new ChainstateDto(
+                chainstate.ChainTip,
+                chainstate.Block,
+                chainstate.TotalAmount,
+                chainstate.CurrentPrice,
+                chainstate.TimeStamp);
+        }
     }
 }
