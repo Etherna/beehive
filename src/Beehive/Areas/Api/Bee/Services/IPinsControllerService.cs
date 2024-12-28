@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,25 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Etherna.DomainEvents;
-using Etherna.MongoDB.Driver.GridFS;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Domain
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface IBeehiveDbContext : IDbContext
+    public interface IPinsControllerService
     {
-        // Properties.
-        //repositories
-        IRepository<BeeNode, string> BeeNodes { get; }
-        IRepository<ChunkPin, string> ChunkPins { get; }
-        IRepository<UploadedChunkRef, string> ChunkPushQueue { get; }
-        IRepository<Chunk, string> Chunks { get; }
-        GridFSBucket ChunksBucket { get; }
-
-        //others
-        IEventDispatcher EventDispatcher { get; }
+        Task<BeePinsDto> GetPinsBeeAsync();
+        Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(int page, int take);
     }
 }

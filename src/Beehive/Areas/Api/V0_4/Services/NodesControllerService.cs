@@ -30,8 +30,8 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
     public class NodesControllerService(
         IBeehiveDbContext beehiveDbContext,
         IBeeNodeLiveManager beeNodeLiveManager,
-        ILogger<NodesControllerService> logger) :
-        INodesControllerService
+        ILogger<NodesControllerService> logger)
+        : INodesControllerService
     {
         public async Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput nodeInput)
         {

@@ -14,35 +14,32 @@
 
 using Etherna.BeeNet.Models;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Etherna.Beehive.Domain.Models
 {
-    public class Chunk : EntityModelBase<string>
+    public class ChunkPin : EntityModelBase<string>
     {
         // Fields.
-        private List<ChunkPin> _pins = [];
+        private List<SwarmHash> missingChunks = [];
         
         // Constructors.
-        public Chunk(SwarmHash hash, byte[] payload)
+        public ChunkPin(SwarmHash hash, bool isRecursive)
         {
             Hash = hash;
-            Payload = payload;
+            IsRecursive = isRecursive;
         }
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected Chunk() { }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        protected ChunkPin() { }
 
         // Properties.
-        public virtual SwarmHash Hash { get; protected set; }
-        
-        [SuppressMessage("Performance", "CA1819:Properties should not return arrays")]
-        public virtual byte[] Payload { get; protected set; }
-
-        public virtual IEnumerable<ChunkPin> Pins
+        public virtual IEnumerable<SwarmHash> MissingChunks
         {
-            get => _pins;
-            protected set => _pins = new List<ChunkPin>(value ?? []);
+            get => missingChunks;
+            set => missingChunks = new List<SwarmHash>(value ?? []);
         }
+        public virtual SwarmHash Hash { get; protected set; }
+        public virtual bool IsProcessed { get; protected set; }
+        public virtual bool IsRecursive { get; protected set; }
+        public virtual bool IsSucceeded { get; protected set; }
+        public virtual long TotPinnedChunks { get; protected set; }
     }
 }

@@ -29,6 +29,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 {
                     mm.AutoMap();
                     mm.MapProperty(c => c.Payload).SetSerializer(ByteArraySerializer.Instance);
+                    mm.MapProperty(c => c.Pins).SetSerializer(ChunkPinMap.ReferenceSerializer(dbContext));
                 });
         }
     }
