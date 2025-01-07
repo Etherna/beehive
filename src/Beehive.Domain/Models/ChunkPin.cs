@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Etherna.MongODM.Core.Attributes;
 using System.Collections.Generic;
 
 namespace Etherna.Beehive.Domain.Models
@@ -26,7 +27,9 @@ namespace Etherna.Beehive.Domain.Models
         public ChunkPin(SwarmHash hash, bool isRecursive)
         {
             Hash = hash;
+            IsProcessed = false;
             IsRecursive = isRecursive;
+            IsSucceeded = false;
         }
         protected ChunkPin() { }
 
@@ -41,5 +44,19 @@ namespace Etherna.Beehive.Domain.Models
         public virtual bool IsRecursive { get; protected set; }
         public virtual bool IsSucceeded { get; protected set; }
         public virtual long TotPinnedChunks { get; protected set; }
+        
+        // Methods.
+        [PropertyAlterer(nameof(IsProcessed))]
+        [PropertyAlterer(nameof(IsRecursive))]
+        [PropertyAlterer(nameof(IsSucceeded))]
+        public virtual void UpdateToRecursive()
+        {
+            if (IsRecursive)
+                return;
+
+            IsProcessed = false;
+            IsRecursive = true;
+            IsSucceeded = false;
+        }
     }
 }

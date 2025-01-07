@@ -25,6 +25,7 @@ namespace Etherna.Beehive.Domain
         // Properties.
         //repositories
         IRepository<BeeNode, string> BeeNodes { get; }
+        IRepository<ChunkPinLock, string> ChunkPinLocks { get; }
         IRepository<ChunkPin, string> ChunkPins { get; }
         IRepository<UploadedChunkRef, string> ChunkPushQueue { get; }
         IRepository<Chunk, string> Chunks { get; }

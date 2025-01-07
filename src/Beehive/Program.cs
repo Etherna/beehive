@@ -333,6 +333,11 @@ namespace Etherna.Beehive
                 task => task.RunAsync(),
                 Cron.Daily(5));
             
+            RecurringJob.AddOrUpdate<ICleanupExpiredLocksTask>(
+                CleanupExpiredLocksTask.TaskId,
+                task => task.RunAsync(),
+                Cron.Daily(3));
+            
             RecurringJob.AddOrUpdate<ICleanupOldFailedTasksTask>(
                 CleanupOldFailedTasksTask.TaskId,
                 task => task.RunAsync(),

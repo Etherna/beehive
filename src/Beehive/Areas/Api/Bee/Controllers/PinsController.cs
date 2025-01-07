@@ -44,5 +44,22 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [Range(0, int.MaxValue)] int page,
             [Range(1, 10000)] int take = 500) =>
             service.GetPinsBeehiveAsync(page, take);
+        
+        // Post.
+
+        [HttpPost("{hash}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task CreatePinBeeAsync(string hash) =>
+            service.CreatePinBeeAsync(hash);
+
+        [HttpPost("~/ev1/pins/{hash}")]
+        [SimpleExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public Task CreatePinBeehiveAsync(string hash) =>
+            service.CreatePinBeehiveAsync(hash);
     }
 }

@@ -12,17 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Services.Tasks
 {
-    public interface IPinsControllerService
+    public class CleanupExpiredLocksTask : ICleanupExpiredLocksTask
     {
-        Task CreatePinBeeAsync(string hash);
-        Task CreatePinBeehiveAsync(string hash);
-        Task<BeePinsDto> GetPinsBeeAsync();
-        Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(int page, int take);
+        // Consts.
+        public const string TaskId = "cleanupExpiredLocksTask";
+
+        // Methods.
+        public Task RunAsync()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

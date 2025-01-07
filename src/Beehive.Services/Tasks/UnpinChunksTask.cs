@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,14 +12,10 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Hangfire;
-using System.Threading.Tasks;
-
 namespace Etherna.Beehive.Services.Tasks
 {
-    public interface IPinContentInNodeTask
+    public class UnpinChunksTask : IUnpinChunksTask
     {
-        [Queue(Queues.PIN_CONTENTS)]
-        Task RunAsync(string contentHash, string nodeId);
+        
     }
 }

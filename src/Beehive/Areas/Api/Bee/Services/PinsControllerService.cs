@@ -14,8 +14,13 @@
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Domain;
+using Etherna.Beehive.Services.Tasks;
+using Etherna.BeeNet.Stores;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Extensions;
+using Hangfire;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,9 +28,18 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class PinsControllerService(
-        IBeehiveDbContext dbContext)
+        IBackgroundJobClient backgroundJobClient,
+        IBeehiveDbContext dbContext,
+        IChunkPinLockService chunkPinLockService,
+        IChunkStore chunkStore)
         : IPinsControllerService
     {
+        public Task CreatePinBeeAsync(string hash) =>
+            CreatePinHelperAsync(hash, false);
+
+        public Task CreatePinBeehiveAsync(string hash) =>
+            CreatePinHelperAsync(hash, true);
+
         public async Task<BeePinsDto> GetPinsBeeAsync()
         {
             var pinnedHashes = await dbContext.ChunkPins.QueryElementsAsync(
@@ -47,6 +61,42 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 p.IsRecursive,
                 p.IsSucceeded,
                 p.TotPinnedChunks));
+        }
+        
+        // Helpers.
+        private async Task CreatePinHelperAsync(string hash, bool runBackgroundTask)
+        {
+            /* Pin created from this API are always recursive on chunks. */
+            // Try find recursive pin with this hash.
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash &&
+                                                                     p.IsRecursive == true);
+            
+            // If doesn't exist create it.
+            if (pin is null)
+            {
+                pin = new ChunkPin(hash, true);
+                await dbContext.ChunkPins.CreateAsync(pin);
+            }
+            else
+            {
+                if (pin.IsSucceeded)
+                    return;
+            }
+            
+            if (runBackgroundTask)
+            {
+                backgroundJobClient.Enqueue<IPinChunksTask>(
+                    t => t.RunAsync(pin.Id, null!));
+            }
+            else
+            {
+                var task = new PinChunksTask(
+                    backgroundJobClient,
+                    dbContext,
+                    chunkPinLockService,
+                    chunkStore);
+                await task.RunAsync(pin.Id, null!);
+            }
         }
     }
 }
