@@ -108,7 +108,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Try to get from chunk's db.
             try
             {
-                var chunk = await chunkStore.GetAsync(hash, true, true);
+                var chunk = await chunkStore.GetAsync(hash);
 
                 return Results.File(
                     chunk.GetSpanAndData(),

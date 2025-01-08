@@ -270,7 +270,7 @@ namespace Etherna.Beehive
 
             // Configure domain services and tools.
             services.AddDomainServices();
-            services.AddSingleton<IDbChunkStore, DbChunkStore>();
+            services.AddTransient<IDbChunkStore, DbChunkStore>();
         }
 
         private static void ConfigureApplication(WebApplication app)
