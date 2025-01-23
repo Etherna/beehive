@@ -17,19 +17,17 @@ using System.Collections.Generic;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public class BeehivePinDto(
+    public sealed class BeehivePinDto(
         SwarmHash hash,
         IEnumerable<SwarmHash> missingChunks,
         bool processed,
-        bool recursive,
         bool succeeded,
         long totPinnedChunks)
     {
-        public virtual SwarmHash Hash { get; } = hash;
-        public virtual IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
-        public virtual bool Processed { get; } = processed;
-        public virtual bool Recursive { get; } = recursive;
-        public virtual bool Succeeded { get; } = succeeded;
-        public virtual long TotPinnedChunks { get; } = totPinnedChunks;
+        public SwarmHash Hash { get; } = hash;
+        public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
+        public bool Processed { get; } = processed;
+        public bool Succeeded { get; } = succeeded;
+        public long TotPinnedChunks { get; } = totPinnedChunks;
     }
 }

@@ -58,7 +58,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 p.Hash,
                 p.MissingChunks,
                 p.IsProcessed,
-                p.IsRecursive,
                 p.IsSucceeded,
                 p.TotPinnedChunks));
         }
@@ -68,13 +67,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             /* Pin created from this API are always recursive on chunks. */
             // Try find recursive pin with this hash.
-            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash &&
-                                                                     p.IsRecursive == true);
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
             
             // If doesn't exist create it.
             if (pin is null)
             {
-                pin = new ChunkPin(hash, true);
+                pin = new ChunkPin(hash);
                 await dbContext.ChunkPins.CreateAsync(pin);
             }
             else
@@ -91,7 +89,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             else
             {
                 var task = new PinChunksTask(
-                    backgroundJobClient,
                     dbContext,
                     chunkPinLockService,
                     chunkStore);

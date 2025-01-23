@@ -42,9 +42,23 @@ namespace Etherna.Beehive.Tools
             return SwarmChunk.BuildFromSpanAndData(hash, payload);
         }
 
+        protected override async Task<bool> DeleteChunkAsync(SwarmHash hash)
+        {
+            using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
+            
+            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
+            if (chunk is null)
+                return false;
+
+            await dbContext.Chunks.DeleteAsync(chunk);
+            return true;
+        }
+
         protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)
         {
             ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
+            
+            using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
             
             try
             {

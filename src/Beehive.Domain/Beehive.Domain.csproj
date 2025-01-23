@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net.Core" Version="0.4.0-alpha.77" />
+    <PackageReference Include="Bee.Net.Core" Version="0.4.0-alpha.82" />
     <PackageReference Include="Etherna.DomainEvents" Version="1.4.0" />
     <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.6" />
     <PackageReference Include="Nethereum.Web3" Version="4.28.0" />

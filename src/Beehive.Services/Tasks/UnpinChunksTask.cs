@@ -12,10 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using System.Threading.Tasks;
+
 namespace Etherna.Beehive.Services.Tasks
 {
     public class UnpinChunksTask : IUnpinChunksTask
     {
-        
+        public Task RunAsync(string chunkPinId)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

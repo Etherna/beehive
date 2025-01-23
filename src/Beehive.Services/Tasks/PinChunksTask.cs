@@ -14,8 +14,8 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
+using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Stores;
-using Hangfire;
 using Hangfire.Server;
 using System;
 using System.Threading.Tasks;
@@ -23,7 +23,6 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Services.Tasks
 {
     public class PinChunksTask(
-        IBackgroundJobClient backgroundJobClient,
         IBeehiveDbContext dbContext,
         IChunkPinLockService chunkPinLockService,
         IChunkStore chunkStore)
@@ -43,22 +42,23 @@ namespace Etherna.Beehive.Services.Tasks
             try
             {
                 var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
-                
-                //TODO: Perform pin.
+                if (pin.IsSucceeded)
+                    return;
 
-                // Cleanup.
-                if (pin.IsRecursive)
-                {
-                    // Delete not recursive pin if exists.
-                    var notRecursivePin = await dbContext.ChunkPins.TryFindOneAsync(p =>
-                        p.Hash == pin.Hash &&
-                        p.IsRecursive == false);
-                    if (notRecursivePin is not null)
+                var chunkTraverser = new ChunkTraverser(chunkStore);
+
+                await chunkTraverser.TraverseFromMantarayManifestRootAsync(
+                    pin.Hash,
+                    foundChunk =>
                     {
-                        backgroundJobClient.Enqueue<IUnpinChunksTask>(
-                            t => t.RunAsync(notRecursivePin.Id));
-                    }
-                }
+                        //TODO
+                        return Task.CompletedTask;
+                    },
+                    notFoundHash =>
+                    {
+                        //TODO
+                        return Task.CompletedTask;
+                    });
             }
             finally
             {

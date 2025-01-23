@@ -24,11 +24,10 @@ namespace Etherna.Beehive.Domain.Models
         private List<SwarmHash> missingChunks = [];
         
         // Constructors.
-        public ChunkPin(SwarmHash hash, bool isRecursive)
+        public ChunkPin(SwarmHash hash)
         {
             Hash = hash;
             IsProcessed = false;
-            IsRecursive = isRecursive;
             IsSucceeded = false;
         }
         protected ChunkPin() { }
@@ -41,22 +40,7 @@ namespace Etherna.Beehive.Domain.Models
         }
         public virtual SwarmHash Hash { get; protected set; }
         public virtual bool IsProcessed { get; protected set; }
-        public virtual bool IsRecursive { get; protected set; }
         public virtual bool IsSucceeded { get; protected set; }
         public virtual long TotPinnedChunks { get; protected set; }
-        
-        // Methods.
-        [PropertyAlterer(nameof(IsProcessed))]
-        [PropertyAlterer(nameof(IsRecursive))]
-        [PropertyAlterer(nameof(IsSucceeded))]
-        public virtual void UpdateToRecursive()
-        {
-            if (IsRecursive)
-                return;
-
-            IsProcessed = false;
-            IsRecursive = true;
-            IsSucceeded = false;
-        }
     }
 }
