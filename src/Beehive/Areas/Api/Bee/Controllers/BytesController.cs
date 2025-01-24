@@ -36,7 +36,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DownloadBytesAsync(SwarmHash hash) =>
+        public Task<IActionResult> DownloadBytesAsync(SwarmHash hash) =>
             service.DownloadBytesAsync(hash, HttpContext);
         
         // Post.

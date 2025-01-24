@@ -28,9 +28,9 @@ using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Options;
 using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services;
+using Etherna.Beehive.Services.Chunks;
 using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
-using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Models;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
@@ -270,6 +270,7 @@ namespace Etherna.Beehive
 
             // Configure domain services and tools.
             services.AddDomainServices();
+            services.AddTransient<IBeehiveChunkStore, BeehiveChunkStore>();
             services.AddTransient<IDbChunkStore, DbChunkStore>();
         }
 

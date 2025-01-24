@@ -13,30 +13,32 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Extensions;
-using Etherna.Beehive.HttpTransformers;
+using Etherna.Beehive.Services.Chunks;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BytesControllerService(
+        IBeehiveChunkStore beehiveChunkStore,
         IBeeNodeLiveManager beeNodeLiveManager,
         IHttpForwarder forwarder)
         : IBytesControllerService
     {
-        public async Task<IResult> DownloadBytesAsync(
+        public async Task<IActionResult> DownloadBytesAsync(
             SwarmHash hash,
             HttpContext httpContext)
         {
-            // Select healthy node and forward with download http transformer.
-            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
-            return await node.ForwardRequestAsync(
-                forwarder,
-                httpContext,
-                new DownloadHttpTransformer());
+            var chunkJoiner = new ChunkJoiner(beehiveChunkStore);
+            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(hash, null, false));
+
+            return new FileStreamResult(dataStream, "application/octet-stream");
         }
 
         public async Task<IResult> UploadBytesAsync(

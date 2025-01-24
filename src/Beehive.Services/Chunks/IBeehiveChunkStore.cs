@@ -14,9 +14,9 @@
 
 using Etherna.BeeNet.Stores;
 
-namespace Etherna.Beehive.Tools
+namespace Etherna.Beehive.Services.Chunks
 {
-    public interface IDbChunkStore : IChunkStore
+    public interface IBeehiveChunkStore : IReadOnlyChunkStore
     {
         
     }

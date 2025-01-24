@@ -12,21 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+using Etherna.BeeNet.Stores;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Services.Chunks
 {
-    public interface IBytesControllerService
+    public interface IDbChunkStore : IChunkStore
     {
-        Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash,
-            HttpContext httpContext);
         
-        Task<IResult> UploadBytesAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext);
     }
 }

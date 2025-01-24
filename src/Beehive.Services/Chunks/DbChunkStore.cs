@@ -22,7 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Tools
+namespace Etherna.Beehive.Services.Chunks
 {
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
     public sealed class DbChunkStore(
@@ -33,10 +33,13 @@ namespace Etherna.Beehive.Tools
         {
             using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
 
+            //try find on repository
             var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
             byte[]? payload = null;
             if (chunk is not null)
                 payload = chunk.Payload.ToArray();
+            
+            //fallback on old gridfs
             payload ??= await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString());
             
             return SwarmChunk.BuildFromSpanAndData(hash, payload);
@@ -45,13 +48,28 @@ namespace Etherna.Beehive.Tools
         protected override async Task<bool> DeleteChunkAsync(SwarmHash hash)
         {
             using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
-            
-            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
-            if (chunk is null)
-                return false;
 
-            await dbContext.Chunks.DeleteAsync(chunk);
-            return true;
+            var found = false;
+            
+            //try remove from repository
+            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
+            if (chunk is not null)
+            {
+                found = true;
+                await dbContext.Chunks.DeleteAsync(chunk);
+            }
+            
+            //try remove from old gridfs
+            try
+            {
+                using var downStream = await dbContext.ChunksBucket.OpenDownloadStreamByNameAsync(hash.ToString());
+                found = true;
+                var id = downStream.FileInfo.Id;
+                await dbContext.ChunksBucket.DeleteAsync(id);
+            }
+            catch { }
+
+            return found;
         }
 
         protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)

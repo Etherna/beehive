@@ -14,8 +14,8 @@
 
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
+using Etherna.Beehive.Services.Chunks;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.Beehive.Tools;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
