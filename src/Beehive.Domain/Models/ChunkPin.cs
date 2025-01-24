@@ -14,17 +14,31 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Attributes;
+using System;
 using System.Collections.Generic;
 
 namespace Etherna.Beehive.Domain.Models
 {
     public class ChunkPin : EntityModelBase<string>
     {
+        // Consts.
+#pragma warning disable CA1051
+        public readonly TimeSpan TemporaryPinTtl = TimeSpan.FromHours(24);
+#pragma warning restore CA1051
+        
         // Fields.
         private List<SwarmHash> missingChunks = [];
         
         // Constructors.
-        public ChunkPin(SwarmHash hash)
+        /// <summary>
+        /// Create a new chunk pin
+        /// </summary>
+        /// <param name="hash">
+        /// The root pinning hash.
+        /// Set to null to have a temporary pin, when the root hash isn't known upfront.
+        /// Consider <see cref="TemporaryPinTtl"/> as TTL for a temporary pin.
+        /// </param>
+        public ChunkPin(SwarmHash? hash)
         {
             Hash = hash;
             IsProcessed = false;
@@ -38,9 +52,22 @@ namespace Etherna.Beehive.Domain.Models
             get => missingChunks;
             set => missingChunks = new List<SwarmHash>(value ?? []);
         }
-        public virtual SwarmHash Hash { get; protected set; }
+        public virtual SwarmHash? Hash { get; protected set; }
+        public virtual bool IsAlive => Hash.HasValue ||
+                                       CreationDateTime + TemporaryPinTtl >= DateTime.UtcNow;
         public virtual bool IsProcessed { get; protected set; }
         public virtual bool IsSucceeded { get; protected set; }
         public virtual long TotPinnedChunks { get; protected set; }
+        
+        // Methods.
+        [PropertyAlterer(nameof(Hash))]
+        public virtual void SetChunkReference(SwarmChunkReference reference)
+        {
+            ArgumentNullException.ThrowIfNull(reference, nameof(reference));
+            
+            if (Hash.HasValue)
+                throw new InvalidOperationException();
+            Hash = reference.Hash;
+        }
     }
 }

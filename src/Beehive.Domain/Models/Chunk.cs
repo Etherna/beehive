@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Etherna.MongODM.Core.Attributes;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -43,6 +44,13 @@ namespace Etherna.Beehive.Domain.Models
         {
             get => _pins;
             protected set => _pins = new List<ChunkPin>(value ?? []);
+        }
+
+        // Methods.
+        [PropertyAlterer(nameof(Pins))]
+        public void AddPin(ChunkPin chunkPin)
+        {
+            _pins.Add(chunkPin);
         }
     }
 }

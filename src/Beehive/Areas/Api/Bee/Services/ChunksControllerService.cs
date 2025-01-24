@@ -36,7 +36,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class ChunksControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IDbChunkStore chunkStore,
         IBeehiveDbContext dbContext,
         IHttpForwarder forwarder,
         IHttpContextAccessor httpContextAccessor)
@@ -106,6 +105,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
         {
             // Try to get from chunk's db.
+            var chunkStore = new DbChunkStore(dbContext);
             try
             {
                 var chunk = await chunkStore.GetAsync(hash);
@@ -157,7 +157,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.ChunkPushQueue.CreateAsync(chunkRef);
 
                 // Reply.
-                return new JsonResult(new ChunkReferenceDto(hash))
+                return new JsonResult(new ChunkReferenceDto(hash, null, false))
                 {
                     StatusCode = StatusCodes.Status201Created
                 };

@@ -12,12 +12,10 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Stores;
-
-namespace Etherna.Beehive.Services.Chunks
+namespace Etherna.Beehive.Configs
 {
-    public interface IDbChunkStore : IChunkStore
+    public static class BeehiveHttpConsts
     {
-        
+        public const string SwarmCompactLevelHeader = "swarm-compact-level";
     }
 }

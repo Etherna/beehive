@@ -15,6 +15,7 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +38,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IActionResult> DownloadBytesAsync(SwarmHash hash) =>
-            service.DownloadBytesAsync(hash, HttpContext);
+            service.DownloadBytesAsync(hash);
         
         // Post.
 
@@ -46,8 +47,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadBytesAsync(
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadBytesAsync(batchId, HttpContext);
+        public Task<IActionResult> UploadBytesAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
+            [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent) =>
+            service.UploadBytesAsync(batchId, compactLevel, pinContent, HttpContext);
     }
 }

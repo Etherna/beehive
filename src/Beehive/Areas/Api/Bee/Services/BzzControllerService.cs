@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Chunks;
@@ -29,7 +30,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BzzControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IDbChunkStore chunkStore,
+        IBeehiveDbContext dbContext,
         IHttpForwarder forwarder)
         : IBzzControllerService
     {
@@ -42,6 +43,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Try to get from chunk's db.
             try
             {
+                var chunkStore = new DbChunkStore(dbContext);
                 var chunkJoiner = new ChunkJoiner(chunkStore);
                 var rootManifest = new ReferencedMantarayManifest(
                     chunkStore,

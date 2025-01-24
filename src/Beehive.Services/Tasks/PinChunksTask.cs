@@ -42,13 +42,15 @@ namespace Etherna.Beehive.Services.Tasks
             try
             {
                 var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
+                if (!pin.Hash.HasValue)
+                    throw new InvalidOperationException($"Pin doesn't have an hash");
                 if (pin.IsSucceeded)
                     return;
 
                 var chunkTraverser = new ChunkTraverser(chunkStore);
 
                 await chunkTraverser.TraverseFromMantarayManifestRootAsync(
-                    pin.Hash,
+                    pin.Hash.Value,
                     foundChunk =>
                     {
                         //TODO

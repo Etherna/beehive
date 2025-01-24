@@ -12,28 +12,28 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Extensions;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Domain;
+using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Chunks;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
+using Etherna.BeeNet.Hashing.Pipeline;
+using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BytesControllerService(
         IBeehiveChunkStore beehiveChunkStore,
-        IBeeNodeLiveManager beeNodeLiveManager,
-        IHttpForwarder forwarder)
+        IBeehiveDbContext dbContext)
         : IBytesControllerService
     {
         public async Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash,
-            HttpContext httpContext)
+            SwarmHash hash)
         {
             var chunkJoiner = new ChunkJoiner(beehiveChunkStore);
             var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(hash, null, false));
@@ -41,13 +41,49 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             return new FileStreamResult(dataStream, "application/octet-stream");
         }
 
-        public async Task<IResult> UploadBytesAsync(
+        public async Task<IActionResult> UploadBytesAsync(
             PostageBatchId batchId,
+            ushort compactLevel,
+            bool pinContent,
             HttpContext httpContext)
         {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            
+            // Create db chunk store, with pinning if required.
+            ChunkPin? pin = null;
+            if (pinContent)
+            {
+                pin = new ChunkPin(null); //set root hash later
+                await dbContext.ChunkPins.CreateAsync(pin);
+                pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
+            }
+            var dbChunkStore = new DbChunkStore(dbContext, pin);
+            
+            // Create and store chunks.
+            var postageStamper = new FakePostageStamper();
+            using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
+                dbChunkStore,
+                postageStamper,
+                RedundancyLevel.None,
+                false,
+                compactLevel,
+                null);
+            var hashingResult = await fileHasherPipeline.HashDataAsync(httpContext.Request.Body).ConfigureAwait(false);
+            
+            // Update pin, if required.
+            if (pin != null)
+            {
+                pin.SetChunkReference(hashingResult);
+                await dbContext.SaveChangesAsync();
+            }
+
+            return new JsonResult(new ChunkReferenceDto(
+                hashingResult.Hash,
+                hashingResult.EncryptionKey,
+                hashingResult.UseRecursiveEncryption))
+            {
+                StatusCode = StatusCodes.Status201Created
+            };
         }
     }
 }

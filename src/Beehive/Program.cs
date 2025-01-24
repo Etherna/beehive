@@ -271,7 +271,6 @@ namespace Etherna.Beehive
             // Configure domain services and tools.
             services.AddDomainServices();
             services.AddTransient<IBeehiveChunkStore, BeehiveChunkStore>();
-            services.AddTransient<IDbChunkStore, DbChunkStore>();
         }
 
         private static void ConfigureApplication(WebApplication app)

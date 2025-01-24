@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
@@ -21,9 +22,13 @@ namespace Etherna.Beehive.Services.Chunks
 {
     public sealed class BeehiveChunkStore(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IDbChunkStore dbChunkStore)
+        IBeehiveDbContext dbContext)
         : ReadOnlyChunkStoreBase, IBeehiveChunkStore
     {
+        // Fields.
+        private readonly DbChunkStore dbChunkStore = new(dbContext);
+        
+        // Methods.
         protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash)
         {
             // Try load from db first.

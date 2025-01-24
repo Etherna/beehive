@@ -22,11 +22,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public interface IBytesControllerService
     {
         Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash,
-            HttpContext httpContext);
+            SwarmHash hash);
         
-        Task<IResult> UploadBytesAsync(
+        Task<IActionResult> UploadBytesAsync(
             PostageBatchId batchId,
+            ushort compactLevel,
+            bool pinContent,
             HttpContext httpContext);
     }
 }
