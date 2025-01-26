@@ -23,6 +23,7 @@ using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -51,13 +52,21 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             // Create db chunk store, with pinning if required.
             ChunkPin? pin = null;
+            List<UploadedChunkRef> chunkRefs = [];
             if (pinContent)
             {
                 pin = new ChunkPin(null); //set root hash later
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            var dbChunkStore = new DbChunkStore(dbContext, pin);
+            var dbChunkStore = new DbChunkStore(
+                dbContext,
+                onSavingChunk: c =>
+                {
+                    if (pin != null)
+                        c.AddPin(pin);
+                    chunkRefs.Add(new(c.Hash, batchId));
+                });
             
             // Create and store chunks.
             using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
@@ -68,6 +77,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 compactLevel,
                 null);
             var hashingResult = await fileHasherPipeline.HashDataAsync(httpContext.Request.Body).ConfigureAwait(false);
+            await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
             
             // Update pin, if required.
             if (pin != null)

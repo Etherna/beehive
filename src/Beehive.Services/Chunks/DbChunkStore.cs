@@ -27,7 +27,7 @@ namespace Etherna.Beehive.Services.Chunks
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
     public sealed class DbChunkStore(
         IBeehiveDbContext dbContext,
-        ChunkPin? saveWithPin = null)
+        Action<Chunk>? onSavingChunk = null)
         : ChunkStoreBase
     {
         protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash)
@@ -82,8 +82,9 @@ namespace Etherna.Beehive.Services.Chunks
             try
             {
                 var domainChunk = new Chunk(chunk.Hash, chunk.GetSpanAndData());
-                if (saveWithPin != null)
-                    domainChunk.AddPin(saveWithPin);
+
+                onSavingChunk?.Invoke(domainChunk);
+                
                 await dbContext.Chunks.CreateAsync(domainChunk);
                 return true;
             }
