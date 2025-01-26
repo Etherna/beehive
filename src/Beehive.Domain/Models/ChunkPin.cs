@@ -22,9 +22,7 @@ namespace Etherna.Beehive.Domain.Models
     public class ChunkPin : EntityModelBase<string>
     {
         // Consts.
-#pragma warning disable CA1051
-        public readonly TimeSpan TemporaryPinTtl = TimeSpan.FromHours(24);
-#pragma warning restore CA1051
+        private readonly TimeSpan provisionalTtl = TimeSpan.FromHours(24);
         
         // Fields.
         private List<SwarmHash> missingChunks = [];
@@ -35,8 +33,7 @@ namespace Etherna.Beehive.Domain.Models
         /// </summary>
         /// <param name="hash">
         /// The root pinning hash.
-        /// Set to null to have a temporary pin, when the root hash isn't known upfront.
-        /// Consider <see cref="TemporaryPinTtl"/> as TTL for a temporary pin.
+        /// Set to null for a provisional pin, when the chunk reference isn't known upfront.
         /// </param>
         public ChunkPin(SwarmHash? hash)
         {
@@ -47,27 +44,35 @@ namespace Etherna.Beehive.Domain.Models
         protected ChunkPin() { }
 
         // Properties.
+        public virtual XorEncryptKey? EncryptionKey { get; protected set; }
+        public virtual SwarmHash? Hash { get; protected set; }
+        public virtual bool IsExpired =>
+            !Hash.HasValue &&
+            CreationDateTime + provisionalTtl < DateTime.UtcNow;
+        public virtual bool IsProcessed { get; protected set; }
+        public virtual bool IsSucceeded { get; protected set; }
         public virtual IEnumerable<SwarmHash> MissingChunks
         {
             get => missingChunks;
             set => missingChunks = new List<SwarmHash>(value ?? []);
         }
-        public virtual SwarmHash? Hash { get; protected set; }
-        public virtual bool IsAlive => Hash.HasValue ||
-                                       CreationDateTime + TemporaryPinTtl >= DateTime.UtcNow;
-        public virtual bool IsProcessed { get; protected set; }
-        public virtual bool IsSucceeded { get; protected set; }
+        public virtual bool RecursiveEncryption { get; protected set; }
         public virtual long TotPinnedChunks { get; protected set; }
         
         // Methods.
+        [PropertyAlterer(nameof(EncryptionKey))]
         [PropertyAlterer(nameof(Hash))]
-        public virtual void SetChunkReference(SwarmChunkReference reference)
+        [PropertyAlterer(nameof(RecursiveEncryption))]
+        public virtual void UpgradeProvisional(SwarmChunkReference rootChunkRef)
         {
-            ArgumentNullException.ThrowIfNull(reference, nameof(reference));
-            
+            ArgumentNullException.ThrowIfNull(rootChunkRef, nameof(rootChunkRef));
+
             if (Hash.HasValue)
                 throw new InvalidOperationException();
-            Hash = reference.Hash;
+            
+            EncryptionKey = rootChunkRef.EncryptionKey;
+            Hash = rootChunkRef.Hash;
+            RecursiveEncryption = rootChunkRef.UseRecursiveEncryption;
         }
     }
 }

@@ -60,10 +60,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var dbChunkStore = new DbChunkStore(dbContext, pin);
             
             // Create and store chunks.
-            var postageStamper = new FakePostageStamper();
             using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                 dbChunkStore,
-                postageStamper,
+                new FakePostageStamper(),
                 RedundancyLevel.None,
                 false,
                 compactLevel,
@@ -73,7 +72,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Update pin, if required.
             if (pin != null)
             {
-                pin.SetChunkReference(hashingResult);
+                pin.UpgradeProvisional(hashingResult);
                 await dbContext.SaveChangesAsync();
             }
 
