@@ -34,10 +34,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         : IBytesControllerService
     {
         public async Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash)
+            SwarmHash hash,
+            XorEncryptKey? encryptionKey,
+            bool recursiveEncryption)
         {
             var chunkJoiner = new ChunkJoiner(beehiveChunkStore);
-            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(hash, null, false));
+            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(
+                hash,
+                encryptionKey,
+                recursiveEncryption));
 
             return new FileStreamResult(dataStream, "application/octet-stream");
         }

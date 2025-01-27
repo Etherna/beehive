@@ -17,5 +17,7 @@ namespace Etherna.Beehive.Configs
     public static class BeehiveHttpConsts
     {
         public const string SwarmCompactLevelHeader = "swarm-compact-level";
+        public const string SwarmEncryptionKey = "swarm-encryption-key";
+        public const string SwarmRecursiveEncryption = "swarm-recursive-encryption";
     }
 }
