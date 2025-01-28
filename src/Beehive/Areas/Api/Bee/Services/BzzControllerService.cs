@@ -18,7 +18,6 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
-using Etherna.Beehive.Services.Chunks;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Manifest;
@@ -53,7 +52,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Try to get from chunk's db.
             try
             {
-                var chunkStore = new DbChunkStore(dbContext);
+                var chunkStore = new BeehiveChunkStore(
+                    beeNodeLiveManager,
+                    dbContext);
                 var chunkJoiner = new ChunkJoiner(chunkStore);
                 var rootManifest = new ReferencedMantarayManifest(
                     chunkStore,
@@ -107,7 +108,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            var dbChunkStore = new DbChunkStore(
+            var dbChunkStore = new BeehiveChunkStore(
+                beeNodeLiveManager,
                 dbContext,
                 onSavingChunk: c =>
                 {

@@ -17,7 +17,6 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
-using Etherna.Beehive.Services.Chunks;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Bmt;
@@ -105,7 +104,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
         {
             // Try to get from chunk's db.
-            var chunkStore = new DbChunkStore(dbContext);
+            var chunkStore = new BeehiveChunkStore(
+                beeNodeLiveManager,
+                dbContext);
             try
             {
                 var chunk = await chunkStore.GetAsync(hash);

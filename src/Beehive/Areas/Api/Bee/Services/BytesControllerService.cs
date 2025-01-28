@@ -15,7 +15,6 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
-using Etherna.Beehive.Services.Chunks;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing.Pipeline;
@@ -66,7 +65,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            var dbChunkStore = new DbChunkStore(
+            var dbChunkStore = new BeehiveChunkStore(
+                beeNodeLiveManager,
                 dbContext,
                 onSavingChunk: c =>
                 {

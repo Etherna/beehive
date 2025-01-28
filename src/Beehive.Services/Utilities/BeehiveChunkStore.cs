@@ -16,36 +16,23 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
+using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongODM.Core.Utility;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Chunks
+namespace Etherna.Beehive.Services.Utilities
 {
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-    public sealed class DbChunkStore(
+    public sealed class BeehiveChunkStore(
+        IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         Action<Chunk>? onSavingChunk = null)
         : ChunkStoreBase
     {
-        protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash)
-        {
-            using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
-
-            //try find on repository
-            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
-            byte[]? payload = null;
-            if (chunk is not null)
-                payload = chunk.Payload.ToArray();
-            
-            //fallback on old gridfs
-            payload ??= await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString());
-            
-            return SwarmChunk.BuildFromSpanAndData(hash, payload);
-        }
-
+        // Methods.
         protected override async Task<bool> DeleteChunkAsync(SwarmHash hash)
         {
             using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
@@ -73,6 +60,35 @@ namespace Etherna.Beehive.Services.Chunks
             return found;
         }
 
+        protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash)
+        {
+            // Try load from db first.
+            using(var _ = new DbExecutionContextHandler(dbContext))
+            {
+                //try to find on repository
+                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
+                if (chunkModel is not null)
+                {
+                    var payload = chunkModel.Payload.ToArray();
+                    return SwarmChunk.BuildFromSpanAndData(hash, payload);
+                }
+            
+                //fallback on old gridfs
+                try
+                {
+                    var payload = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString());
+                    return SwarmChunk.BuildFromSpanAndData(hash, payload);
+                }
+                catch (GridFSFileNotFoundException)
+                { }
+            }
+            
+            // If it's not found, search on a healthy bee node.
+            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+            var beeClientChunkStore = new BeeClientChunkStore(node.Client);
+            return await beeClientChunkStore.GetAsync(hash);
+        }
+        
         protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)
         {
             ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
