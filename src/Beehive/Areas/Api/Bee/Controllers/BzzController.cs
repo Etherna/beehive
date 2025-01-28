@@ -15,6 +15,7 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -46,8 +47,24 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> UploadBzzAsync(
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadBzzAsync(batchId, HttpContext);
+        public Task<IActionResult> UploadBzzAsync(
+            [FromQuery] string? name,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
+            [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
+            [FromHeader(Name = SwarmHttpConsts.ContentTypeHeader), Required] string contentType,
+            [FromHeader(Name = SwarmHttpConsts.SwarmCollectionHeader)] bool isDirectory,
+            [FromHeader(Name = SwarmHttpConsts.SwarmIndexDocumentHeader)] string? indexDocument,
+            [FromHeader(Name = SwarmHttpConsts.SwarmErrorDocumentHeader)] string? errorDocument) =>
+            service.UploadBzzAsync(
+                name,
+                batchId,
+                compactLevel,
+                pinContent,
+                contentType,
+                isDirectory,
+                indexDocument,
+                errorDocument,
+                HttpContext);
     }
 }

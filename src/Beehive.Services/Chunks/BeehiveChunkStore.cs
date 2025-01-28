@@ -23,7 +23,7 @@ namespace Etherna.Beehive.Services.Chunks
     public sealed class BeehiveChunkStore(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext)
-        : ReadOnlyChunkStoreBase, IBeehiveChunkStore
+        : ReadOnlyChunkStoreBase
     {
         // Fields.
         private readonly DbChunkStore dbChunkStore = new(dbContext);

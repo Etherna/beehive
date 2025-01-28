@@ -39,8 +39,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IActionResult> DownloadBytesAsync(
             SwarmHash hash,
-            [FromHeader(Name = BeehiveHttpConsts.SwarmEncryptionKey)] XorEncryptKey? encryptionKey,
-            [FromHeader(Name = BeehiveHttpConsts.SwarmRecursiveEncryption)] bool recursiveEncryption) =>
+            [FromHeader(Name = BeehiveHttpConsts.SwarmEncryptionKeyHeader)] XorEncryptKey? encryptionKey,
+            [FromHeader(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionHeader)] bool recursiveEncryption) =>
             service.DownloadBytesAsync(hash, encryptionKey, recursiveEncryption);
         
         // Post.

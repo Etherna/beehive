@@ -62,8 +62,10 @@ namespace Etherna.Beehive.Domain.Models
         // Methods.
         [PropertyAlterer(nameof(EncryptionKey))]
         [PropertyAlterer(nameof(Hash))]
+        [PropertyAlterer(nameof(IsProcessed))]
+        [PropertyAlterer(nameof(IsSucceeded))]
         [PropertyAlterer(nameof(RecursiveEncryption))]
-        public virtual void UpgradeProvisional(SwarmChunkReference rootChunkRef)
+        public virtual void SucceededProvisional(SwarmChunkReference rootChunkRef)
         {
             ArgumentNullException.ThrowIfNull(rootChunkRef, nameof(rootChunkRef));
 
@@ -72,6 +74,8 @@ namespace Etherna.Beehive.Domain.Models
             
             EncryptionKey = rootChunkRef.EncryptionKey;
             Hash = rootChunkRef.Hash;
+            IsProcessed = true;
+            IsSucceeded = true;
             RecursiveEncryption = rootChunkRef.UseRecursiveEncryption;
         }
     }

@@ -268,9 +268,8 @@ namespace Etherna.Beehive
                 BasePath = CommonConsts.DatabaseAdminPath
             });
 
-            // Configure domain services and tools.
+            // Configure domain services.
             services.AddDomainServices();
-            services.AddTransient<IBeehiveChunkStore, BeehiveChunkStore>();
         }
 
         private static void ConfigureApplication(WebApplication app)

@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -24,8 +25,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             SwarmAddress address,
             HttpContext httpContext);
 
-        Task<IResult> UploadBzzAsync(
+        Task<IActionResult> UploadBzzAsync(
+            string? name,
             PostageBatchId batchId,
+            ushort compactLevel,
+            bool pinContent,
+            string contentType,
+            bool isDirectory,
+            string? indexDocument,
+            string? errorDocument,
             HttpContext httpContext);
     }
 }

@@ -16,6 +16,7 @@ using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Chunks;
+using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Hashing.Postage;
@@ -29,7 +30,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BytesControllerService(
-        IBeehiveChunkStore beehiveChunkStore,
+        IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext)
         : IBytesControllerService
     {
@@ -38,7 +39,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             XorEncryptKey? encryptionKey,
             bool recursiveEncryption)
         {
-            var chunkJoiner = new ChunkJoiner(beehiveChunkStore);
+            var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            var chunkJoiner = new ChunkJoiner(chunkStore);
             var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(
                 hash,
                 encryptionKey,
@@ -87,7 +89,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Update pin, if required.
             if (pin != null)
             {
-                pin.UpgradeProvisional(hashingResult);
+                pin.SucceededProvisional(hashingResult);
                 await dbContext.SaveChangesAsync();
             }
 
