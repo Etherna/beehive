@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface IBzzControllerService
     {
-        Task<IResult> DownloadBzzAsync(
+        Task<IActionResult> DownloadBzzAsync(
             SwarmAddress address,
             HttpContext httpContext);
 

@@ -16,74 +16,125 @@ using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
-using Etherna.Beehive.Extensions;
-using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
+using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Util.HashProviders;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Formats.Tar;
 using System.IO;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BzzControllerService(
+        IBeeClient beeClient,
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkService beeNetChunkService,
         IBeehiveDbContext dbContext,
-        IHttpForwarder forwarder)
+        IFeedService feedService,
+        IHashProvider hashProvider)
         : IBzzControllerService
     {
-        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
-        public async Task<IResult> DownloadBzzAsync(
+        public async Task<IActionResult> DownloadBzzAsync(
             SwarmAddress address,
             HttpContext httpContext)
         {
-            // Try to get from chunk's db.
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            
+            var chunkStore = new BeehiveChunkStore(
+                beeNodeLiveManager,
+                dbContext);
+            
+            // Decode manifest.
+            var manifest = new ReferencedMantarayManifest(
+                chunkStore,
+                address.Hash);
+            
+            // Try to dereference feed manifest first.
+            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest, hashProvider);
+            if (feedManifest != null)
+            {
+                //dereference feed
+                var feedChunk = await feedManifest.TryFindFeedAtAsync(beeClient, DateTimeOffset.UtcNow, null);
+                if (feedChunk == null)
+                    throw new KeyNotFoundException("Can't find feed updates");
+
+                var wrappedChunk = await feedService.UnwrapChunkAsync(feedChunk, chunkStore);
+                address = new SwarmAddress(wrappedChunk.Hash, address.Path);
+                manifest = new ReferencedMantarayManifest(
+                    chunkStore,
+                    wrappedChunk.Hash);
+                
+                //report feed index header
+                var feedIndex = feedChunk.Index;
+                var binaryFeedIndex = feedIndex.MarshalBinary();
+                httpContext.Response.Headers[SwarmHttpConsts.SwarmFeedIndexHeader] = binaryFeedIndex.ToArray().ToHex();
+                httpContext.Response.Headers.Append(
+                    CorsConstants.AccessControlExposeHeaders,
+                    SwarmHttpConsts.SwarmFeedIndexHeader);
+
+                //report no cache headers
+                httpContext.Response.Headers.CacheControl = new[]
+                {
+                    "no-store",
+                    "no-cache",
+                    "must-revalidate",
+                    "proxy-revalidate"
+                };
+                httpContext.Response.Headers.Expires = "0";
+            }
+            
+            // Resolve content address.
             try
             {
-                var chunkStore = new BeehiveChunkStore(
-                    beeNodeLiveManager,
-                    dbContext);
-                var chunkJoiner = new ChunkJoiner(chunkStore);
-                var rootManifest = new ReferencedMantarayManifest(
-                    chunkStore,
-                    address.Hash);
-
-                var chunkReference = await rootManifest.ResolveAddressToChunkReferenceAsync(address.Path)
-                    .ConfigureAwait(false);
-
-                var metadata = await rootManifest.GetResourceMetadataAsync(address);
-                var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
-                    chunkReference,
-                    null,
-                    CancellationToken.None).ConfigureAwait(false);
-
-                metadata.TryGetValue("Content-Type", out var contentType);
-                metadata.TryGetValue("Filename", out var fileName);
-
-                return Results.File(dataStream, contentType, fileName);
+                return await ServeContentAsync(
+                    manifest,
+                    address.Path,
+                    httpContext,
+                    chunkStore).ConfigureAwait(false);
             }
-            catch
+            catch(KeyNotFoundException)
             {
-            } //proceed with forward on any error
-
-            // Select node and forward request.
-            var node = await beeNodeLiveManager.SelectDownloadNodeAsync(address);
-            return await node.ForwardRequestAsync(
-                forwarder,
-                httpContext,
-                new DownloadHttpTransformer());
+                // Check for existing directory redirect. Example: /mydir?args -> /mydir/?args
+                if (!address.Path.EndsWith(SwarmAddress.Separator) &&
+                    await manifest.HasPathPrefixAsync(address.Path + SwarmAddress.Separator))
+                    return new RedirectResult(
+                        httpContext.Request.Path + SwarmAddress.Separator + httpContext.Request.QueryString,
+                        true);
+                
+                // Check index suffix to path.
+                var metadata = await manifest.GetResourceMetadataAsync(MantarayManifest.RootPath);
+                if (metadata.TryGetValue(ManifestEntry.WebsiteIndexDocPathKey, out var indexDocument) &&
+                    Path.GetFileName(address.Path) != indexDocument)
+                    return await ServeContentAsync(
+                        manifest,
+                        Path.Combine(address.Path, indexDocument),
+                        httpContext,
+                        chunkStore).ConfigureAwait(false);
+                
+                // check if error document is to be shown
+                if (metadata.TryGetValue(ManifestEntry.WebsiteErrorDocPathKey, out var errorDocument) &&
+                    address.Path != SwarmAddress.Separator + errorDocument)
+                    return await ServeContentAsync(
+                        manifest,
+                        errorDocument,
+                        httpContext,
+                        chunkStore).ConfigureAwait(false);
+                
+                throw;
+            }
         }
 
         public async Task<IActionResult> UploadBzzAsync(
@@ -203,6 +254,45 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 hashingResult.UseRecursiveEncryption))
             {
                 StatusCode = StatusCodes.Status201Created
+            };
+        }
+        
+        // Helpers.
+        private static async Task<IActionResult> ServeContentAsync(
+            ReferencedMantarayManifest manifest,
+            string contentPath,
+            HttpContext httpContext,
+            BeehiveChunkStore chunkStore)
+        {
+            var reference = await manifest.ResolveAddressToChunkReferenceAsync(contentPath);
+            
+            // Get metadata.
+            var metadata = await manifest.GetResourceMetadataAsync(contentPath);
+            
+            if (!metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
+                mimeType = FileContentTypeProvider.DefaultContentType;
+            if (!metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
+                filename = reference.Hash.ToString();
+            
+            // Set custom headers.
+            var contentDisposition = new ContentDisposition
+            {
+                FileName = filename,
+                Inline = true
+            };
+            httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
+            httpContext.Response.Headers.AccessControlExposeHeaders = HeaderNames.ContentDisposition;
+            
+            // Return content.
+            var chunkJoiner = new ChunkJoiner(chunkStore);
+            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
+                reference,
+                null,
+                CancellationToken.None).ConfigureAwait(false);
+
+            return new FileStreamResult(dataStream, mimeType)
+            {
+                EnableRangeProcessing = true
             };
         }
     }
