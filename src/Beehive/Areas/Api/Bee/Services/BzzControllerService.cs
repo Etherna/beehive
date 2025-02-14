@@ -17,7 +17,6 @@ using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
@@ -39,7 +38,6 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BzzControllerService(
-        IBeeClient beeClient,
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkService beeNetChunkService,
         IBeehiveDbContext dbContext,
@@ -67,7 +65,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (feedManifest != null)
             {
                 //dereference feed
-                var feedChunk = await feedManifest.TryFindFeedAtAsync(beeClient, DateTimeOffset.UtcNow, null);
+                var healthyNode = await beeNodeLiveManager.SelectHealthyNodeAsync();
+                var feedChunk = await feedManifest.TryFindFeedAtAsync(healthyNode.Client, DateTimeOffset.UtcNow, null);
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
