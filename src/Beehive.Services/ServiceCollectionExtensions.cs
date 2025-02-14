@@ -15,7 +15,6 @@
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Services;
 using Etherna.DomainEvents;
 using Etherna.DomainEvents.AspNetCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,8 +45,6 @@ namespace Etherna.Beehive.Services
             //domain
             services.AddScoped<IBeeNodeService, BeeNodeService>();
             services.AddScoped<IChunkPinLockService, ChunkPinLockService>();
-            services.AddScoped<IChunkService, ChunkService>();
-            services.AddScoped<IFeedService, FeedService>();
 
             // Utilities.
             services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();

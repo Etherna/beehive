@@ -14,8 +14,8 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
+using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
-using Etherna.BeeNet.Stores;
 using Hangfire.Server;
 using System;
 using System.Threading.Tasks;
@@ -23,9 +23,9 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Services.Tasks
 {
     public class PinChunksTask(
-        IBeehiveDbContext dbContext,
+        IBeeNodeLiveManager beeNodeLiveManager,
         IChunkPinLockService chunkPinLockService,
-        IChunkStore chunkStore)
+        IBeehiveDbContext dbContext)
         : IPinChunksTask
     {
         // Methods.
@@ -47,6 +47,7 @@ namespace Etherna.Beehive.Services.Tasks
                 if (pin.IsSucceeded)
                     return;
 
+                var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
                 var chunkTraverser = new ChunkTraverser(chunkStore);
 
                 await chunkTraverser.TraverseFromMantarayManifestRootAsync(

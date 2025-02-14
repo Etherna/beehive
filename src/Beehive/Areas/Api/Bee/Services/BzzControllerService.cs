@@ -18,6 +18,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
@@ -26,7 +27,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using Nethereum.Hex.HexConvertors.Extensions;
-using Nethereum.Util.HashProviders;
 using System;
 using System.Collections.Generic;
 using System.Formats.Tar;
@@ -41,8 +41,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkService beeNetChunkService,
         IBeehiveDbContext dbContext,
-        IFeedService feedService,
-        IHashProvider hashProvider)
+        IFeedService feedService)
         : IBzzControllerService
     {
         public async Task<IActionResult> DownloadBzzAsync(
@@ -61,7 +60,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 address.Hash);
             
             // Try to dereference feed manifest first.
-            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest, hashProvider);
+            var hasher = new Hasher();
+            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest, hasher);
             if (feedManifest != null)
             {
                 //dereference feed

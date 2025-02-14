@@ -17,7 +17,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Tasks;
-using Etherna.BeeNet.Stores;
+using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Extensions;
 using Hangfire;
@@ -29,9 +29,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class PinsControllerService(
         IBackgroundJobClient backgroundJobClient,
+        IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
-        IChunkPinLockService chunkPinLockService,
-        IChunkStore chunkStore)
+        IChunkPinLockService chunkPinLockService)
         : IPinsControllerService
     {
         public Task CreatePinBeeAsync(string hash) =>
@@ -91,9 +91,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             else
             {
                 var task = new PinChunksTask(
-                    dbContext,
+                    beeNodeLiveManager,
                     chunkPinLockService,
-                    chunkStore);
+                    dbContext);
                 await task.RunAsync(pin.Id, null!);
             }
         }
