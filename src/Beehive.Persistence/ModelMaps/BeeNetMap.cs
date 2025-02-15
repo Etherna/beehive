@@ -38,6 +38,10 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             dbContext.MapRegistry.AddModelMap<SwarmUri>( //v0.4.0
                 "99d8f98f-cfa4-4490-aeda-5dc2df7fdba8",
                 customSerializer: new SwarmUriSerializer());
+            
+            dbContext.MapRegistry.AddModelMap<XorEncryptKey>( //0.4.0
+                "b8605f33-e199-4756-9c86-a0798641d5e1",
+                customSerializer: new XorEncryptKeySerializer());
         }
     }
 }

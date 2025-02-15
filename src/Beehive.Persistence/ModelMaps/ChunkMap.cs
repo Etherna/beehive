@@ -15,7 +15,9 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
 using Etherna.MongODM.Core;
+using Etherna.MongODM.Core.Extensions;
 using Etherna.MongODM.Core.Serialization;
+using Etherna.MongODM.Core.Serialization.Serializers;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
@@ -28,8 +30,10 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 mm =>
                 {
                     mm.AutoMap();
-                    mm.MapProperty(c => c.Payload).SetSerializer(ByteArraySerializer.Instance);
-                    mm.MapProperty(c => c.Pins).SetSerializer(ChunkPinMap.ReferenceSerializer(dbContext));
+
+                    // Set members with custom serializers.
+                    mm.SetMemberSerializer(c => c.Payload, ByteArraySerializer.Instance);
+                    mm.SetMemberSerializer(c => c.Pins, new EnumerableSerializer<ChunkPin>(ChunkPinMap.ReferenceSerializer(dbContext)));
                 });
         }
     }
