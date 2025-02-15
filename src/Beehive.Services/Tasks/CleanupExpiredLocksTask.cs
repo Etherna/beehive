@@ -12,19 +12,29 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain;
+using Etherna.MongoDB.Driver.Linq;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks
 {
-    public class CleanupExpiredLocksTask : ICleanupExpiredLocksTask
+    public class CleanupExpiredLocksTask(IBeehiveDbContext dbContext)
+        : ICleanupExpiredLocksTask
     {
         // Consts.
         public const string TaskId = "cleanupExpiredLocksTask";
 
         // Methods.
-        public Task RunAsync()
+        public async Task RunAsync()
         {
-            throw new System.NotImplementedException();
+            var expiredLocks = await dbContext.ChunkPinLocks.QueryElementsAsync(elements =>
+                elements.Where(l => l.ExpirationTime < DateTime.UtcNow)
+                    .ToListAsync());
+
+            foreach (var expiredLock in expiredLocks)
+                await dbContext.ChunkPinLocks.DeleteAsync(expiredLock);
         }
     }
 }
