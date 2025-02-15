@@ -114,9 +114,9 @@ namespace Etherna.Beehive.Services.Tasks
                     decimal? bzzNodeAmount = null;
                     try
                     {
-                        var balanceOfFunctionMessage = new BalanceOfFunction()
+                        var balanceOfFunctionMessage = new BalanceOfFunction
                         {
-                            Owner = node.Status.Addresses.Ethereum
+                            Owner = node.Status.Addresses.Ethereum.ToString()
                         };
                         var balanceHandler = tresureChestWeb3!.Eth.GetContractQueryHandler<BalanceOfFunction>();
                         var plurBalance = await balanceHandler.QueryAsync<BigInteger>(options.BzzContractAddress, balanceOfFunctionMessage);
@@ -131,9 +131,9 @@ namespace Etherna.Beehive.Services.Tasks
                         try
                         {
                             var transferHandler = tresureChestWeb3!.Eth.GetContractTransactionHandler<TransferFunction>();
-                            var transferFunctionMessage = new TransferFunction()
+                            var transferFunctionMessage = new TransferFunction
                             {
-                                To = node.Status.Addresses.Ethereum,
+                                To = node.Status.Addresses.Ethereum.ToString(),
                                 Value = Web3.Convert.ToWei(bzzFundAmount, BzzDecimalPlaces)
                             };
                             var tx = await transferHandler.SendRequestAndWaitForReceiptAsync(options.BzzContractAddress, transferFunctionMessage);
@@ -157,7 +157,8 @@ namespace Etherna.Beehive.Services.Tasks
                     decimal? xDaiNodeAmount = null;
                     try
                     {
-                        var weiBalance = await tresureChestWeb3!.Eth.GetBalance.SendRequestAsync(node.Status.Addresses.Ethereum);
+                        var weiBalance = await tresureChestWeb3!.Eth.GetBalance.SendRequestAsync(
+                            node.Status.Addresses.Ethereum.ToString());
                         xDaiNodeAmount = Web3.Convert.FromWei(weiBalance);
                     }
                     catch { }
@@ -169,7 +170,9 @@ namespace Etherna.Beehive.Services.Tasks
                         try
                         {
                             var tx = await tresureChestWeb3!.Eth.GetEtherTransferService()
-                                .TransferEtherAndWaitForReceiptAsync(node.Status.Addresses.Ethereum, xDaiFundAmount);
+                                .TransferEtherAndWaitForReceiptAsync(
+                                    node.Status.Addresses.Ethereum.ToString(),
+                                    xDaiFundAmount);
 
                             if (tx.Succeeded())
                                 logger.SuccededToFundXDaiOnNodeAddress(node.Id, xDaiFundAmount, xDaiNodeAmount.Value + xDaiFundAmount, tx.TransactionHash);

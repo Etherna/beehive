@@ -12,33 +12,21 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Nethereum.Util;
+using Etherna.BeeNet.Models;
 using System;
 
 namespace Etherna.Beehive.Services.Utilities.Models
 {
-    public class BeeNodeAddresses
+    public class BeeNodeAddresses(
+        EthAddress ethereum,
+        string overlay,
+        string pssPublicKey,
+        string publicKey)
     {
-        // Constructors.
-        public BeeNodeAddresses(
-            string ethereum,
-            string overlay,
-            string pssPublicKey,
-            string publicKey)
-        {
-            if (!ethereum.IsValidEthereumAddressHexFormat())
-                throw new ArgumentException("The value is not a valid address", nameof(ethereum));
-
-            Ethereum = ethereum.ConvertToEthereumChecksumAddress();
-            Overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
-            PssPublicKey = pssPublicKey ?? throw new ArgumentNullException(nameof(pssPublicKey));
-            PublicKey = publicKey ?? throw new ArgumentNullException(nameof(publicKey));
-        }
-
         // Properties.
-        public string Ethereum { get; }
-        public string Overlay { get; }
-        public string PssPublicKey { get; }
-        public string PublicKey { get; }
+        public EthAddress Ethereum { get; } = ethereum;
+        public string Overlay { get; } = overlay ?? throw new ArgumentNullException(nameof(overlay));
+        public string PssPublicKey { get; } = pssPublicKey ?? throw new ArgumentNullException(nameof(pssPublicKey));
+        public string PublicKey { get; } = publicKey ?? throw new ArgumentNullException(nameof(publicKey));
     }
 }

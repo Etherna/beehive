@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
 
@@ -21,7 +22,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.DtoModels
         string id,
         Uri connectionString,
         IEnumerable<string> errors,
-        string? ethereumAddress,
+        EthAddress? ethereumAddress,
         DateTime heartbeatTimeStamp,
         bool isAlive,
         bool isBatchCreationEnabled,
@@ -32,7 +33,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.DtoModels
         public string Id { get; } = id;
         public Uri ConnectionString { get; } = connectionString;
         public IEnumerable<string> Errors { get; } = errors;
-        public string? EthereumAddress { get; } = ethereumAddress;
+        public EthAddress? EthereumAddress { get; } = ethereumAddress;
         public DateTime HeartbeatTimeStamp { get; } = heartbeatTimeStamp;
         public bool IsAlive { get; } = isAlive;
         public bool IsBatchCreationEnabled { get; } = isBatchCreationEnabled;
