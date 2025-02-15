@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("soc")]
     [Route("v{api-version:apiVersion}/soc")]
     public class SocController(ISocControllerService service)

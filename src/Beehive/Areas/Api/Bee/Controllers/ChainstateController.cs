@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("chainstate")]
     [Route("v{api-version:apiVersion}/chainstate")]
     public class ChainstateController(IChainstateControllerService service)

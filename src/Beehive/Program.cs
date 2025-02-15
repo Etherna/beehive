@@ -291,6 +291,8 @@ namespace Etherna.Beehive
 
             app.UseStaticFiles();
             app.UseRouting();
+            
+            app.UseAuthorization();
 
             // Add Hangfire.
             app.UseHangfireDashboard(

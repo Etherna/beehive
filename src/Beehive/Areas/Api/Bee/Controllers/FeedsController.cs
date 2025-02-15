@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("feeds")]
     [Route("v{api-version:apiVersion}/feeds")]
     public class FeedsController(IFeedsControllerService service)

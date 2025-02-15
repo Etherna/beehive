@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("pss")]
     [Route("v{api-version:apiVersion}/pss")]
     public class PssController(IPssControllerService service)

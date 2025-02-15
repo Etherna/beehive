@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("pins")]
     [Route("v{api-version:apiVersion}/pins")]
     public class PinsController(IPinsControllerService service)

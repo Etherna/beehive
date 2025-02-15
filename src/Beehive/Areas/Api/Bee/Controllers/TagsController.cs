@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("tags")]
     [Route("v{api-version:apiVersion}/tags")]
     public class TagsController(ITagsControllerService service)

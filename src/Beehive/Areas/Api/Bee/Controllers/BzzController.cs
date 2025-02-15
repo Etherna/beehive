@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
     [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
     [Route("bzz")]
     [Route("v{api-version:apiVersion}/bzz")]
     public class BzzController(IBzzControllerService service)
