@@ -104,7 +104,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
         {
             // Try to get from chunk's db.
-            var chunkStore = new BeehiveChunkStore(
+            using var chunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext);
             try

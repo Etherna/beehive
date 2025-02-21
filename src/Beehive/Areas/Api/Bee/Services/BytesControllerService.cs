@@ -33,12 +33,16 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBeehiveDbContext dbContext)
         : IBytesControllerService
     {
+        // Consts.
+        private const int ChunkStoreBufferSize = 10000; //~40MB
+        
+        // Methods.
         public async Task<IActionResult> DownloadBytesAsync(
             SwarmHash hash,
             XorEncryptKey? encryptionKey,
             bool recursiveEncryption)
         {
-            var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
             var chunkJoiner = new ChunkJoiner(chunkStore);
             var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(
                 hash,
@@ -65,9 +69,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            var dbChunkStore = new BeehiveChunkStore(
+            using var dbChunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
+                chunkSavingBufferSize: ChunkStoreBufferSize,
                 onSavingChunk: c =>
                 {
                     if (pin != null)

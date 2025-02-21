@@ -44,13 +44,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IFeedService feedService)
         : IBzzControllerService
     {
+        // Consts.
+        private const int ChunkStoreBufferSize = 10000; //~40MB
+
+        // Methods.
         public async Task<IActionResult> DownloadBzzAsync(
             SwarmAddress address,
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
-            var chunkStore = new BeehiveChunkStore(
+            using var chunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext);
             
@@ -158,9 +162,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            var dbChunkStore = new BeehiveChunkStore(
+            using var dbChunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
+                chunkSavingBufferSize: ChunkStoreBufferSize,
                 onSavingChunk: c =>
                 {
                     if (pin != null)

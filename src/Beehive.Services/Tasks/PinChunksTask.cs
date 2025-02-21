@@ -47,7 +47,7 @@ namespace Etherna.Beehive.Services.Tasks
                 if (pin.IsSucceeded)
                     return;
 
-                var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+                using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
                 var chunkTraverser = new ChunkTraverser(chunkStore);
 
                 await chunkTraverser.TraverseFromMantarayManifestRootAsync(
