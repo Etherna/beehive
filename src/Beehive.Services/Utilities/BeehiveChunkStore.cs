@@ -33,7 +33,7 @@ namespace Etherna.Beehive.Services.Utilities
         IBeehiveDbContext dbContext,
         int chunkSavingBufferSize = 0,
         Action<Chunk>? onSavingChunk = null)
-        : ChunkStoreBase, IDisposable
+        : ChunkStoreBase, IAsyncDisposable, IDisposable
     {
         // Fields.
         private readonly ConcurrentDictionary<SwarmHash, Chunk> chunkSavingBuffer = new();
@@ -51,11 +51,32 @@ namespace Etherna.Beehive.Services.Utilities
         private void Dispose(bool disposing)
         {
             if (disposed) return;
+        
+            // Force a flush.
+            var flushTask = FlushSaveAsync();
+            flushTask.Wait();
 
             // Dispose managed resources.
             if (disposing)
                 flushSemaphore.Dispose();
+        
+            disposed = true;
+        }
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore();
+            GC.SuppressFinalize(this);
+        }
+        private async ValueTask DisposeAsyncCore()
+        {
+            if (disposed) return;
 
+            // Force a flush.
+            await FlushSaveAsync();
+            
+            // Dispose managed resources.
+            flushSemaphore.Dispose();
+        
             disposed = true;
         }
         
@@ -83,7 +104,7 @@ namespace Etherna.Beehive.Services.Utilities
                 // Write on db before to remove from buffer. This permits to have chunks available always.
                 await dbContext.Chunks.CreateAsync(chunks); 
                 foreach (var chunk in chunks)
-                    chunkSavingBuffer.TryRemove(chunk.Id, out _);
+                    chunkSavingBuffer.TryRemove(chunk.Hash, out _);
             }
             finally
             {

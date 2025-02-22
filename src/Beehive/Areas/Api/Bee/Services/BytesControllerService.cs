@@ -59,17 +59,20 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
-            // Create db chunk store, with pinning if required.
+
+            // Create pin if required.
             ChunkPin? pin = null;
-            List<UploadedChunkRef> chunkRefs = [];
             if (pinContent)
             {
                 pin = new ChunkPin(null); //set root hash later
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            using var dbChunkStore = new BeehiveChunkStore(
+
+            // Upload.
+            List<UploadedChunkRef> chunkRefs = [];
+            SwarmChunkReference hashingResult;
+            var dbChunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
                 chunkSavingBufferSize: ChunkStoreBufferSize,
@@ -79,18 +82,23 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         c.AddPin(pin);
                     chunkRefs.Add(new(c.Hash, batchId));
                 });
-            
-            // Create and store chunks.
-            using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
-                dbChunkStore,
-                new FakePostageStamper(),
-                RedundancyLevel.None,
-                false,
-                compactLevel,
-                null);
-            var hashingResult = await fileHasherPipeline.HashDataAsync(httpContext.Request.Body).ConfigureAwait(false);
+            await using (dbChunkStore.ConfigureAwait(false))
+            {
+                // Create and store chunks.
+                using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
+                    dbChunkStore,
+                    new FakePostageStamper(),
+                    RedundancyLevel.None,
+                    false,
+                    compactLevel,
+                    null);
+                hashingResult = await fileHasherPipeline.HashDataAsync(httpContext.Request.Body).ConfigureAwait(false);
+
+                await dbChunkStore.FlushSaveAsync();
+            }
+
             await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
-            
+
             // Update pin, if required.
             if (pin != null)
             {
