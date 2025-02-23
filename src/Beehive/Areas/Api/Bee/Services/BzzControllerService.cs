@@ -44,9 +44,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IFeedService feedService)
         : IBzzControllerService
     {
-        // Consts.
-        private const int ChunkStoreBufferSize = 10000; //~40MB
-
         // Methods.
         public async Task<IActionResult> DownloadBzzAsync(
             SwarmAddress address,
@@ -165,7 +162,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             using var dbChunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
-                chunkSavingBufferSize: ChunkStoreBufferSize,
                 onSavingChunk: c =>
                 {
                     if (pin != null)

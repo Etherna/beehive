@@ -23,7 +23,7 @@ using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -33,9 +33,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBeehiveDbContext dbContext)
         : IBytesControllerService
     {
-        // Consts.
-        private const int ChunkStoreBufferSize = 10000; //~40MB
-        
         // Methods.
         public async Task<IActionResult> DownloadBytesAsync(
             SwarmHash hash,
@@ -70,12 +67,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             }
 
             // Upload.
-            List<UploadedChunkRef> chunkRefs = [];
+            ConcurrentBag<UploadedChunkRef> chunkRefs = [];
             SwarmChunkReference hashingResult;
             var dbChunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
-                chunkSavingBufferSize: ChunkStoreBufferSize,
                 onSavingChunk: c =>
                 {
                     if (pin != null)

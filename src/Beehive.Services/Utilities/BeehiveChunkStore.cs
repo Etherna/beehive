@@ -31,10 +31,13 @@ namespace Etherna.Beehive.Services.Utilities
     public sealed class BeehiveChunkStore(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
-        int chunkSavingBufferSize = 0,
+        int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
         Action<Chunk>? onSavingChunk = null)
         : ChunkStoreBase, IAsyncDisposable, IDisposable
     {
+        // Consts.
+        public const int DefaultSavingBufferLength = 10000; //~40MB
+        
         // Fields.
         private readonly ConcurrentDictionary<SwarmHash, Chunk> chunkSavingBuffer = new();
         private readonly SemaphoreSlim flushSemaphore = new(1, 1);
@@ -187,10 +190,10 @@ namespace Etherna.Beehive.Services.Utilities
 
                 onSavingChunk?.Invoke(domainChunk);
 
-                if (chunkSavingBufferSize > 0)
+                if (savingBufferLength > 0)
                 {
                     chunkSavingBuffer.TryAdd(chunk.Hash, domainChunk);
-                    if (chunkSavingBuffer.Count >= chunkSavingBufferSize)
+                    if (chunkSavingBuffer.Count >= savingBufferLength)
                         await FlushSaveAsync();
                 }
                 else
