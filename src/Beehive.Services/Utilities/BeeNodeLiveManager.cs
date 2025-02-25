@@ -109,15 +109,15 @@ namespace Etherna.Beehive.Services.Utilities
             return node ?? throw new InvalidOperationException();
         }
 
-        public BeeNodeLiveInstance SelectUploadNode(PostageBatchId batchId) =>
-            AllNodes.First(n => n.Status.PostageBatchesId.Contains(batchId));
-
         public void StartHealthHeartbeat() =>
             heartbeatTimer = new Timer(async _ =>
                 await HeartbeatCallbackAsync(), null, 0, (int)HeartbeatPeriod.TotalMilliseconds);
 
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
+
+        public BeeNodeLiveInstance? TryGetPostageBatchOwnerNode(PostageBatchId batchId) =>
+            AllNodes.FirstOrDefault(n => n.Status.PostageBatchesId.Contains(batchId));
 
         public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,

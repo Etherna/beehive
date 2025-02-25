@@ -17,6 +17,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.BeeNet.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
@@ -69,18 +70,22 @@ namespace Etherna.Beehive.Areas.Api.Services
 
         public async Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth)
         {
-            var beeNodeLiveInstance = beeNodeLiveManager.SelectUploadNode(batchId);
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
 
             // Top up.
-            return await beeNodeLiveInstance.DilutePostageBatchAsync(batchId, depth);
+            return await node.DilutePostageBatchAsync(batchId, depth);
         }
 
         public async Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount)
         {
-            var beeNodeLiveInstance = beeNodeLiveManager.SelectUploadNode(batchId);
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
 
             // Top up.
-            return await beeNodeLiveInstance.TopUpPostageBatchAsync(batchId, amount);
+            return await node.TopUpPostageBatchAsync(batchId, amount);
         }
     }
 }

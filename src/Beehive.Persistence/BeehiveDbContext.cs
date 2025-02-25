@@ -93,6 +93,16 @@ namespace Etherna.Beehive.Persistence
             }
         }
 
+        public IRepository<PostageBucketsCache, string> PostageBucketsCache { get; } = new Repository<PostageBucketsCache, string>(
+            new RepositoryOptions<PostageBucketsCache>("postageBucketsCache")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PostageBucketsCache>.IndexKeys.Ascending(b => b.BatchId),
+                        new CreateIndexOptions<PostageBucketsCache> { Unique = true })
+                ]
+            });
+
         //other properties
         public IEventDispatcher EventDispatcher { get; } = eventDispatcher;
 

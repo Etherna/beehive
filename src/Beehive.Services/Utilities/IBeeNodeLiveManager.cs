@@ -41,9 +41,9 @@ namespace Etherna.Beehive.Services.Utilities
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
             string? selectionContext = null,
             Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null);
-        BeeNodeLiveInstance SelectUploadNode(PostageBatchId batchId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
+        BeeNodeLiveInstance? TryGetPostageBatchOwnerNode(PostageBatchId batchId);
         Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
             string? selectionContext = null,

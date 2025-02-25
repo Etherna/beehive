@@ -15,22 +15,28 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Hashing.Postage;
+using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class BytesControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IBeehiveDbContext dbContext)
+        IBeehiveDbContext dbContext,
+        IPostageBatchService postageBatchService)
         : IBytesControllerService
     {
         // Methods.
@@ -56,6 +62,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            
+            // Verify and load postage batch status.
+            var postageBucketsStatus = await postageBatchService.TryGetPostageBucketsAsync(batchId);
+            if (postageBucketsStatus is null)
+                throw new KeyNotFoundException();
+            using var postageBuckets = new PostageBuckets(postageBucketsStatus.BucketsCollisions.ToArray());
 
             // Create pin if required.
             ChunkPin? pin = null;
@@ -83,7 +95,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 // Create and store chunks.
                 using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                     dbChunkStore,
-                    new FakePostageStamper(),
+                    new PostageStamper(
+                        new FakeSigner(),
+                        new PostageStampIssuer(
+                            PostageBatch.MaxDepthInstance,
+                            postageBuckets),
+                        new MemoryStampStore()),
                     RedundancyLevel.None,
                     false,
                     compactLevel,
@@ -92,7 +109,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
                 await dbChunkStore.FlushSaveAsync();
             }
+            
+            // Increment cached postage buckets.
+            await postageBatchService.IncrementPostageBucketsCacheAsync(
+                postageBucketsStatus,
+                postageBuckets);
 
+            // Confirm chunk's push.
             await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
 
             // Update pin, if required.

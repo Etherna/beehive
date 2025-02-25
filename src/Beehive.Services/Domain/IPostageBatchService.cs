@@ -12,32 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Extensions;
-using Etherna.Beehive.Services.Utilities;
+using Etherna.Beehive.Domain.Models;
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Services.Domain
 {
-    public class PssControllerService(
-        IBeeNodeLiveManager beeNodeLiveManager,
-        IHttpForwarder forwarder)
-        : IPssControllerService
+    public interface IPostageBatchService
     {
-        public async Task<IResult> SendPssMessageAsync(
-            string topic,
-            string targets,
+        Task IncrementPostageBucketsCacheAsync(
+            PostageBucketsCache prevStatus,
+            PostageBuckets currentStatus);
+        
+        public Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
             PostageBatchId batchId,
-            HttpContext httpContext)
-        {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
-            if (node == null)
-                throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
-        }
+            bool forceRefreshCache = false);
     }
 }

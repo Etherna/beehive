@@ -62,6 +62,13 @@ namespace Etherna.Beehive.Services.Utilities.Models
         public Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth) =>
             Client.DilutePostageBatchAsync(batchId, depth);
 
+        public async Task<(IEnumerable<uint> collisions, uint upperBound)> GetPostageBatchBucketsCollisionsAsync(
+            PostageBatchId batchId)
+        {
+            var buckets = await Client.GetPostageBatchBucketsAsync(batchId);
+            return (buckets.Collisions, buckets.BucketUpperBound);
+        }
+
         public async Task<bool> IsPinningResourceAsync(SwarmHash hash)
         {
             try

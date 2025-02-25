@@ -16,6 +16,7 @@ using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -31,14 +32,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext)
         {
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
 
         public async Task<IResult> DeleteTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
         {
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
 
@@ -48,14 +53,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext)
         {
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
 
         public async Task<IResult> UpdateTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
         {
             // Select node and forward request.
-            var node = beeNodeLiveManager.SelectUploadNode(batchId);
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
             return await node.ForwardRequestAsync(forwarder, httpContext);
         }
     }
