@@ -28,9 +28,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class BeeNodeLiveInstance
     {
-        // Fields.
-        private readonly ConcurrentDictionary<SwarmHash, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
-
         // Constructor.
         internal BeeNodeLiveInstance(
             BeeNode beeNode)
@@ -44,7 +41,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
         // Properties.
         public string Id { get; }
         public BeeClient Client { get; }
-        public IEnumerable<SwarmHash> InProgressPins => _inProgressPins.Keys;
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
@@ -79,44 +75,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
             catch (BeeNetApiException e) when (e.StatusCode == 404)
             {
                 return false;
-            }
-        }
-
-        public void NotifyPinnedResource(SwarmHash hash)
-        {
-            //immediately add the pin to the node status
-            Status.AddPinnedHash(hash);
-        }
-
-        public async Task PinResourceAsync(string hash)
-        {
-            _inProgressPins.TryAdd(hash, false);
-
-            try
-            {
-                await Client.CreatePinAsync(hash);
-                Status.AddPinnedHash(hash);
-            }
-            catch (BeeNetApiException e) when (e.StatusCode == 404)
-            {
-                throw new KeyNotFoundException();
-            }
-            finally
-            {
-                _inProgressPins.TryRemove(hash, out _);
-            }
-        }
-
-        public async Task RemovePinnedResourceAsync(SwarmHash hash)
-        {
-            try
-            {
-                await Client.DeletePinAsync(hash);
-                Status.RemovePinnedHash(hash);
-            }
-            catch (BeeNetApiException e) when(e.StatusCode == 404)
-            {
-                throw new KeyNotFoundException();
             }
         }
 
@@ -191,18 +149,10 @@ namespace Etherna.Beehive.Services.Utilities.Models
 
             // Full refresh if is required (or if is forced).
             var errors = new List<string>();
-            IEnumerable<SwarmHash>? refreshedPinnedHashes = null;
             IEnumerable<PostageBatchId>? refreshedPostageBatchesId = null;
 
             if (Status.RequireFullRefresh || forceFullRefresh)
             {
-                //pinned hashes
-                try
-                {
-                    refreshedPinnedHashes = await Client.GetAllPinsAsync();
-                }
-                catch { errors.Add("Can't read pinned hashes"); }
-
                 //postage batches
                 try
                 {
@@ -217,7 +167,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
             Status.SucceededHeartbeatAttempt(
                 errors,
                 heartbeatTimeStamp,
-                refreshedPinnedHashes,
                 refreshedPostageBatchesId);
 
             return true;

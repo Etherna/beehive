@@ -79,10 +79,6 @@ namespace Etherna.Beehive.Services.Utilities
             return await AddBeeNodeAsync(beeNode);
         }
 
-        public IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes) =>
-            AllNodes.Where(n => n.Status.PinnedHashes.Contains(hash) &&
-                                (!requireAliveNodes || n.Status.IsAlive));
-
         public async Task LoadAllNodesAsync()
         {
             var nodes = await dbContext.BeeNodes.QueryElementsAsync(

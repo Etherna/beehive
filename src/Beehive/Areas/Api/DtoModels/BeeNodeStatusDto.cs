@@ -26,12 +26,10 @@ namespace Etherna.Beehive.Areas.Api.DtoModels
         {
             ArgumentNullException.ThrowIfNull(status, nameof(status));
 
-            PinnedHashes = status.PinnedHashes.Select(h => h.ToString());
             PostageBatchesId = status.PostageBatchesId.Select(b => b.ToString());
         }
 
         // Properties.
-        public IEnumerable<string> PinnedHashes { get; }
         public IEnumerable<string> PostageBatchesId { get; }
     }
 }

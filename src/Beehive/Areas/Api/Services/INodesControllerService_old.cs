@@ -22,15 +22,11 @@ namespace Etherna.Beehive.Areas.Api.Services
     public interface INodesControllerService_old
     {
         Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash);
-        Task DeletePinAsync(string id, SwarmHash hash);
         Task<bool> ForceFullStatusRefreshAsync(string id);
         IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus();
         Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id);
-        Task<PinnedResourceDto> GetPinDetailsAsync(string id, SwarmHash hash);
-        Task<IEnumerable<SwarmHash>> GetPinsByNodeAsync(string id);
         Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId);
         Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id);
-        Task NotifyPinningOfUploadedContentAsync(string id, SwarmHash hash);
         Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash);
     }
 }

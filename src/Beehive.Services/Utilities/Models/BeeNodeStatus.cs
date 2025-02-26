@@ -23,31 +23,17 @@ namespace Etherna.Beehive.Services.Utilities.Models
     {
         // Fields.
         private readonly List<string> _errors = new();
-        private readonly HashSet<SwarmHash> _pinnedHashes = new();
         private readonly HashSet<PostageBatchId> _postageBatchesId = new();
-
-        // Constructor.
-        public BeeNodeStatus()
-        {
-            RequireFullRefresh = true;
-        }
 
         // Properties.
         public BeeNodeAddresses? Addresses { get; private set; }
         public IEnumerable<string> Errors => _errors;
         public DateTime HeartbeatTimeStamp { get; private set; }
         public bool IsAlive { get; private set; }
-        public IEnumerable<SwarmHash> PinnedHashes => _pinnedHashes;
         public IEnumerable<PostageBatchId> PostageBatchesId => _postageBatchesId;
-        public bool RequireFullRefresh { get; private set; }
+        public bool RequireFullRefresh { get; private set; } = true;
 
         // Internal methods.
-        internal void AddPinnedHash(SwarmHash hash)
-        {
-            lock (_pinnedHashes)
-                _pinnedHashes.Add(hash);
-        }
-
         internal void AddPostageBatchId(PostageBatchId batchId)
         {
             lock (_postageBatchesId)
@@ -72,16 +58,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
             Addresses = addresses;
         }
 
-        internal void RemovePinnedHash(SwarmHash hash)
-        {
-            lock (_pinnedHashes)
-                _pinnedHashes.Remove(hash);
-        }
-
         internal void SucceededHeartbeatAttempt(
             IEnumerable<string> errors,
             DateTime timestamp,
-            IEnumerable<SwarmHash>? refreshedPinnedHashes,
             IEnumerable<PostageBatchId>? refreshedPostageBatchesId)
         {
             lock (_errors)
@@ -91,16 +70,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
             }
             HeartbeatTimeStamp = timestamp;
             IsAlive = true;
-
-            if (refreshedPinnedHashes is not null)
-            {
-                lock (_pinnedHashes)
-                {
-                    _pinnedHashes.Clear();
-                    foreach (var hash in refreshedPinnedHashes)
-                        _pinnedHashes.Add(hash);
-                }
-            }
 
             if (refreshedPostageBatchesId is not null)
             {
@@ -117,7 +86,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
             }
 
             RequireFullRefresh &= errors.Any() ||
-                refreshedPinnedHashes is null ||
                 refreshedPostageBatchesId is null;
         }
     }

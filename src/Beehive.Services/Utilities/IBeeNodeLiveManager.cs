@@ -32,7 +32,6 @@ namespace Etherna.Beehive.Services.Utilities
         // Methods.
         Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
         Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
-        IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes);
         Task LoadAllNodesAsync();
         bool RemoveBeeNode(string nodeId);
         Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmAddress address);

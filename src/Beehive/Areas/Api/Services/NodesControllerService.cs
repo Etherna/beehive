@@ -36,12 +36,6 @@ namespace Etherna.Beehive.Areas.Api.Services
             return await beeNodeInstance.Client.IsContentRetrievableAsync(hash);
         }
 
-        public async Task DeletePinAsync(string id, SwarmHash hash)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            await beeNodeInstance.RemovePinnedResourceAsync(hash);
-        }
-
         public async Task<bool> ForceFullStatusRefreshAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
@@ -55,26 +49,6 @@ namespace Etherna.Beehive.Areas.Api.Services
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             return new BeeNodeStatusDto(beeNodeInstance.Id, beeNodeInstance.Status);
-        }
-
-        public async Task<PinnedResourceDto> GetPinDetailsAsync(string id, SwarmHash hash)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-
-            if (await beeNodeInstance.IsPinningResourceAsync(hash))
-                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.Pinned);
-            else if (beeNodeInstance.InProgressPins.Contains(hash))
-                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.InProgress);
-            else
-                return new PinnedResourceDto(hash, id, PinnedResourceStatusDto.NotPinned);
-        }
-
-        public async Task<IEnumerable<SwarmHash>> GetPinsByNodeAsync(string id)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var readyPins = await beeNodeInstance.Client.GetAllPinsAsync();
-            var inProgressPins = beeNodeInstance.InProgressPins;
-            return readyPins.Union(inProgressPins);
         }
 
         public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId)
@@ -96,12 +70,6 @@ namespace Etherna.Beehive.Areas.Api.Services
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             var batches = await beeNodeInstance.Client.GetOwnedPostageBatchesByNodeAsync();
             return batches.Select(b => new PostageBatchDto(b));
-        }
-
-        public async Task NotifyPinningOfUploadedContentAsync(string id, SwarmHash hash)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            beeNodeInstance.NotifyPinnedResource(hash);
         }
 
         public async Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash)
