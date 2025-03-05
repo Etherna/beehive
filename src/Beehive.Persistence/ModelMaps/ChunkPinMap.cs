@@ -27,9 +27,6 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         {
             dbContext.MapRegistry.AddModelMap<ChunkPin>( //v0.4.0
                 "832d06b1-ed82-4f4f-9df9-ad24565df38d");
-
-            dbContext.MapRegistry.AddModelMap<ChunkPinLock>( //v0.4.0
-                "a73d46c1-b548-4461-b4d3-b947de2f97e9");
         }
 
         /// <summary>

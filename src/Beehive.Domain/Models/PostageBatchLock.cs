@@ -12,27 +12,35 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using System;
 
 namespace Etherna.Beehive.Domain.Models
 {
-    public class ChunkPinLock : EntityModelBase<string>
+    public class PostageBatchLock : EntityModelBase<string>
     {
         // Consts.
-        private readonly TimeSpan LockDuration = TimeSpan.FromHours(1);
+        public static readonly TimeSpan LockDuration = TimeSpan.FromHours(1);
         
         // Constructors.
-        public ChunkPinLock(string chunkPinId)
+        public PostageBatchLock(PostageBatchId batchId, bool exclusiveAccess)
         {
-            ChunkPinId = chunkPinId;
-            ExpirationTime = DateTime.UtcNow + LockDuration;
+            var now = DateTime.UtcNow;
+            
+            BatchId = batchId;
+            ExclusiveAccess = exclusiveAccess;
+            ExpirationTime = now + LockDuration;
+            LockedAt = now;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected ChunkPinLock() { }
+        protected PostageBatchLock() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Properties.
-        public virtual string ChunkPinId { get; protected set; }
+        public virtual PostageBatchId BatchId { get; protected set; }
+        public virtual bool ExclusiveAccess { get; protected set; }
         public virtual DateTime ExpirationTime { get; protected set; }
+        public virtual int LockCounter { get; protected set; }
+        public virtual DateTime LockedAt { get; protected set; }
     }
 }

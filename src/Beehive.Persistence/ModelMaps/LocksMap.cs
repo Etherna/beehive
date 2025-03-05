@@ -12,16 +12,21 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Threading.Tasks;
+using Etherna.Beehive.Domain.Models;
+using Etherna.MongODM.Core;
+using Etherna.MongODM.Core.Serialization;
 
-namespace Etherna.Beehive.Services.Domain
+namespace Etherna.Beehive.Persistence.ModelMaps
 {
-    public interface IChunkPinLockService
+    internal sealed class LocksMap : IModelMapsCollector
     {
-        Task<bool> AcquireLockAsync(string chunkPinId);
+        public void Register(IDbContext dbContext)
+        {
+            dbContext.MapRegistry.AddModelMap<ChunkPinLock>( //v0.4.0
+                "a73d46c1-b548-4461-b4d3-b947de2f97e9");
 
-        Task<bool> IsResourceLockedAsync(string chunkPinId);
-
-        Task<bool> ReleaseLockAsync(string chunkPinId);
+            dbContext.MapRegistry.AddModelMap<PostageBatchLock>( //v0.4.0
+                "e26fdf55-0245-4ead-b20a-13296e69d61d");
+        }
     }
 }

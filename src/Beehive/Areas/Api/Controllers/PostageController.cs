@@ -31,8 +31,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         IPostageControllerService service)
         : ControllerBase
     {
-        // Get.
-
         // Post.
 
         /// <summary>

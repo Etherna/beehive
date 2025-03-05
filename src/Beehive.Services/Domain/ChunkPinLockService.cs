@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.MongoDB.Driver;
 using System;
 using System.Threading.Tasks;
 
@@ -23,23 +24,35 @@ namespace Etherna.Beehive.Services.Domain
         : IChunkPinLockService
     {
         // Methods.
-        public async Task<bool> AcquireLockAsync(
-            string chunkPinId,
-            string taskId)
+        public async Task<bool> AcquireLockAsync(string chunkPinId)
         {
-            var prevLock = await dbContext.ChunkPinLocks.TryFindOneAsync(l => l.ChunkPinId == chunkPinId);
-            
             // If prev lock exists, verify if is expired.
+            var prevLock = await dbContext.ChunkPinLocks.TryFindOneAsync(l => l.ChunkPinId == chunkPinId);
             if (prevLock?.ExpirationTime > DateTime.UtcNow)
                 return false;
             
-            // If here, prev lock doesn't exist or is expired. Create new one.
-            var pinLock = new ChunkPinLock(chunkPinId, taskId);
-            await dbContext.ChunkPinLocks.CreateAsync(pinLock);
-            
-            // Delete old lock, if existing.
+            // Delete old expired lock, if exists.
             if (prevLock is not null)
-                await dbContext.ChunkPinLocks.DeleteAsync(prevLock.Id);
+            {
+                try
+                {
+                    await dbContext.ChunkPinLocks.DeleteAsync(prevLock);
+                }
+                catch (MongoWriteException) { }
+            }
+            
+            // If here, prev lock doesn't exist anymore. Create new one.
+            // It could still fail here because of concurrent accesses,
+            // in this case unique index on chunkPinId permits only one to proceed.
+            var pinLock = new ChunkPinLock(chunkPinId);
+            try
+            {
+                await dbContext.ChunkPinLocks.CreateAsync(pinLock);
+            }
+            catch (MongoWriteException)
+            {
+                return false;
+            }
             
             return true;
         }
@@ -50,18 +63,18 @@ namespace Etherna.Beehive.Services.Domain
             return pinLock != null && pinLock.ExpirationTime > DateTime.UtcNow;
         }
         
-        public async Task<bool> ReleaseLockAsync(string chunkPinId, string jobId)
+        public async Task<bool> ReleaseLockAsync(string chunkPinId)
         {
             var pinLock = await dbContext.ChunkPinLocks.TryFindOneAsync(l => l.ChunkPinId == chunkPinId);
         
-            if (pinLock != null && pinLock.JobId == jobId)
+            if (pinLock != null)
             {
                 await dbContext.ChunkPinLocks.DeleteAsync(pinLock);
                 await dbContext.SaveChangesAsync();
                 return true;
             }
         
-            //lock not found, or job different from current
+            //lock not found
             return false;
         }
     }

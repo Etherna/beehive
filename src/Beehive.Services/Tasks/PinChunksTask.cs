@@ -33,10 +33,8 @@ namespace Etherna.Beehive.Services.Tasks
             string chunkPinId,
             PerformContext hangfireContext)
         {
-            var jobId = hangfireContext?.BackgroundJob.Id ?? "";
-            
             // Acquire lock on pin.
-            if (!await chunkPinLockService.AcquireLockAsync(chunkPinId, jobId))
+            if (!await chunkPinLockService.AcquireLockAsync(chunkPinId))
                 throw new InvalidOperationException($"Pin {chunkPinId} is locked by another job");
 
             try
@@ -66,7 +64,7 @@ namespace Etherna.Beehive.Services.Tasks
             finally
             {
                 // Release lock.
-                await chunkPinLockService.ReleaseLockAsync(chunkPinId, jobId);
+                await chunkPinLockService.ReleaseLockAsync(chunkPinId);
             }
         }
     }

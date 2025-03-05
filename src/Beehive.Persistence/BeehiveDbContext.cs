@@ -92,7 +92,15 @@ namespace Etherna.Beehive.Persistence
                 });
             }
         }
-
+        public IRepository<PostageBatchLock, string> PostageBatchLocks { get; } = new DomainRepository<PostageBatchLock, string>(
+            new RepositoryOptions<PostageBatchLock>("postageBatchLocks")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PostageBatchLock>.IndexKeys.Ascending(l => l.BatchId),
+                        new CreateIndexOptions<PostageBatchLock> { Unique = true })
+                ]
+            });
         public IRepository<PostageBucketsCache, string> PostageBucketsCache { get; } = new Repository<PostageBucketsCache, string>(
             new RepositoryOptions<PostageBucketsCache>("postageBucketsCache")
             {

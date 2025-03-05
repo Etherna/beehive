@@ -12,16 +12,21 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public interface IChunkPinLockService
+    public interface IPostageBatchLockService
     {
-        Task<bool> AcquireLockAsync(string chunkPinId);
+        Task<bool> AcquireLockAsync(
+            PostageBatchId batchId,
+            bool exclusiveAccess);
 
-        Task<bool> IsResourceLockedAsync(string chunkPinId);
+        Task<bool> IsResourceLockedAsync(PostageBatchId batchId);
 
-        Task<bool> ReleaseLockAsync(string chunkPinId);
+        Task<bool> ReleaseLockAsync(
+            PostageBatchId batchId,
+            bool exclusiveAccess);
     }
 }
