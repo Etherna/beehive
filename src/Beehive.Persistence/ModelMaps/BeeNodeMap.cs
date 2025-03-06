@@ -31,7 +31,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     mm.AutoMap();
 
                     // Set default values.
-                    mm.GetMemberMap(n => n.IsBatchCreationEnabled);
+                    mm.GetMemberMap(n => n.IsBatchCreationEnabled).SetDefaultValue(true).SetIgnoreIfDefault(true);
                 });
         }
 
@@ -43,13 +43,13 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             new(dbContext, config =>
             {
                 config.AddModelMap<ModelBase>("e5d93371-e1a7-4ff3-b947-a4862c40d938");
-                config.AddModelMap<EntityModelBase>("a48cf8b2-1b18-450d-afc1-4094ce23ba78", mm => { });
+                config.AddModelMap<EntityModelBase>("a48cf8b2-1b18-450d-afc1-4094ce23ba78", _ => { });
                 config.AddModelMap<EntityModelBase<string>>("1a7fb389-fd58-4ad6-82b5-b687273bc5ab", mm =>
                 {
                     mm.MapIdMember(m => m.Id);
                     mm.IdMemberMap.SetSerializer(new StringSerializer(BsonType.ObjectId));
                 });
-                config.AddModelMap<BeeNode>("28d5e30d-c205-4440-9ba6-80505409ef8d", mm => { });
+                config.AddModelMap<BeeNode>("28d5e30d-c205-4440-9ba6-80505409ef8d", _ => { });
             });
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             new(dbContext, config =>
             {
                 config.AddModelMap<ModelBase>("148b3991-63da-4966-a781-30295c71fcae");
-                config.AddModelMap<EntityModelBase>("774d614c-2bd2-4a51-83a7-6d0df1942216", mm => { });
+                config.AddModelMap<EntityModelBase>("774d614c-2bd2-4a51-83a7-6d0df1942216", _ => { });
                 config.AddModelMap<EntityModelBase<string>>("959def90-ddab-48a7-9a0e-1917be419171", mm =>
                 {
                     mm.MapIdMember(n => n.Id);

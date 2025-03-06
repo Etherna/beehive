@@ -26,7 +26,14 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 "a73d46c1-b548-4461-b4d3-b947de2f97e9");
 
             dbContext.MapRegistry.AddModelMap<PostageBatchLock>( //v0.4.0
-                "e26fdf55-0245-4ead-b20a-13296e69d61d");
+                "e26fdf55-0245-4ead-b20a-13296e69d61d",
+                mm =>
+                {
+                    mm.AutoMap();
+
+                    // Ignore default values.
+                    mm.GetMemberMap(n => n.LockCounter).SetIgnoreIfDefault(true);
+                });
         }
     }
 }

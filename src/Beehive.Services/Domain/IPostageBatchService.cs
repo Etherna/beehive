@@ -20,9 +20,19 @@ namespace Etherna.Beehive.Services.Domain
 {
     public interface IPostageBatchService
     {
+        Task<bool> AcquireLockAsync(
+            PostageBatchId batchId,
+            bool exclusiveAccess);
+
         Task IncrementPostageBucketsCacheAsync(
             PostageBucketsCache prevStatus,
             PostageBuckets currentStatus);
+        
+        Task<bool> IsLockedAsync(PostageBatchId batchId);
+
+        Task<bool> ReleaseLockAsync(
+            PostageBatchId batchId,
+            bool exclusiveAccess);
         
         public Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
             PostageBatchId batchId,
