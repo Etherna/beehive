@@ -46,6 +46,7 @@ namespace Etherna.Beehive.Services
             services.AddScoped<IBeeNodeService, BeeNodeService>();
             services.AddScoped<IChunkPinLockService, ChunkPinLockService>();
             services.AddScoped<IPostageBatchService, PostageBatchService>();
+            services.AddScoped<IResourceLockService, ResourceLockService>();
 
             // Utilities.
             services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();

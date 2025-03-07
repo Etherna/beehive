@@ -12,18 +12,34 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using System;
 
 namespace Etherna.Beehive.Domain.Models
 {
-    public class PostageBatchLock : ResourceLockBase
+    public abstract class ResourceLockBase : EntityModelBase<string>
     {
+        // Consts.
+        public static readonly TimeSpan LockDuration = TimeSpan.FromHours(1);
+
         // Constructors.
-        public PostageBatchLock(PostageBatchId batchId, bool exclusiveAccess)
-            : base(batchId.ToString(), exclusiveAccess)
-        { }
+        protected ResourceLockBase(string resourceId, bool exclusiveAccess)
+        {
+            var now = DateTime.UtcNow;
+            
+            ExclusiveAccess = exclusiveAccess;
+            ExpirationTime = now + LockDuration;
+            LockedAt = now;
+            ResourceId = resourceId;
+        }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected PostageBatchLock() { }
+        protected ResourceLockBase() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        
+        // Properties.
+        public virtual int Counter { get; protected set; }
+        public virtual bool ExclusiveAccess { get; protected set; }
+        public virtual DateTime ExpirationTime { get; protected set; }
+        public virtual DateTime LockedAt { get; protected set; }
+        public virtual string ResourceId { get; protected set; }
     }
 }

@@ -26,84 +26,19 @@ namespace Etherna.Beehive.Services.Domain
 {
     public class PostageBatchService(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IBeehiveDbContext dbContext)
+        IBeehiveDbContext dbContext,
+        IResourceLockService resourceLockService)
         : IPostageBatchService
     {
         // Methods.
-        public async Task<bool> AcquireLockAsync(
+        public Task<bool> AcquireLockAsync(
             PostageBatchId batchId,
-            bool exclusiveAccess)
-        {
-            /*
-             * Requirements:
-             * - Different batch Ids never collides, and concurrent acquisitions are always possible
-             * - On same batchId any number of locks are possible without exclusive access
-             * - If any alive locks exists on a batchId, new exclusive access on the same batchId will fail
-             * - If a lock with exclusive access exists on a batchId, any other lock access will fail
-             *
-             * Solution:
-             * - Index with unique restriction on batchId is created
-             * - A exclusive lock simply tries to create a new lock
-             * - A not exclusive lock tries to exec atomic findAndUpdate with upsert, incrementing a counter.
-             *   The release will decrement the counter
-             */
-
-            var now = DateTime.UtcNow;
-
-            // If prev lock exists, verify if is still valid, and if new one or old one are exclusive.
-            var prevLock = await dbContext.PostageBatchLocks.TryFindOneAsync(l => l.BatchId == batchId);
-            if (prevLock?.ExpirationTime > now && (exclusiveAccess || prevLock.ExclusiveAccess))
-                return false;
-            
-            // Delete old expired lock, if exists.
-            // Additional check on expiration because concurrent access could have renewed it.
-            if (prevLock is not null)
-            {
-                try
-                {
-                    await dbContext.PostageBatchLocks.DeleteAsync(
-                        prevLock,
-                        [Builders<PostageBatchLock>.Filter.Lte(l => l.ExpirationTime, now)]);
-                }
-                catch (MongoWriteException) { }
-            }
-
-            // Create or upsert new lock. It could still fail here because of concurrent accesses.
-            // In that case unique index on chunkPinId permits only one to proceed.
-            try
-            {
-                if (exclusiveAccess)
-                {
-                    var batchLock = new PostageBatchLock(batchId, exclusiveAccess);
-                    await dbContext.PostageBatchLocks.CreateAsync(batchLock);
-                }
-                else
-                {
-                    await dbContext.PostageBatchLocks.UpsertAsync(
-                        Builders<PostageBatchLock>.Filter.And(
-                            Builders<PostageBatchLock>.Filter.Eq(l => l.BatchId, batchId),
-                            Builders<PostageBatchLock>.Filter.Eq(l => l.ExclusiveAccess,
-                                false)), //don't update if ExclusiveAccess == true
-                        Builders<PostageBatchLock>.Update.Combine(
-                            Builders<PostageBatchLock>.Update.Inc(l => l.LockCounter, 1), //increment counter
-                            Builders<PostageBatchLock>.Update.Set(l => l.ExpirationTime, //renew expiration time
-                                now.Add(PostageBatchLock.LockDuration))),
-                        new PostageBatchLock(batchId, exclusiveAccess),
-                        [
-                            nameof(PostageBatchLock.ExpirationTime),
-                            nameof(PostageBatchLock.LockCounter)
-                        ]);
-                }
-            }
-            catch (Exception e) when (e is MongoCommandException
-                                        or MongoWriteException)
-            {
-                // Catch any unique index collision.
-                return false;
-            }
-
-            return true;
-        }
+            bool exclusiveAccess) =>
+            resourceLockService.AcquireLockAsync(
+                () => new PostageBatchLock(batchId, exclusiveAccess),
+                dbContext.PostageBatchLocks,
+                batchId.ToString(),
+                exclusiveAccess);
 
         public async Task IncrementPostageBucketsCacheAsync(
             PostageBucketsCache prevStatus,
@@ -145,53 +80,18 @@ namespace Etherna.Beehive.Services.Domain
                 new FindOneAndUpdateOptions<PostageBucketsCache>());
         }
         
-        public async Task<bool> IsLockedAsync(PostageBatchId batchId)
-        {
-            var batchLock = await dbContext.PostageBatchLocks.TryFindOneAsync(l => l.BatchId == batchId);
-            return batchLock != null && batchLock.ExpirationTime > DateTime.UtcNow;
-        }
+        public Task<bool> IsLockedAsync(PostageBatchId batchId) =>
+            resourceLockService.IsLockedAsync(
+                dbContext.PostageBatchLocks,
+                batchId.ToString());
         
-        public async Task<bool> ReleaseLockAsync(
+        public Task<bool> ReleaseLockAsync(
             PostageBatchId batchId,
-            bool exclusiveAccess)
-        {
-            // Find lock and optionally decrease counter.
-            var batchLock = exclusiveAccess ?
-                
-                //exclusive access
-                await dbContext.PostageBatchLocks.TryFindOneAsync(
-                    l => l.BatchId == batchId && l.ExclusiveAccess) :
-                
-                //not exclusive access
-                await dbContext.PostageBatchLocks.FindOneAndUpdateAsync(
-                    Builders<PostageBatchLock>.Filter.And(
-                        Builders<PostageBatchLock>.Filter.Eq(l => l.BatchId, batchId),
-                        Builders<PostageBatchLock>.Filter.Eq(l => l.ExclusiveAccess, false)),
-                    Builders<PostageBatchLock>.Update.Inc(l => l.LockCounter, -1),
-                    new FindOneAndUpdateOptions<PostageBatchLock>
-                    {
-                        ReturnDocument = ReturnDocument.After
-                    });
-            
-            // If lock not found.
-            if (batchLock is null)
-                return false;
-            
-            // Try delete document.
-            if (batchLock.LockCounter == 0)
-            {
-                List<FilterDefinition<PostageBatchLock>> additionalFilters =
-                    [Builders<PostageBatchLock>.Filter.Eq(l => l.ExclusiveAccess, exclusiveAccess)];
-                if (!exclusiveAccess)
-                    additionalFilters.Add(Builders<PostageBatchLock>.Filter.Eq(l => l.LockCounter, 0));
-                
-                await dbContext.PostageBatchLocks.DeleteAsync(
-                    batchLock,
-                    additionalFilters.ToArray());
-            }
-
-            return true;
-        }
+            bool exclusiveAccess) =>
+            resourceLockService.ReleaseLockAsync(
+                dbContext.PostageBatchLocks,
+                batchId.ToString(),
+                exclusiveAccess);
 
         public async Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
             PostageBatchId batchId,

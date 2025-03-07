@@ -97,7 +97,7 @@ namespace Etherna.Beehive.Persistence
             {
                 IndexBuilders =
                 [
-                    (Builders<PostageBatchLock>.IndexKeys.Ascending(l => l.BatchId),
+                    (Builders<PostageBatchLock>.IndexKeys.Ascending(l => l.ResourceId),
                         new CreateIndexOptions<PostageBatchLock> { Unique = true })
                 ]
             });
