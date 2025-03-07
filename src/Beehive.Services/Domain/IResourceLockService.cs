@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Domain
 {
     public interface IResourceLockService
     {
-        Task<bool> AcquireLockAsync<TModel>(
+        Task<ResourceLockHandler<TModel>?> TryAcquireLockAsync<TModel>(
             Func<TModel> buildNewLock,
             IRepository<TModel, string> repository,
             string resourceId,

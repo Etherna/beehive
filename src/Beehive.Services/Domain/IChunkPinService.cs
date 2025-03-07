@@ -12,20 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
     public interface IChunkPinService
     {
-        Task<bool> AcquireLockAsync(
+        Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
             string chunkPinId,
             bool exclusiveAccess);
 
         Task<bool> IsLockedAsync(string chunkPinId);
-
-        Task<bool> ReleaseLockAsync(
-            string chunkPinId,
-            bool exclusiveAccess);
     }
 }

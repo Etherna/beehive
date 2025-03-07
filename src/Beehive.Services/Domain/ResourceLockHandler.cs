@@ -13,25 +13,36 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Models;
+using Etherna.MongODM.Core.Repositories;
+using System;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public interface IPostageBatchService
+    public sealed class ResourceLockHandler<TModel>(
+        IRepository<TModel, string> repository,
+        IResourceLockService lockService,
+        string resourceId,
+        bool exclusiveAccess) : IAsyncDisposable
+        where TModel : ResourceLockBase
     {
-        Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
-            PostageBatchId batchId,
-            bool exclusiveAccess);
+        // Dispose.
+        public async ValueTask DisposeAsync()
+        {
+            await ReleaseAsync();
+        }
+        
+        // Properties.
+        public bool IsReleased { get; private set; }
 
-        Task IncrementPostageBucketsCacheAsync(
-            PostageBucketsCache prevStatus,
-            PostageBuckets currentStatus);
-        
-        Task<bool> IsLockedAsync(PostageBatchId batchId);
-        
-        public Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
-            PostageBatchId batchId,
-            bool forceRefreshCache = false);
+        // Methods.
+        public async Task ReleaseAsync()
+        {
+            if (!IsReleased)
+            {
+                await lockService.ReleaseLockAsync(repository, resourceId, exclusiveAccess);
+                IsReleased = true;
+            }
+        }
     }
 }

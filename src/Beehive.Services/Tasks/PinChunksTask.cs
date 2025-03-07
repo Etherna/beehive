@@ -34,38 +34,29 @@ namespace Etherna.Beehive.Services.Tasks
             PerformContext hangfireContext)
         {
             // Acquire lock on pin.
-            if (!await chunkPinService.AcquireLockAsync(chunkPinId, true))
-                throw new InvalidOperationException($"Pin {chunkPinId} is locked by another job");
+            await using var chunkPinLockHandler = await chunkPinService.AcquireLockAsync(chunkPinId, true);
 
-            try
-            {
-                var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
-                if (!pin.Hash.HasValue)
-                    throw new InvalidOperationException($"Pin doesn't have an hash");
-                if (pin.IsSucceeded)
-                    return;
+            var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
+            if (!pin.Hash.HasValue)
+                throw new InvalidOperationException($"Pin doesn't have an hash");
+            if (pin.IsSucceeded)
+                return;
 
-                using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
-                var chunkTraverser = new ChunkTraverser(chunkStore);
+            using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            var chunkTraverser = new ChunkTraverser(chunkStore);
 
-                await chunkTraverser.TraverseFromMantarayManifestRootAsync(
-                    pin.Hash.Value,
-                    foundChunk =>
-                    {
-                        //TODO
-                        return Task.CompletedTask;
-                    },
-                    notFoundHash =>
-                    {
-                        //TODO
-                        return Task.CompletedTask;
-                    });
-            }
-            finally
-            {
-                // Release lock.
-                await chunkPinService.ReleaseLockAsync(chunkPinId, true);
-            }
+            await chunkTraverser.TraverseFromMantarayManifestRootAsync(
+                pin.Hash.Value,
+                foundChunk =>
+                {
+                    //TODO
+                    return Task.CompletedTask;
+                },
+                notFoundHash =>
+                {
+                    //TODO
+                    return Task.CompletedTask;
+                });
         }
     }
 }

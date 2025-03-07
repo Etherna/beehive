@@ -23,7 +23,7 @@ namespace Etherna.Beehive.Services.Domain
 {
     public class ResourceLockService : IResourceLockService
     {
-        public async Task<bool> AcquireLockAsync<TModel>(
+        public async Task<ResourceLockHandler<TModel>?> TryAcquireLockAsync<TModel>(
             Func<TModel> buildNewLock,
             IRepository<TModel, string> repository,
             string resourceId,
@@ -51,7 +51,7 @@ namespace Etherna.Beehive.Services.Domain
             // If prev lock exists, verify if is still valid, and if new one or old one are exclusive.
             var prevLock = await repository.TryFindOneAsync(l => l.ResourceId == resourceId);
             if (prevLock?.ExpirationTime > now && (exclusiveAccess || prevLock.ExclusiveAccess))
-                return false;
+                return null;
             
             // Delete old expired lock, if exists.
             // Additional check on expiration because concurrent access could have renewed it.
@@ -91,15 +91,15 @@ namespace Etherna.Beehive.Services.Domain
                             nameof(ResourceLockBase.Counter)
                         ]);
                 }
+
+                return new ResourceLockHandler<TModel>(repository, this, resourceId, exclusiveAccess);
             }
             catch (Exception e) when (e is MongoCommandException
                                         or MongoWriteException)
             {
                 // Catch any unique index collision.
-                return false;
+                return null;
             }
-
-            return true;
         }
 
         public async Task<bool> IsLockedAsync<TModel>(

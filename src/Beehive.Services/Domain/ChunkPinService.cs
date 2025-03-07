@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using System.Threading.Tasks;
 
@@ -24,26 +25,25 @@ namespace Etherna.Beehive.Services.Domain
         : IChunkPinService
     {
         // Methods.
-        public Task<bool> AcquireLockAsync(
+        public async Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
             string chunkPinId,
-            bool exclusiveAccess) =>
-            resourceLockService.AcquireLockAsync(
+            bool exclusiveAccess)
+        {
+            var handler = await resourceLockService.TryAcquireLockAsync(
                 () => new ChunkPinLock(chunkPinId, exclusiveAccess),
                 dbContext.ChunkPinLocks,
                 chunkPinId,
                 exclusiveAccess);
+            
+            if (handler is null)
+                throw new ResourceLockException();
+
+            return handler;
+        }
 
         public Task<bool> IsLockedAsync(string chunkPinId) =>
             resourceLockService.IsLockedAsync(
                 dbContext.ChunkPinLocks,
                 chunkPinId);
-
-        public Task<bool> ReleaseLockAsync(
-            string chunkPinId,
-            bool exclusiveAccess) =>
-            resourceLockService.ReleaseLockAsync(
-                dbContext.ChunkPinLocks,
-                chunkPinId,
-                exclusiveAccess);
     }
 }

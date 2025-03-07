@@ -12,26 +12,22 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Models;
-using System.Threading.Tasks;
+using System;
 
-namespace Etherna.Beehive.Services.Domain
+namespace Etherna.Beehive.Domain.Exceptions
 {
-    public interface IPostageBatchService
+    public class ResourceLockException : Exception
     {
-        Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
-            PostageBatchId batchId,
-            bool exclusiveAccess);
+        public ResourceLockException()
+        {
+        }
 
-        Task IncrementPostageBucketsCacheAsync(
-            PostageBucketsCache prevStatus,
-            PostageBuckets currentStatus);
-        
-        Task<bool> IsLockedAsync(PostageBatchId batchId);
-        
-        public Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
-            PostageBatchId batchId,
-            bool forceRefreshCache = false);
+        public ResourceLockException(string message) : base(message)
+        {
+        }
+
+        public ResourceLockException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }

@@ -63,6 +63,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
+            // Acquire lock on postage batch.
+            await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, compactLevel > 0);
+            
             // Verify and load postage batch status.
             var postageBucketsStatus = await postageBatchService.TryGetPostageBucketsAsync(batchId);
             if (postageBucketsStatus is null)

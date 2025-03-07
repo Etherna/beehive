@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
@@ -31,14 +32,21 @@ namespace Etherna.Beehive.Services.Domain
         : IPostageBatchService
     {
         // Methods.
-        public Task<bool> AcquireLockAsync(
+        public async Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
             PostageBatchId batchId,
-            bool exclusiveAccess) =>
-            resourceLockService.AcquireLockAsync(
+            bool exclusiveAccess)
+        {
+            var handler = await resourceLockService.TryAcquireLockAsync(
                 () => new PostageBatchLock(batchId, exclusiveAccess),
                 dbContext.PostageBatchLocks,
                 batchId.ToString(),
                 exclusiveAccess);
+            
+            if (handler is null)
+                throw new ResourceLockException();
+
+            return handler;
+        }
 
         public async Task IncrementPostageBucketsCacheAsync(
             PostageBucketsCache prevStatus,
@@ -84,14 +92,6 @@ namespace Etherna.Beehive.Services.Domain
             resourceLockService.IsLockedAsync(
                 dbContext.PostageBatchLocks,
                 batchId.ToString());
-        
-        public Task<bool> ReleaseLockAsync(
-            PostageBatchId batchId,
-            bool exclusiveAccess) =>
-            resourceLockService.ReleaseLockAsync(
-                dbContext.PostageBatchLocks,
-                batchId.ToString(),
-                exclusiveAccess);
 
         public async Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
             PostageBatchId batchId,
