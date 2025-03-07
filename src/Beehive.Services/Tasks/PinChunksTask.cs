@@ -24,7 +24,7 @@ namespace Etherna.Beehive.Services.Tasks
 {
     public class PinChunksTask(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IChunkPinLockService chunkPinLockService,
+        IChunkPinService chunkPinService,
         IBeehiveDbContext dbContext)
         : IPinChunksTask
     {
@@ -34,7 +34,7 @@ namespace Etherna.Beehive.Services.Tasks
             PerformContext hangfireContext)
         {
             // Acquire lock on pin.
-            if (!await chunkPinLockService.AcquireLockAsync(chunkPinId))
+            if (!await chunkPinService.AcquireLockAsync(chunkPinId, true))
                 throw new InvalidOperationException($"Pin {chunkPinId} is locked by another job");
 
             try
@@ -64,7 +64,7 @@ namespace Etherna.Beehive.Services.Tasks
             finally
             {
                 // Release lock.
-                await chunkPinLockService.ReleaseLockAsync(chunkPinId);
+                await chunkPinService.ReleaseLockAsync(chunkPinId, true);
             }
         }
     }

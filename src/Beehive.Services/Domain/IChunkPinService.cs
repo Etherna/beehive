@@ -16,12 +16,16 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public interface IChunkPinLockService
+    public interface IChunkPinService
     {
-        Task<bool> AcquireLockAsync(string chunkPinId);
+        Task<bool> AcquireLockAsync(
+            string chunkPinId,
+            bool exclusiveAccess);
 
-        Task<bool> IsResourceLockedAsync(string chunkPinId);
+        Task<bool> IsLockedAsync(string chunkPinId);
 
-        Task<bool> ReleaseLockAsync(string chunkPinId);
+        Task<bool> ReleaseLockAsync(
+            string chunkPinId,
+            bool exclusiveAccess);
     }
 }

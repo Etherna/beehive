@@ -30,8 +30,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public class PinsControllerService(
         IBackgroundJobClient backgroundJobClient,
         IBeeNodeLiveManager beeNodeLiveManager,
-        IBeehiveDbContext dbContext,
-        IChunkPinLockService chunkPinLockService)
+        IChunkPinService chunkPinService,
+        IBeehiveDbContext dbContext)
         : IPinsControllerService
     {
         public Task CreatePinBeeAsync(string hash) =>
@@ -92,7 +92,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             {
                 var task = new PinChunksTask(
                     beeNodeLiveManager,
-                    chunkPinLockService,
+                    chunkPinService,
                     dbContext);
                 await task.RunAsync(pin.Id, null!);
             }
