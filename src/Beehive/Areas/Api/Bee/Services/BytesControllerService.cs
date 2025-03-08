@@ -84,18 +84,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Upload.
             ConcurrentBag<UploadedChunkRef> chunkRefs = [];
             SwarmChunkReference hashingResult;
-            var dbChunkStore = new BeehiveChunkStore(
-                beeNodeLiveManager,
-                dbContext,
-                onSavingChunk: c =>
-                {
-                    if (pin != null)
-                        c.AddPin(pin);
-                    chunkRefs.Add(new(c.Hash, batchId));
-                });
-            await using (dbChunkStore.ConfigureAwait(false))
+            await using (
+                var dbChunkStore = new BeehiveChunkStore(
+                    beeNodeLiveManager,
+                    dbContext,
+                    onSavingChunk: c =>
+                    {
+                        if (pin != null)
+                            c.AddPin(pin);
+                        chunkRefs.Add(new(c.Hash, batchId));
+                    }))
             {
-                // Create and store chunks.
+                //create and store chunks
                 using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                     dbChunkStore,
                     new PostageStamper(
@@ -108,7 +108,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     false,
                     compactLevel,
                     null);
-                hashingResult = await fileHasherPipeline.HashDataAsync(httpContext.Request.Body).ConfigureAwait(false);
+                hashingResult = await fileHasherPipeline.HashDataAsync(httpContext.Request.Body);
 
                 await dbChunkStore.FlushSaveAsync();
             }

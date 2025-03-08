@@ -34,7 +34,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Get.
         
         [HttpGet("{*hash:minlength(1)}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -47,7 +47,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Post.
 
         [HttpPost]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]

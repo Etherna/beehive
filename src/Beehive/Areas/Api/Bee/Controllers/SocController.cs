@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Post.
         
         [HttpPost("{owner:length(40)}/{id}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

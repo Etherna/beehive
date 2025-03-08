@@ -34,7 +34,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         /// </summary>
         /// <response code="200">Last valid chain state</response>
         [HttpGet]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ChainstateDto GetChainstate() =>
             service.GetChainstate();

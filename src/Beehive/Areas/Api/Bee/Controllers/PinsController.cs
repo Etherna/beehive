@@ -33,13 +33,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Get.
         
         [HttpGet]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public Task<BeePinsDto> GetPinsBeeAsync() =>
             service.GetPinsBeeAsync();
         
         [HttpGet("~/ev1/pins")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(
             [Range(0, int.MaxValue)] int page,
@@ -49,7 +49,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Post.
 
         [HttpPost("{hash}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -58,7 +58,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             service.CreatePinBeeAsync(hash);
 
         [HttpPost("~/ev1/pins/{hash}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public Task CreatePinBeehiveAsync(string hash) =>
             service.CreatePinBeehiveAsync(hash);

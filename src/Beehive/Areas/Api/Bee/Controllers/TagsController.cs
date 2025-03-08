@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Get.
         
         [HttpGet("{tagId}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -44,7 +44,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Post.
         
         [HttpPost]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         public Task<IResult> CreateTagAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
@@ -53,7 +53,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Patch.
         
         [HttpPatch("{tagId}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IResult> UpdateTagAsync(
@@ -64,7 +64,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Delete.
         
         [HttpDelete("{tagId}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IResult> DeleteTagAsync(

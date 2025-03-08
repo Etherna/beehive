@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Get.
 
         [HttpGet("{owner:length(40)}/{topic}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -42,7 +42,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Post.
 
         [HttpPost("{owner:length(40)}/{topic}")]
-        [SimpleExceptionFilter]
+        [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
