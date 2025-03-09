@@ -28,8 +28,8 @@ namespace Etherna.Beehive.Domain.Models
         public PostageBucketsCache(
             PostageBatchId batchId,
             uint[] bucketsCollisions,
-            string ownerNodeId,
-            uint upperBound)
+            uint depth,
+            string ownerNodeId)
         {
             ArgumentNullException.ThrowIfNull(bucketsCollisions, nameof(bucketsCollisions));
             if (bucketsCollisions.Length != PostageBuckets.BucketsSize)
@@ -37,8 +37,8 @@ namespace Etherna.Beehive.Domain.Models
             
             BatchId = batchId;
             BucketsCollisions = bucketsCollisions;
+            Depth = depth;
             OwnerNodeId = ownerNodeId;
-            UpperBound = upperBound;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         protected PostageBucketsCache() { }
@@ -51,7 +51,7 @@ namespace Etherna.Beehive.Domain.Models
             get => _bucketsCollisions;
             protected set => _bucketsCollisions = value.ToArray();
         }
+        public virtual uint Depth { get; protected set; }
         public virtual string OwnerNodeId { get; protected set; }
-        public virtual uint UpperBound { get; protected set; }
     }
 }

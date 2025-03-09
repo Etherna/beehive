@@ -43,7 +43,7 @@ namespace Etherna.Beehive.Services.Domain
                 exclusiveAccess);
             
             if (handler is null)
-                throw new ResourceLockException();
+                throw new ResourceLockException($"Failed to lock batch Id '{batchId}'");
 
             return handler;
         }
@@ -60,22 +60,9 @@ namespace Etherna.Beehive.Services.Domain
                 .Select(pair => pair.Second - pair.First)
                 .ToArray();
             
-            // Build filter.
-            //filter batch id
-            var filters = new List<FilterDefinition<PostageBucketsCache>>
-            {
-                Builders<PostageBucketsCache>.Filter.Eq(m => m.BatchId, prevStatus.BatchId)
-            };
-
-            //verify upper bounds
-            for (int i = 0; i < bucketsIncrement.Length; i++)
-                filters.Add(Builders<PostageBucketsCache>.Filter.Lte(
-                    $"{nameof(PostageBucketsCache.BucketsCollisions)}.{i}",
-                    prevStatus.UpperBound - bucketsIncrement[i]));
-            
             // Build updates.
             var updates = new List<UpdateDefinition<PostageBucketsCache>>();
-            for (int i = 0; i < bucketsIncrement.Length; i++)
+            for (int i = 0; i < PostageBuckets.BucketsSize; i++)
                 if (bucketsIncrement[i] != 0)
                     updates.Add(Builders<PostageBucketsCache>.Update.Inc(
                         $"{nameof(PostageBucketsCache.BucketsCollisions)}.{i}",
@@ -83,7 +70,7 @@ namespace Etherna.Beehive.Services.Domain
 
             // Exec update.
             await dbContext.PostageBucketsCache.FindOneAndUpdateAsync(
-                Builders<PostageBucketsCache>.Filter.And(filters),
+                Builders<PostageBucketsCache>.Filter.Eq(m => m.BatchId, prevStatus.BatchId),
                 Builders<PostageBucketsCache>.Update.Combine(updates),
                 new FindOneAndUpdateOptions<PostageBucketsCache>());
         }
@@ -111,14 +98,14 @@ namespace Etherna.Beehive.Services.Domain
                 var nodeLiveInstance = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
                 if (nodeLiveInstance == null) //postage doesn't exist
                     return null;
-                var (bucketsLiveCollisions, upperBound) = await nodeLiveInstance.GetPostageBatchBucketsCollisionsAsync(batchId);
+                var (bucketsLiveCollisions, depth) = await nodeLiveInstance.GetPostageBatchBucketsCollisionsAsync(batchId);
                 
                 // Cache new value on db.
                 bucketsCache = new PostageBucketsCache(
                     batchId,
                     bucketsLiveCollisions.ToArray(),
-                    nodeLiveInstance.Id,
-                    upperBound);
+                    depth,
+                    nodeLiveInstance.Id);
                 await dbContext.PostageBucketsCache.CreateAsync(bucketsCache);
             }
 
