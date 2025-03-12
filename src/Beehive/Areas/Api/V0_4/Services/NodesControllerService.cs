@@ -33,7 +33,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
         ILogger<NodesControllerService> logger)
         : INodesControllerService
     {
-        public async Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput nodeInput)
+        public async Task AddBeeNodeAsync(BeeNodeInput nodeInput)
         {
             ArgumentNullException.ThrowIfNull(nodeInput, nameof(nodeInput));
 
@@ -47,18 +47,6 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
                 node.Id,
                 node.ConnectionString,
                 node.IsBatchCreationEnabled);
-
-            return new BeeNodeDto(
-                node.Id,
-                node.ConnectionString,
-                [],
-                null,
-                new DateTime(0),
-                false,
-                node.IsBatchCreationEnabled,
-                null,
-                null,
-                null);
         }
 
         public async Task<BeeNodeDto> FindByIdAsync(string id)

@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
 {
     public interface INodesControllerService
     {
-        Task<BeeNodeDto> AddBeeNodeAsync(BeeNodeInput nodeInput);
+        Task AddBeeNodeAsync(BeeNodeInput nodeInput);
         Task<BeeNodeDto> FindByIdAsync(string id);
         Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take);
         Task RemoveBeeNodeAsync(string id);

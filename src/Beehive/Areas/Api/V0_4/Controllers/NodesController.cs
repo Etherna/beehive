@@ -72,7 +72,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Controllers
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task<BeeNodeDto> AddBeeNodeAsync(
+        public Task AddBeeNodeAsync(
             [Required, FromBody] BeeNodeInput nodeInput) =>
             service.AddBeeNodeAsync(nodeInput);
 
