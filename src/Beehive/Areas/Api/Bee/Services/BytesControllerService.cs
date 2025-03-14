@@ -23,6 +23,7 @@ using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
+using Etherna.MongoDB.Driver.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -66,11 +67,40 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Acquire lock on postage batch.
             await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, compactLevel > 0);
             
-            // Verify and load postage batch status.
-            var postageBucketsStatus = await postageBatchService.TryGetPostageBucketsAsync(batchId);
-            if (postageBucketsStatus is null)
+            // Verify postage batch, load status and build postage stamper.
+            var postageBatchCache = await postageBatchService.TryGetPostageBatchAsync(batchId);
+            if (postageBatchCache is null)
                 throw new KeyNotFoundException();
-            using var postageBuckets = new PostageBuckets(postageBucketsStatus.BucketsCollisions.ToArray());
+            var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
+                elements => elements.Where(s => s.BatchId == batchId)
+                    .ToListAsync());
+
+            using var postageBuckets = new PostageBuckets(postageBatchCache.Buckets.ToArray());
+            var stampStore = new MemoryStampStore(
+                postageStampsCache.Select(stamp =>
+                    new StampStoreItem(
+                        batchId,
+                        stamp.ChunkHash,
+                        new StampBucketIndex(
+                            stamp.BucketId,
+                            stamp.BucketCounter))));
+            var postageStamper = new PostageStamper(
+                new FakeSigner(),
+                new PostageStampIssuer(
+                    new PostageBatch(
+                        id: postageBatchCache.BatchId,
+                        amount: 0,
+                        blockNumber: 0,
+                        depth: postageBatchCache.Depth,
+                        exists: true,
+                        isImmutable: postageBatchCache.IsImmutable,
+                        isUsable: true,
+                        label: null,
+                        storageRadius: null,
+                        ttl: TimeSpan.FromDays(3650),
+                        utilization: 0),
+                    postageBuckets),
+                stampStore);
 
             // Create pin if required.
             ChunkPin? pin = null;
@@ -98,12 +128,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 //create and store chunks
                 using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                     dbChunkStore,
-                    new PostageStamper(
-                        new FakeSigner(),
-                        new PostageStampIssuer(
-                            PostageBatch.MaxDepthInstance,
-                            postageBuckets),
-                        new MemoryStampStore()),
+                    postageStamper,
                     RedundancyLevel.None,
                     false,
                     compactLevel,
@@ -113,10 +138,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbChunkStore.FlushSaveAsync();
             }
             
-            // Increment cached postage buckets.
-            await postageBatchService.IncrementPostageBucketsCacheAsync(
-                postageBucketsStatus,
-                postageBuckets);
+            // Add new stamped chunks to postage batch cache.
+            await postageBatchService.StoreStampedChunksAsync(
+                postageBatchCache,
+                postageStampsCache.Select(s => s.ChunkHash).ToHashSet(),
+                postageStamper);
 
             // Confirm chunk's push.
             await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);

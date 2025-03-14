@@ -101,13 +101,24 @@ namespace Etherna.Beehive.Persistence
                         new CreateIndexOptions<PostageBatchLock> { Unique = true })
                 ]
             });
-        public IRepository<PostageBucketsCache, string> PostageBucketsCache { get; } = new Repository<PostageBucketsCache, string>(
-            new RepositoryOptions<PostageBucketsCache>("postageBucketsCache")
+        public IRepository<PostageBatchCache, string> PostageBatchesCache { get; } = new Repository<PostageBatchCache, string>(
+            new RepositoryOptions<PostageBatchCache>("postageBatchesCache")
             {
                 IndexBuilders =
                 [
-                    (Builders<PostageBucketsCache>.IndexKeys.Ascending(b => b.BatchId),
-                        new CreateIndexOptions<PostageBucketsCache> { Unique = true })
+                    (Builders<PostageBatchCache>.IndexKeys.Ascending(b => b.BatchId),
+                        new CreateIndexOptions<PostageBatchCache> { Unique = true }),
+                ]
+            });
+        public IRepository<PostageStamp, string> PostageStamps { get; } = new Repository<PostageStamp, string>(
+            new RepositoryOptions<PostageStamp>("postageStamps")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PostageStamp>.IndexKeys
+                            .Ascending(s => s.BatchId)
+                            .Ascending(s => s.ChunkHash),
+                        new CreateIndexOptions<PostageStamp> { Unique = true })
                 ]
             });
 

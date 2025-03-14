@@ -30,8 +30,9 @@ namespace Etherna.Beehive.Domain
         IRepository<UploadedChunkRef, string> ChunkPushQueue { get; }
         IRepository<Chunk, string> Chunks { get; }
         GridFSBucket ChunksBucket { get; }
-        IRepository<PostageBucketsCache, string> PostageBucketsCache { get; }
+        IRepository<PostageBatchCache, string> PostageBatchesCache { get; }
         IRepository<PostageBatchLock, string> PostageBatchLocks { get; }
+        IRepository<PostageStamp, string> PostageStamps { get; }
 
         //others
         IEventDispatcher EventDispatcher { get; }

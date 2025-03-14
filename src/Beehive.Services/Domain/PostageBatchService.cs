@@ -16,12 +16,14 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Services.Domain
 {
@@ -47,66 +49,80 @@ namespace Etherna.Beehive.Services.Domain
 
             return handler;
         }
-
-        public async Task IncrementPostageBucketsCacheAsync(
-            PostageBucketsCache prevStatus,
-            PostageBuckets currentStatus)
-        {
-            ArgumentNullException.ThrowIfNull(prevStatus, nameof(prevStatus));
-            ArgumentNullException.ThrowIfNull(currentStatus, nameof(currentStatus));
-            
-            // Calculate increments.
-            var bucketsIncrement = prevStatus.BucketsCollisions.Zip(currentStatus.GetBuckets())
-                .Select(pair => pair.Second - pair.First)
-                .ToArray();
-            
-            // Build updates.
-            var updates = new List<UpdateDefinition<PostageBucketsCache>>();
-            for (int i = 0; i < PostageBuckets.BucketsSize; i++)
-                if (bucketsIncrement[i] != 0)
-                    updates.Add(Builders<PostageBucketsCache>.Update.Inc(
-                        $"{nameof(PostageBucketsCache.BucketsCollisions)}.{i}",
-                        bucketsIncrement[i]));
-
-            // Exec update.
-            await dbContext.PostageBucketsCache.FindOneAndUpdateAsync(
-                Builders<PostageBucketsCache>.Filter.Eq(m => m.BatchId, prevStatus.BatchId),
-                Builders<PostageBucketsCache>.Update.Combine(updates),
-                new FindOneAndUpdateOptions<PostageBucketsCache>());
-        }
         
         public Task<bool> IsLockedAsync(PostageBatchId batchId) =>
             resourceLockService.IsLockedAsync(
                 dbContext.PostageBatchLocks,
                 batchId.ToString());
 
-        public async Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
+        public async Task StoreStampedChunksAsync(
+            PostageBatchCache postageBatchCache,
+            HashSet<SwarmHash> stampedChunkHashesCache,
+            IPostageStamper newPostageStamper)
+        {
+            ArgumentNullException.ThrowIfNull(postageBatchCache, nameof(postageBatchCache));
+            ArgumentNullException.ThrowIfNull(newPostageStamper, nameof(newPostageStamper));
+            
+            // Add new postage stamps.
+            var newPostageStamps = newPostageStamper.StampStore.GetItems()
+                .Where(s => !stampedChunkHashesCache.Contains(s.ChunkHash))
+                .Select(s => new PostageStamp(
+                    postageBatchCache.BatchId,
+                    s.ChunkHash,
+                    s.StampBucketIndex.BucketId,
+                    s.StampBucketIndex.BucketCounter))
+                .ToArray();
+            if (newPostageStamps.Length != 0)
+                await dbContext.PostageStamps.CreateAsync(newPostageStamps);
+            
+            // Update postage batch buckets.
+            var updates = new List<UpdateDefinition<PostageBatchCache>>();
+            
+            var bucketsIncrement = postageBatchCache.Buckets.Zip(newPostageStamper.StampIssuer.Buckets.GetBuckets())
+                .Select(pair => pair.Second - pair.First)
+                .ToArray();
+            for (var i = 0; i < PostageBuckets.BucketsSize; i++)
+                if (bucketsIncrement[i] != 0)
+                    updates.Add(Builders<PostageBatchCache>.Update.Inc(
+                        $"{nameof(PostageBatchCache.Buckets)}.{i}",
+                        bucketsIncrement[i]));
+
+            if (updates.Count > 0)
+                await dbContext.PostageBatchesCache.FindOneAndUpdateAsync(
+                    Builders<PostageBatchCache>.Filter.Eq(m => m.BatchId, postageBatchCache.BatchId),
+                    Builders<PostageBatchCache>.Update.Combine(updates),
+                    new FindOneAndUpdateOptions<PostageBatchCache>());
+        }
+
+        public async Task<PostageBatchCache?> TryGetPostageBatchAsync(
             PostageBatchId batchId,
             bool forceRefreshCache = false)
         {
             // Try load existing cache from db.
-            var bucketsCache = await dbContext.PostageBucketsCache.TryFindOneAsync(b => b.BatchId == batchId);
+            var bucketsCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             
             // Try load status from node.
             if (bucketsCache == null || forceRefreshCache)
             {
                 // Remove cached value from db.
                 if (bucketsCache != null)
-                    await dbContext.PostageBucketsCache.DeleteAsync(bucketsCache);
+                    await dbContext.PostageBatchesCache.DeleteAsync(bucketsCache);
                 
                 // Get fresh value.
                 var nodeLiveInstance = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
                 if (nodeLiveInstance == null) //postage doesn't exist
                     return null;
+                var postageInfo = await nodeLiveInstance.GetPostageBatchAsync(batchId);
                 var (bucketsLiveCollisions, depth) = await nodeLiveInstance.GetPostageBatchBucketsCollisionsAsync(batchId);
                 
                 // Cache new value on db.
-                bucketsCache = new PostageBucketsCache(
+                bucketsCache = new PostageBatchCache(
                     batchId,
                     bucketsLiveCollisions.ToArray(),
                     depth,
+                    postageInfo.IsImmutable,
                     nodeLiveInstance.Id);
-                await dbContext.PostageBucketsCache.CreateAsync(bucketsCache);
+                await dbContext.PostageBatchesCache.CreateAsync(bucketsCache);
             }
 
             return bucketsCache;

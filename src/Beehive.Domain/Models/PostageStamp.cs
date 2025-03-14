@@ -13,45 +13,31 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Etherna.Beehive.Domain.Models
 {
-    public class PostageBucketsCache : EntityModelBase<string>
+    public class PostageStamp : EntityModelBase<string>
     {
-        // Fields.
-        private uint[] _bucketsCollisions = new uint[PostageBuckets.BucketsSize];
-        
         // Constructors.
-        public PostageBucketsCache(
+        public PostageStamp(
             PostageBatchId batchId,
-            uint[] bucketsCollisions,
-            uint depth,
-            string ownerNodeId)
+            SwarmHash chunkHash,
+            ushort bucketId,
+            uint bucketCounter)
         {
-            ArgumentNullException.ThrowIfNull(bucketsCollisions, nameof(bucketsCollisions));
-            if (bucketsCollisions.Length != PostageBuckets.BucketsSize)
-                throw new ArgumentOutOfRangeException(nameof(bucketsCollisions), "Wrong buckets amount");
-            
             BatchId = batchId;
-            BucketsCollisions = bucketsCollisions;
-            Depth = depth;
-            OwnerNodeId = ownerNodeId;
+            ChunkHash = chunkHash;
+            BucketId = bucketId;
+            BucketCounter = bucketCounter;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected PostageBucketsCache() { }
+        protected PostageStamp() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         
         // Properties.
         public virtual PostageBatchId BatchId { get; protected set; }
-        public virtual IEnumerable<uint> BucketsCollisions
-        {
-            get => _bucketsCollisions;
-            protected set => _bucketsCollisions = value.ToArray();
-        }
-        public virtual uint Depth { get; protected set; }
-        public virtual string OwnerNodeId { get; protected set; }
+        public virtual SwarmHash ChunkHash { get; protected set; }
+        public virtual ushort BucketId { get; protected set; }
+        public virtual uint BucketCounter { get; protected set; }
     }
 }

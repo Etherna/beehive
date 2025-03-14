@@ -13,7 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
@@ -23,14 +25,15 @@ namespace Etherna.Beehive.Services.Domain
         Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
             PostageBatchId batchId,
             bool exclusiveAccess);
-
-        Task IncrementPostageBucketsCacheAsync(
-            PostageBucketsCache prevStatus,
-            PostageBuckets currentStatus);
         
         Task<bool> IsLockedAsync(PostageBatchId batchId);
+
+        Task StoreStampedChunksAsync(
+            PostageBatchCache postageBatchCache,
+            HashSet<SwarmHash> stampedChunkHashesCache,
+            IPostageStamper newPostageStamper);
         
-        public Task<PostageBucketsCache?> TryGetPostageBucketsAsync(
+        public Task<PostageBatchCache?> TryGetPostageBatchAsync(
             PostageBatchId batchId,
             bool forceRefreshCache = false);
     }

@@ -15,15 +15,19 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Serialization;
+using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
-    internal sealed class PostageBucketsCacheMap : IModelMapsCollector
+    internal sealed class PostageBatchMap : IModelMapsCollector
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.MapRegistry.AddModelMap<PostageBucketsCache>(
+            dbContext.MapRegistry.AddModelMap<PostageBatchCache>(
                 "38f60c18-d20c-4d24-a619-2af9d7a5119f"); //v0.4.0
+            
+            dbContext.MapRegistry.AddModelMap<PostageStamp>( //v0.4.0
+                "a7a3075b-ab81-4bd0-8a5e-a35a5a576a71");
         }
     }
 }
