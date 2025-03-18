@@ -150,7 +150,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Update pin, if required.
             if (pin != null)
             {
-                pin.SucceededProvisional(hashingResult);
+                pin.SucceededProvisional(hashingResult, chunkRefs.Count);
                 await dbContext.SaveChangesAsync();
             }
 
