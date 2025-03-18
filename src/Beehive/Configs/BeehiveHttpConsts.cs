@@ -18,8 +18,8 @@ namespace Etherna.Beehive.Configs
     {
         public const string MultiPartFormDataContentType = "multipart/form-data";
         public const string SwarmCompactLevelHeader = "swarm-compact-level";
-        public const string SwarmEncryptionKeyHeader = "swarm-encryption-key";
-        public const string SwarmRecursiveEncryptionHeader = "swarm-recursive-encryption";
+        public const string SwarmEncryptionKeyQuery = "swarmEncKey";
+        public const string SwarmRecursiveEncryptionQuery = "swarmRecEnc";
         public const string TarContentType = "application/x-tar";
     }
 }

@@ -46,7 +46,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             XorEncryptKey? encryptionKey,
             bool recursiveEncryption)
         {
-            using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
             var chunkJoiner = new ChunkJoiner(chunkStore);
             var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(
                 hash,
