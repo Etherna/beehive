@@ -31,26 +31,30 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
     {
         // Get.
 
-        [HttpGet("{owner:length(40)}/{topic}")]
+        [HttpGet("{owner}/{topic}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> FindFeedUpdateAsync(string owner, string topic) =>
+        public Task<IResult> FindFeedUpdateAsync(
+            EthAddress owner,
+            string topic) =>
             service.FindFeedUpdateAsync(owner, topic, HttpContext);
 
         // Post.
 
-        [HttpPost("{owner:length(40)}/{topic}")]
+        [HttpPost("{owner}/{topic}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        public Task<IResult> CreateFeedRootManifestAsync(
-            string owner,
+        public Task<IActionResult> CreateFeedRootManifestAsync(
+            EthAddress owner,
             string topic,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.CreateFeedRootManifestAsync(owner, topic, batchId, HttpContext);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
+            [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence) =>
+            service.CreateFeedRootManifestAsync(owner, topic, type, batchId, pinContent, HttpContext);
     }
 }

@@ -14,20 +14,23 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface IFeedsControllerService
     {
-        Task<IResult> CreateFeedRootManifestAsync(
-            string owner,
+        Task<IActionResult> CreateFeedRootManifestAsync(
+            EthAddress owner,
             string topic,
+            SwarmFeedType type,
             PostageBatchId batchId,
+            bool pinContent,
             HttpContext httpContext);
         
         Task<IResult> FindFeedUpdateAsync(
-            string owner,
+            EthAddress owner,
             string topic,
             HttpContext httpContext);
     }

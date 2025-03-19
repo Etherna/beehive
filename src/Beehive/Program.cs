@@ -203,6 +203,7 @@ namespace Etherna.Beehive
                 options.OperationFilter<SwaggerDefaultValuesFilter>();
                 
                 //add schema filters
+                options.SchemaFilter<EthAddressSchemaFilter>();
                 options.SchemaFilter<PostageBatchIdSchemaFilter>();
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();

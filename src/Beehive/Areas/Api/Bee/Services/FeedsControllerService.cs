@@ -17,7 +17,8 @@ using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -28,20 +29,21 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IHttpForwarder forwarder)
         : IFeedsControllerService
     {
-        public async Task<IResult> CreateFeedRootManifestAsync(
-            string owner,
+        public Task<IActionResult> CreateFeedRootManifestAsync(
+            EthAddress owner,
             string topic,
+            SwarmFeedType type,
             PostageBatchId batchId,
+            bool pinContent,
             HttpContext httpContext)
         {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
-            if (node == null)
-                throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            throw new NotImplementedException();
         }
 
-        public async Task<IResult> FindFeedUpdateAsync(string owner, string topic, HttpContext httpContext)
+        public async Task<IResult> FindFeedUpdateAsync(
+            EthAddress owner,
+            string topic,
+            HttpContext httpContext)
         {
             // Select node and forward request.
             var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
