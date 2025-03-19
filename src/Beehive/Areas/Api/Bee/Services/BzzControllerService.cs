@@ -16,12 +16,17 @@ using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing;
+using Etherna.BeeNet.Hashing.Postage;
+using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Etherna.BeeNet.Stores;
+using Etherna.MongoDB.Driver.Linq;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +36,7 @@ using System;
 using System.Collections.Generic;
 using System.Formats.Tar;
 using System.IO;
+using System.Linq;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,7 +47,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkService beeNetChunkService,
         IBeehiveDbContext dbContext,
-        IFeedService feedService)
+        IFeedService feedService,
+        IPostageBatchService postageBatchService)
         : IBzzControllerService
     {
         // Methods.
@@ -50,19 +57,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
-            using var chunkStore = new BeehiveChunkStore(
-                beeNodeLiveManager,
-                dbContext);
+
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
             
             // Decode manifest.
-            var manifest = new ReferencedMantarayManifest(
-                chunkStore,
-                address.Hash);
+            var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
             
             // Try to dereference feed manifest first.
-            var hasher = new Hasher();
-            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest, hasher);
+            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest, new Hasher());
             if (feedManifest != null)
             {
                 //dereference feed
@@ -150,95 +152,145 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
-            // Create db chunk store, with pinning if required.
+            // Acquire lock on postage batch.
+            await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, compactLevel > 0);
+            
+            // Verify postage batch, load status and build postage stamper.
+            var postageBatchCache = await postageBatchService.TryGetPostageBatchAsync(batchId);
+            if (postageBatchCache is null)
+                throw new KeyNotFoundException();
+            var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
+                elements => elements.Where(s => s.BatchId == batchId)
+                    .ToListAsync());
+
+            using var postageBuckets = new PostageBuckets(postageBatchCache.Buckets.ToArray());
+            var stampStore = new MemoryStampStore(
+                postageStampsCache.Select(stamp =>
+                    new StampStoreItem(
+                        batchId,
+                        stamp.ChunkHash,
+                        new StampBucketIndex(
+                            stamp.BucketId,
+                            stamp.BucketCounter))));
+            var postageStamper = new PostageStamper(
+                new FakeSigner(),
+                new PostageStampIssuer(
+                    new PostageBatch(
+                        id: postageBatchCache.BatchId,
+                        amount: 0,
+                        blockNumber: 0,
+                        depth: postageBatchCache.Depth,
+                        exists: true,
+                        isImmutable: postageBatchCache.IsImmutable,
+                        isUsable: true,
+                        label: null,
+                        storageRadius: null,
+                        ttl: TimeSpan.FromDays(3650),
+                        utilization: 0),
+                    postageBuckets),
+                stampStore);
+
+            // Create pin if required.
             ChunkPin? pin = null;
-            List<UploadedChunkRef> chunkRefs = [];
             if (pinContent)
             {
                 pin = new ChunkPin(null); //set root hash later
                 await dbContext.ChunkPins.CreateAsync(pin);
                 pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
-            using var dbChunkStore = new BeehiveChunkStore(
-                beeNodeLiveManager,
-                dbContext,
-                onSavingChunk: c =>
-                {
-                    if (pin != null)
-                        c.AddPin(pin);
-                    chunkRefs.Add(new(c.Hash, batchId));
-                });
             
-            // Create and store chunks.
+            // Upload.
+            List<UploadedChunkRef> chunkRefs = [];
             SwarmChunkReference hashingResult;
-            if (isDirectory || contentType == BeehiveHttpConsts.MultiPartFormDataContentType)
-            {
-                var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                try
-                {
-                    // Extract files in temp directory.
-                    Directory.CreateDirectory(tempDirectory);
-                    switch (contentType)
+            await using (
+                var dbChunkStore = new BeehiveChunkStore(
+                    beeNodeLiveManager,
+                    dbContext,
+                    onSavingChunk: c =>
                     {
-                        case BeehiveHttpConsts.MultiPartFormDataContentType:
-                            foreach (var file in httpContext.Request.Form.Files)
-                            {
-                                // Combine tempDirectory with file path to respect directory structure.
-                                var filePath = Path.Combine(tempDirectory, file.FileName);
+                        if (pin != null)
+                            c.AddPin(pin);
+                        chunkRefs.Add(new(c.Hash, batchId));
+                    }))
+            {
+                //create and store chunks
+                if (isDirectory || contentType == BeehiveHttpConsts.MultiPartFormDataContentType)
+                {
+                    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                    try
+                    {
+                        // Extract files in temp directory.
+                        Directory.CreateDirectory(tempDirectory);
+                        switch (contentType)
+                        {
+                            case BeehiveHttpConsts.MultiPartFormDataContentType:
+                                foreach (var file in httpContext.Request.Form.Files)
+                                {
+                                    // Combine tempDirectory with file path to respect directory structure.
+                                    var filePath = Path.Combine(tempDirectory, file.FileName);
 
-                                // Ensure directory structure exists.
-                                var parentDirPath = Path.GetDirectoryName(filePath);
-                                if (!string.IsNullOrEmpty(parentDirPath))
-                                    Directory.CreateDirectory(parentDirPath);
+                                    // Ensure directory structure exists.
+                                    var parentDirPath = Path.GetDirectoryName(filePath);
+                                    if (!string.IsNullOrEmpty(parentDirPath))
+                                        Directory.CreateDirectory(parentDirPath);
 
-                                // Save file content to the determined path.
-                                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                                await file.CopyToAsync(fileStream);
-                            }
-                            break;
-                    
-                        case BeehiveHttpConsts.TarContentType:
-                            await TarFile.ExtractToDirectoryAsync(httpContext.Request.Body, tempDirectory, true);
-                            break;
-                    
-                        default:
-                            throw new ArgumentException(
-                                "Invalid content-type for directory upload",
-                                nameof(contentType));
+                                    // Save file content to the determined path.
+                                    await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                                    await file.CopyToAsync(fileStream);
+                                }
+                                break;
+                        
+                            case BeehiveHttpConsts.TarContentType:
+                                await TarFile.ExtractToDirectoryAsync(httpContext.Request.Body, tempDirectory, true);
+                                break;
+                        
+                            default:
+                                throw new ArgumentException(
+                                    "Invalid content-type for directory upload",
+                                    nameof(contentType));
+                        }
+                        
+                        // Upload directory.
+                        var uploadResult = await beeNetChunkService.UploadDirectoryAsync(
+                            tempDirectory,
+                            indexDocument,
+                            errorDocument,
+                            compactLevel,
+                            false,
+                            RedundancyLevel.None,
+                            postageStamper,
+                            null,
+                            dbChunkStore);
+                        hashingResult = uploadResult.ChunkReference;
                     }
-                    
-                    // Upload directory.
-                    var uploadResult = await beeNetChunkService.UploadDirectoryAsync(
-                        tempDirectory,
-                        indexDocument,
-                        errorDocument,
+                    finally
+                    {
+                        Directory.Delete(tempDirectory, true);
+                    }
+                }
+                else
+                {
+                    var uploadResult = await beeNetChunkService.UploadSingleFileAsync(
+                        httpContext.Request.Body,
+                        contentType,
+                        name,
                         compactLevel,
                         false,
                         RedundancyLevel.None,
-                        null,
+                        postageStamper,
                         null,
                         dbChunkStore);
                     hashingResult = uploadResult.ChunkReference;
                 }
-                finally
-                {
-                    Directory.Delete(tempDirectory, true);
-                }
             }
-            else
-            {
-                var uploadResult = await beeNetChunkService.UploadSingleFileAsync(
-                    httpContext.Request.Body,
-                    contentType,
-                    name,
-                    compactLevel,
-                    false,
-                    RedundancyLevel.None,
-                    null,
-                    null,
-                    dbChunkStore);
-                hashingResult = uploadResult.ChunkReference;
-            }
+            
+            // Add new stamped chunks to postage batch cache.
+            await postageBatchService.StoreStampedChunksAsync(
+                postageBatchCache,
+                postageStampsCache.Select(s => s.ChunkHash).ToHashSet(),
+                postageStamper);
+
+            // Confirm chunk's push.
             await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
             
             // Update pin, if required.
