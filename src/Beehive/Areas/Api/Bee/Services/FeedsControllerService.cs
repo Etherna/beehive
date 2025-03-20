@@ -57,8 +57,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         _ => throw new InvalidOperationException(),
                     };
                     
-                    var result = await feedService.UploadFeedManifestAsync(swarmFeed, postageStamper, chunkStore);
-                    return result.ChunkReference;
+                    return await feedService.UploadFeedManifestAsync(swarmFeed, compactLevel, postageStamper, chunkStore);
                 });
 
             return new JsonResult(new ChunkReferenceDto(

@@ -26,7 +26,13 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         public void Register(IDbContext dbContext)
         {
             dbContext.MapRegistry.AddModelMap<ChunkPin>( //v0.4.0
-                "832d06b1-ed82-4f4f-9df9-ad24565df38d");
+                "832d06b1-ed82-4f4f-9df9-ad24565df38d",
+                mm =>
+                {
+                    mm.AutoMap();
+                    mm.GetMemberMap(p => p.EncryptionKey).SetIgnoreIfDefault(true);
+                    mm.GetMemberMap(p => p.RecursiveEncryption).SetIgnoreIfDefault(true);
+                });
         }
 
         /// <summary>
