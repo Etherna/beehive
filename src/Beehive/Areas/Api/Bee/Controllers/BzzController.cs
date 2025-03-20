@@ -45,7 +45,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         
         [HttpPost]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ManifestReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         public Task<IActionResult> UploadBzzAsync(

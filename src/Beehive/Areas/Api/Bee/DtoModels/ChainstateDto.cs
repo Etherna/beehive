@@ -17,7 +17,7 @@ using System;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public class ChainstateDto(
+    public sealed class ChainstateDto(
         long chainTip,
         long block,
         BzzBalance totalAmount,

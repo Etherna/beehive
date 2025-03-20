@@ -12,11 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public sealed class BeeErrorDto(int code, string message)
+    public sealed class ManifestReferenceDto(
+        SwarmHash hash)
     {
-        public int Code { get; } = code;
-        public string Message { get; } = message;
+        public SwarmHash Reference { get; } = hash;
     }
 }

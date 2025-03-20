@@ -300,10 +300,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.SaveChangesAsync();
             }
 
-            return new JsonResult(new ChunkReferenceDto(
-                hashingResult.Hash,
-                hashingResult.EncryptionKey,
-                hashingResult.UseRecursiveEncryption))
+            return new JsonResult(new ManifestReferenceDto(hashingResult.Hash))
             {
                 StatusCode = StatusCodes.Status201Created
             };

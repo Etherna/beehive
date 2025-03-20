@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.Beehive.Configs;
@@ -46,7 +47,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpPost("{owner}/{topic}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ManifestReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
