@@ -13,10 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using Etherna.Beehive.Extensions;
-using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Domain;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
@@ -25,14 +22,11 @@ using Microsoft.AspNetCore.Mvc;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class FeedsControllerService(
-        IBeeNodeLiveManager beeNodeLiveManager,
         IFeedService feedService,
-        IHttpForwarder forwarder,
         IDataService dataService)
         : IFeedsControllerService
     {
@@ -66,17 +60,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             };
         }
 
-        public async Task<IResult> FindFeedUpdateAsync(
+        public Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
             string topic,
-            HttpContext httpContext)
+            DateTimeOffset? at,
+            TimeSpan? after,
+            SwarmFeedType type,
+            bool onlyRootChunk)
         {
-            // Select node and forward request.
-            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
-            return await node.ForwardRequestAsync(
-                forwarder,
-                httpContext,
-                new DownloadHttpTransformer(forceNoCache: true));
+            return Task.FromResult<IActionResult>(new OkResult());
         }
     }
 }

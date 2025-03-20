@@ -24,6 +24,8 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Exceptions;
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.JsonConverters;
+using Etherna.Beehive.ModelBinders;
 using Etherna.Beehive.Options;
 using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services;
@@ -142,9 +144,14 @@ namespace Etherna.Beehive
             var services = builder.Services;
 
             // Configure Asp.Net Core framework services.
-            services.AddControllers().AddJsonOptions(options =>
+            services.AddControllers(options =>
             {
+                options.ModelBinderProviders.Insert(0, new BeehiveModelBinderProvider());
+            }).AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new DateTimeOffsetAsUnixSecondsJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.JsonSerializerOptions.Converters.Add(new TimeSpanAsSecondsJsonConverter());
                 options.AddBeeNetJsonConverters();
             });
             services.AddCors();
@@ -203,12 +210,15 @@ namespace Etherna.Beehive
                 options.OperationFilter<SwaggerDefaultValuesFilter>();
                 
                 //add schema filters
+                options.SchemaFilter<DateTimeOffsetSchemaFilter>();
                 options.SchemaFilter<EthAddressSchemaFilter>();
                 options.SchemaFilter<PostageBatchIdSchemaFilter>();
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();
                 options.SchemaFilter<TagIdSchemaFilter>();
+                options.SchemaFilter<TimeSpanSchemaFilter>();
+                options.SchemaFilter<XorEncryptKeySchemaFilter>();
 
                 //integrate xml comments
                 var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";

@@ -19,14 +19,14 @@ using System;
 
 namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public class EthAddressSchemaFilter : ISchemaFilter
+    public sealed class EthAddressSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(EthAddress))
+            if (context.Type == typeof(EthAddress) || context.Type == typeof(EthAddress?))
             {
                 schema.Type = "string";
                 schema.Format = null;

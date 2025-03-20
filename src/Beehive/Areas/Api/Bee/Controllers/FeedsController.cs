@@ -19,6 +19,7 @@ using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -38,10 +39,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> FindFeedUpdateAsync(
+        public Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
-            string topic) =>
-            service.FindFeedUpdateAsync(owner, topic, HttpContext);
+            string topic,
+            [FromQuery] DateTimeOffset? at,
+            [FromQuery] TimeSpan? after,
+            [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk,
+            [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence) =>
+            service.FindFeedUpdateAsync(owner, topic, at, after, type, onlyRootChunk);
 
         // Post.
 

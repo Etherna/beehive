@@ -19,14 +19,14 @@ using System;
 
 namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public class PostageBatchIdSchemaFilter : ISchemaFilter
+    public sealed class PostageBatchIdSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(PostageBatchId))
+            if (context.Type == typeof(PostageBatchId) || context.Type == typeof(PostageBatchId?))
             {
                 schema.Type = "string";
                 schema.Format = null;

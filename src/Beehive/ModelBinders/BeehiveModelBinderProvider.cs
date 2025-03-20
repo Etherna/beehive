@@ -12,25 +12,26 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.ModelBinders
 {
-    public sealed class TagIdSchemaFilter : ISchemaFilter
+    public class BeehiveModelBinderProvider : IModelBinderProvider
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public IModelBinder? GetBinder(ModelBinderProviderContext context)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
-            
-            if (context.Type == typeof(TagId) || context.Type == typeof(TagId?))
-            {
-                schema.Type = "integer";
-                schema.Format = "int64";
-            }
+
+            if (context.Metadata.ModelType == typeof(DateTimeOffset) || 
+                context.Metadata.ModelType == typeof(DateTimeOffset?))
+                return new DateTimeOffsetFromUnixTimestampModelBinder();
+
+            if (context.Metadata.ModelType == typeof(TimeSpan) ||
+                context.Metadata.ModelType == typeof(TimeSpan?))
+                return new TimeSpanFromSecondsModelBinder();
+
+            return null;
         }
     }
 }

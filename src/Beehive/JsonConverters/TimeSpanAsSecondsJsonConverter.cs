@@ -12,25 +12,27 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.JsonConverters
 {
-    public sealed class TagIdSchemaFilter : ISchemaFilter
+    public sealed class TimeSpanAsSecondsJsonConverter : JsonConverter<TimeSpan>
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            if (reader.TokenType != JsonTokenType.Number)
+                throw new JsonException();
+
+            return TimeSpan.FromSeconds(reader.GetInt64());
+        }
+
+        public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options)
+        {
+            ArgumentNullException.ThrowIfNull(writer, nameof(writer));
             
-            if (context.Type == typeof(TagId) || context.Type == typeof(TagId?))
-            {
-                schema.Type = "integer";
-                schema.Format = "int64";
-            }
+            writer.WriteNumberValue(value.TotalSeconds);
         }
     }
 }

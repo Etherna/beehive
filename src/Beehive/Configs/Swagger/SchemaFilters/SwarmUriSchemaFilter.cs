@@ -19,14 +19,14 @@ using System;
 
 namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public class SwarmUriSchemaFilter : ISchemaFilter
+    public sealed class SwarmUriSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(SwarmHash))
+            if (context.Type == typeof(SwarmUri) || context.Type == typeof(SwarmUri?))
             {
                 schema.Type = "string";
                 schema.Format = null;
