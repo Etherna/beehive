@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -53,8 +54,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             EthAddress owner,
             string topic,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
+            [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
             [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence) =>
-            service.CreateFeedRootManifestAsync(owner, topic, type, batchId, pinContent, HttpContext);
+            service.CreateFeedRootManifestAsync(owner, topic, type, batchId, compactLevel, pinContent);
     }
 }

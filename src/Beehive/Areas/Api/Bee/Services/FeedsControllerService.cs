@@ -12,12 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
+using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
@@ -26,18 +31,43 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class FeedsControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IHttpForwarder forwarder)
+        IFeedService feedService,
+        IHttpForwarder forwarder,
+        IDataService dataService)
         : IFeedsControllerService
     {
-        public Task<IActionResult> CreateFeedRootManifestAsync(
+        public async Task<IActionResult> CreateFeedRootManifestAsync(
             EthAddress owner,
             string topic,
             SwarmFeedType type,
             PostageBatchId batchId,
-            bool pinContent,
-            HttpContext httpContext)
+            ushort compactLevel,
+            bool pinContent)
         {
-            throw new NotImplementedException();
+            var hashingResult = await dataService.UploadAsync(
+                batchId,
+                compactLevel > 0,
+                pinContent,
+                async (chunkStore, postageStamper) =>
+                {
+                    SwarmFeedBase swarmFeed = type switch
+                    {
+                        SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic.HexToByteArray(), new Hasher()),
+                        SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic.HexToByteArray()),
+                        _ => throw new InvalidOperationException(),
+                    };
+                    
+                    var result = await feedService.UploadFeedManifestAsync(swarmFeed, postageStamper, chunkStore);
+                    return result.ChunkReference;
+                });
+
+            return new JsonResult(new ChunkReferenceDto(
+                hashingResult.Hash,
+                hashingResult.EncryptionKey,
+                hashingResult.UseRecursiveEncryption))
+            {
+                StatusCode = StatusCodes.Status201Created
+            };
         }
 
         public async Task<IResult> FindFeedUpdateAsync(

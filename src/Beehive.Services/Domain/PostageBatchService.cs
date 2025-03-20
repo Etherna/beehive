@@ -27,7 +27,7 @@ using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public class PostageBatchService(
+    public sealed class PostageBatchService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         IResourceLockService resourceLockService)

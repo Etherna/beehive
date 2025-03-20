@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public class ResourceLockService : IResourceLockService
+    public sealed class ResourceLockService : IResourceLockService
     {
         public async Task<ResourceLockHandler<TModel>?> TryAcquireLockAsync<TModel>(
             Func<TModel> buildNewLock,

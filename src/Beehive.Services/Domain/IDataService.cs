@@ -12,26 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Etherna.BeeNet.Stores;
+using System;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Services.Domain
 {
-    public interface IFeedsControllerService
+    public interface IDataService
     {
-        Task<IActionResult> CreateFeedRootManifestAsync(
-            EthAddress owner,
-            string topic,
-            SwarmFeedType type,
+        Task<SwarmChunkReference> UploadAsync(
             PostageBatchId batchId,
-            ushort compactLevel,
-            bool pinContent);
-        
-        Task<IResult> FindFeedUpdateAsync(
-            EthAddress owner,
-            string topic,
-            HttpContext httpContext);
+            bool useChunkCompaction,
+            bool pinContent,
+            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> hashingFuncAsync);
     }
 }

@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public class ChunkPinService(
+    public sealed class ChunkPinService(
         IBeehiveDbContext dbContext,
         IResourceLockService resourceLockService)
         : IChunkPinService
