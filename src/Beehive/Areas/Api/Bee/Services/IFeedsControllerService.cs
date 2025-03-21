@@ -33,7 +33,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             EthAddress owner,
             string topic,
             DateTimeOffset? at,
-            TimeSpan? after,
+            ulong? after,
+            byte? afterLevel,
             SwarmFeedType type,
             bool onlyRootChunk);
     }

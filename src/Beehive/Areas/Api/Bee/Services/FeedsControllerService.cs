@@ -13,7 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
+using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
@@ -26,8 +28,10 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class FeedsControllerService(
-        IFeedService feedService,
-        IDataService dataService)
+        IBeeNodeLiveManager beeNodeLiveManager,
+        IDataService dataService,
+        IBeehiveDbContext dbContext,
+        IFeedService feedService)
         : IFeedsControllerService
     {
         public async Task<IActionResult> CreateFeedRootManifestAsync(
@@ -60,15 +64,38 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             };
         }
 
-        public Task<IActionResult> FindFeedUpdateAsync(
+        public async Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
             string topic,
             DateTimeOffset? at,
-            TimeSpan? after,
+            ulong? after,
+            byte? afterLevel,
             SwarmFeedType type,
             bool onlyRootChunk)
         {
-            return Task.FromResult<IActionResult>(new OkResult());
+            // Init default parameters.
+            at ??= DateTimeOffset.UtcNow;
+
+            // Build feed.
+            SwarmFeedBase feed = type switch
+            {
+                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic.HexToByteArray(), new Hasher()),
+                SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic.HexToByteArray()),
+                _ => throw new InvalidOperationException()
+            };
+            SwarmFeedIndexBase? afterFeedIndex = after is null
+                ? null
+                : type switch
+                {
+                    SwarmFeedType.Epoch => new SwarmEpochFeedIndex(after.Value, afterLevel ?? SwarmEpochFeedIndex.MaxLevel, new Hasher()),
+                    SwarmFeedType.Sequence => new SwarmSequenceFeedIndex(after.Value),
+                    _ => throw new InvalidOperationException(),
+                };
+
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            var feedChunk = await feed.TryFindFeedAtAsync(chunkStore, at.Value, afterFeedIndex);
+
+            return new OkResult();
         }
     }
 }

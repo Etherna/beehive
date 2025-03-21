@@ -43,10 +43,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             EthAddress owner,
             string topic,
             [FromQuery] DateTimeOffset? at,
-            [FromQuery] TimeSpan? after,
+            [FromQuery] ulong? after,
+            [FromQuery] byte? afterLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk,
             [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence) =>
-            service.FindFeedUpdateAsync(owner, topic, at, after, type, onlyRootChunk);
+            service.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk);
 
         // Post.
 
