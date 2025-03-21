@@ -31,17 +31,23 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
     {
         // Post.
         
-        [HttpPost("{owner:length(40)}/{id}")]
+        [HttpPost("{owner}/{id}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [RequireAtLeastOneHeader(
+            SwarmHttpConsts.SwarmPostageBatchIdHeader,
+            SwarmHttpConsts.SwarmPostageStampHeader)]
+        [RequestSizeLimit(SwarmChunk.SpanAndDataSize)]
         public Task<IResult> UploadSocAsync(
-            string owner,
+            EthAddress owner,
             string id,
             [FromQuery(Name = "sig"), Required] string signature,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadSocAsync(owner, id, signature, batchId, HttpContext);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
+            [FromBody, Required] byte[] socData) =>
+            service.UploadSocAsync(owner, id, signature, batchId, postageStamp, socData);
     }
 }

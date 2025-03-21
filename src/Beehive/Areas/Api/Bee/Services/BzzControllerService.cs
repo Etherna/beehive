@@ -68,8 +68,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (feedManifest != null)
             {
                 //dereference feed
-                var healthyNode = await beeNodeLiveManager.SelectHealthyNodeAsync();
-                var feedChunk = await feedManifest.TryFindFeedAtAsync(healthyNode.Client, DateTimeOffset.UtcNow, null);
+                var feedChunk = await feedManifest.TryFindFeedAtAsync(chunkStore, DateTimeOffset.UtcNow, null);
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 

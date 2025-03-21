@@ -12,33 +12,25 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Extensions;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
+using System;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public class SocControllerService(
-        IBeeNodeLiveManager beeNodeLiveManager,
-        IHttpForwarder forwarder)
+    public class SocControllerService()
         : ISocControllerService
     {
-        public async Task<IResult> UploadSocAsync(
-            string owner,
+        public Task<IResult> UploadSocAsync(
+            EthAddress owner,
             string id,
             string signature,
-            PostageBatchId batchId,
-            HttpContext httpContext)
+            PostageBatchId? batchId,
+            PostageStamp? postageStamp,
+            byte[] socData)
         {
-            // Select node and forward request.
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
-            if (node is null)
-                throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            throw new NotImplementedException();
         }
     }
 }

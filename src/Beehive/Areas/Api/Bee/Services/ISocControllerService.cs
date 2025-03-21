@@ -21,10 +21,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public interface ISocControllerService
     {
         Task<IResult> UploadSocAsync(
-            string owner,
+            EthAddress owner,
             string id,
             string signature,
-            PostageBatchId batchId,
-            HttpContext httpContext);
+            PostageBatchId? batchId,
+            PostageStamp? postageStamp,
+            byte[] socData);
     }
 }
