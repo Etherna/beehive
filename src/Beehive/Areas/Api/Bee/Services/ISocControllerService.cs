@@ -13,19 +13,19 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface ISocControllerService
     {
-        Task<IResult> UploadSocAsync(
+        Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             string id,
             string signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            byte[] socData);
+            byte[] data);
     }
 }

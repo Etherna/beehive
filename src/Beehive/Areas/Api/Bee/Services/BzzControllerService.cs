@@ -72,7 +72,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
-                var wrappedChunk = await feedService.UnwrapChunkAsync(feedChunk, chunkStore);
+                var wrappedChunk = await SingleOwnerChunk.UnwrapChunkAsync(feedChunk, chunkStore);
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
                 manifest = new ReferencedMantarayManifest(
                     chunkStore,
@@ -186,6 +186,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         storageRadius: null,
                         ttl: TimeSpan.FromDays(3650),
                         utilization: 0),
+                    null,
                     postageBuckets),
                 stampStore);
 
@@ -299,7 +300,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 await dbContext.SaveChangesAsync();
             }
 
-            return new JsonResult(new ManifestReferenceDto(hashingResult.Hash))
+            return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
             {
                 StatusCode = StatusCodes.Status201Created
             };

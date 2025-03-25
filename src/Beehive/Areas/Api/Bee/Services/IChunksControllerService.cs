@@ -37,7 +37,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         Task<IResult> DownloadChunkAsync(SwarmHash hash);
         
         Task<IActionResult> UploadChunkAsync(
-            PostageBatchId batchId,
+            PostageBatchId? batchId,
+            PostageStamp? postageStamp,
             HttpContext httpContext);
     }
 }

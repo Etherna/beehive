@@ -44,6 +44,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             var hashingResult = await dataService.UploadAsync(
                 batchId,
+                null,
                 compactLevel > 0,
                 pinContent,
                 async (chunkStore, postageStamper) =>
@@ -58,7 +59,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     return await feedService.UploadFeedManifestAsync(swarmFeed, compactLevel, postageStamper, chunkStore);
                 });
 
-            return new JsonResult(new ManifestReferenceDto(hashingResult.Hash))
+            return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
             {
                 StatusCode = StatusCodes.Status201Created
             };

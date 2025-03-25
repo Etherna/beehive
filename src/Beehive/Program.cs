@@ -213,6 +213,7 @@ namespace Etherna.Beehive
                 options.SchemaFilter<DateTimeOffsetSchemaFilter>();
                 options.SchemaFilter<EthAddressSchemaFilter>();
                 options.SchemaFilter<PostageBatchIdSchemaFilter>();
+                options.SchemaFilter<PostageStampSchemaFilter>();
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();

@@ -46,6 +46,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [HttpPost]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
+        [RequestSizeLimit(1024)]
         public Task<IResult> CreateTagAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
             service.CreateTagAsync(batchId, HttpContext);
@@ -56,6 +57,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [RequestSizeLimit(1024)]
         public Task<IResult> UpdateTagAsync(
             TagId tagId,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>

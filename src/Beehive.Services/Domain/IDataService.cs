@@ -16,16 +16,29 @@ using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
     public interface IDataService
     {
+        /// <summary>
+        /// Implement the chunks upload protocol
+        /// </summary>
+        /// <param name="batchId"></param>
+        /// <param name="batchOwner">Required with presignedPostageStamps</param>
+        /// <param name="useChunkCompaction"></param>
+        /// <param name="pinContent"></param>
+        /// <param name="chunkingFuncAsync"></param>
+        /// <param name="presignedPostageStamps"></param>
+        /// <returns></returns>
         Task<SwarmChunkReference> UploadAsync(
             PostageBatchId batchId,
+            EthAddress? batchOwner,
             bool useChunkCompaction,
             bool pinContent,
-            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> hashingFuncAsync);
+            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> chunkingFuncAsync,
+            IDictionary<SwarmHash, PostageStamp>? presignedPostageStamps = null);
     }
 }

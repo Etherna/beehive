@@ -16,7 +16,7 @@ using Etherna.BeeNet.Models;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public sealed class ManifestReferenceDto(
+    public sealed class SimpleChunkReferenceDto(
         SwarmHash hash)
     {
         public SwarmHash Reference { get; } = hash;

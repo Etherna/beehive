@@ -16,4 +16,5 @@ If not, see &lt;https://www.gnu.org/licenses/&gt;.</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=affero/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=chainstate/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=consts/@EntryIndexedValue">True</s:Boolean>
-	<s:Boolean x:Key="/Default/UserDictionary/Words/=etherna/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=etherna/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=presigned/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>

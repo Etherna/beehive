@@ -53,10 +53,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpPost("{owner}/{topic}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(ManifestReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [RequestSizeLimit(SwarmChunk.SpanAndDataSize)]
         public Task<IActionResult> CreateFeedRootManifestAsync(
             EthAddress owner,
             string topic,

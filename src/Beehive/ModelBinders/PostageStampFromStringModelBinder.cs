@@ -12,13 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.ModelBinders
 {
-    public class DateTimeOffsetFromUnixTimestampModelBinder : IModelBinder
+    public class PostageStampFromStringModelBinder : IModelBinder
     {
         public Task BindModelAsync(ModelBindingContext bindingContext)
         {
@@ -32,10 +34,10 @@ namespace Etherna.Beehive.ModelBinders
 
             // Try to convert the value.
             var value = valueProviderResult.FirstValue;
-            if (long.TryParse(value, out var unixTimestamp))
+            if (value != null && value.IsHex() && value.Length == PostageStamp.StampSize * 2)
             {
-                var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(unixTimestamp);
-                bindingContext.Result = ModelBindingResult.Success(dateTimeOffset);
+                var postageStamp = PostageStamp.BuildFromByteArray(value.HexToByteArray());
+                bindingContext.Result = ModelBindingResult.Success(postageStamp);
                 return Task.CompletedTask;
             }
 

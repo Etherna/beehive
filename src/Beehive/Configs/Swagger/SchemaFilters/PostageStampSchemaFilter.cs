@@ -12,30 +12,28 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Etherna.BeeNet.Models;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
-namespace Etherna.Beehive.ModelBinders
+namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public class BeehiveModelBinderProvider : IModelBinderProvider
+    public sealed class PostageStampSchemaFilter : ISchemaFilter
     {
-        public IModelBinder? GetBinder(ModelBinderProviderContext context)
+        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
+            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
-
-            if (context.Metadata.ModelType == typeof(DateTimeOffset) || 
-                context.Metadata.ModelType == typeof(DateTimeOffset?))
-                return new DateTimeOffsetFromUnixTimeSecondsModelBinder();
-
-            if (context.Metadata.ModelType == typeof(PostageStamp))
-                return new PostageStampFromStringModelBinder();
-
-            if (context.Metadata.ModelType == typeof(TimeSpan) ||
-                context.Metadata.ModelType == typeof(TimeSpan?))
-                return new TimeSpanFromSecondsModelBinder();
-
-            return null;
+            
+            if (context.Type == typeof(PostageStamp))
+            {
+                schema.Type = "string";
+                schema.Format = null;
+                schema.MinLength = PostageStamp.StampSize * 2;
+                schema.MaxLength = PostageStamp.StampSize * 2;
+                schema.Pattern = $"^[a-fA-F0-9]{{{PostageStamp.StampSize * 2}}}$";
+            }
         }
     }
 }

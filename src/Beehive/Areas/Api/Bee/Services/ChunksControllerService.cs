@@ -129,7 +129,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         }
 
         public async Task<IActionResult> UploadChunkAsync(
-            PostageBatchId batchId,
+            PostageBatchId? batchId,
+            BeeNet.Models.PostageStamp? postageStamp,
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
@@ -149,7 +150,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     payload[..SwarmChunk.SpanSize].ToArray(),
                     payload[SwarmChunk.SpanSize..].ToArray(),
                     hasher);
-                var chunkRef = new UploadedChunkRef(hash, batchId);
+                var chunkRef = new UploadedChunkRef(hash, batchId!.Value);
 
                 var chunk = new Chunk(hash, payload);
                 

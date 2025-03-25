@@ -48,9 +48,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [RequireAtLeastOneHeader(
+            SwarmHttpConsts.SwarmPostageBatchIdHeader,
+            SwarmHttpConsts.SwarmPostageStampHeader)]
+        [RequestSizeLimit(SingleOwnerChunk.MaxSocDataSize)]
         public Task<IActionResult> UploadChunkAsync(
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.UploadChunkAsync(batchId, HttpContext);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp) =>
+            service.UploadChunkAsync(batchId, postageStamp, HttpContext);
 
         [Obsolete("Used with BeeTurbo")]
         [HttpPost("~/chunks/bulk-upload")]

@@ -25,6 +25,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using PostageStamp = Etherna.BeeNet.Models.PostageStamp;
 
 namespace Etherna.Beehive.Services.Domain
 {
@@ -36,11 +37,13 @@ namespace Etherna.Beehive.Services.Domain
     {
         public async Task<SwarmChunkReference> UploadAsync(
             PostageBatchId batchId,
+            EthAddress? batchOwner,
             bool useChunkCompaction,
             bool pinContent,
-            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> hashingFuncAsync)
+            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> chunkingFuncAsync,
+            IDictionary<SwarmHash, PostageStamp>? presignedPostageStamps = null)
         {
-            ArgumentNullException.ThrowIfNull(hashingFuncAsync, nameof(hashingFuncAsync));
+            ArgumentNullException.ThrowIfNull(chunkingFuncAsync, nameof(chunkingFuncAsync));
             
             // Acquire lock on postage batch.
             await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, useChunkCompaction);
@@ -77,8 +80,10 @@ namespace Etherna.Beehive.Services.Domain
                         storageRadius: null,
                         ttl: TimeSpan.FromDays(3650),
                         utilization: 0),
+                    batchOwner,
                     postageBuckets),
-                stampStore);
+                stampStore,
+                presignedPostageStamps);
 
             // Create pin if required.
             ChunkPin? pin = null;
@@ -104,7 +109,7 @@ namespace Etherna.Beehive.Services.Domain
                     }))
             {
                 //create and store chunks
-                hashingResult = await hashingFuncAsync(dbChunkStore, postageStamper);
+                hashingResult = await chunkingFuncAsync(dbChunkStore, postageStamper);
 
                 await dbChunkStore.FlushSaveAsync();
             }

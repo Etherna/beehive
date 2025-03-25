@@ -58,6 +58,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             var hashingResult = await dataService.UploadAsync(
                 batchId,
+                null,
                 compactLevel > 0,
                 pinContent,
                 async (chunkStore, postageStamper) =>

@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
@@ -33,7 +34,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         
         [HttpPost("{owner}/{id}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
@@ -41,13 +42,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmChunk.SpanAndDataSize)]
-        public Task<IResult> UploadSocAsync(
+        public Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             string id,
             [FromQuery(Name = "sig"), Required] string signature,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
-            [FromBody, Required] byte[] socData) =>
-            service.UploadSocAsync(owner, id, signature, batchId, postageStamp, socData);
+            [FromBody, Required] byte[] data) =>
+            service.UploadSocAsync(owner, id, signature, batchId, postageStamp, data);
     }
 }
