@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
@@ -113,7 +114,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
                 return Results.File(
                     chunk.GetSpanAndData(),
-                    "application/octet-stream",
+                    BeehiveHttpConsts.OctetStreamContentType,
                     hash.ToString());
             }
             catch

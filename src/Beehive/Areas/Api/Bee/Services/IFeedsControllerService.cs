@@ -13,8 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -32,10 +32,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
             string topic,
-            DateTimeOffset? at,
+            long? at,
             ulong? after,
             byte? afterLevel,
             SwarmFeedType type,
-            bool onlyRootChunk);
+            bool onlyRootChunk,
+            HttpResponse response);
     }
 }

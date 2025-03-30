@@ -12,22 +12,25 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System;
-using System.Linq;
 
 namespace Etherna.Beehive.Extensions
 {
-    public static class HttpContextExtensions
+    public static class HeaderDictionaryExtensions
     {
-        // Methods.
-        public static PostageBatchId? TryGetPostageBatchId(this HttpContext httpContext)
+        public static void SetNoCache(this IHeaderDictionary headers)
         {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            ArgumentNullException.ThrowIfNull(headers, nameof(headers));
             
-            var postageBatchId = httpContext.Request.Headers[SwarmHttpConsts.SwarmPostageBatchIdHeader].FirstOrDefault();
-            return postageBatchId is null ? (PostageBatchId?)null : new PostageBatchId(postageBatchId);
+            headers.CacheControl = new[]
+            {
+                "no-store",
+                "no-cache",
+                "must-revalidate",
+                "proxy-revalidate"
+            };
+            headers.Expires = "0";
         }
     }
 }

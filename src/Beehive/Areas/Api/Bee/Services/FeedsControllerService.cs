@@ -13,16 +13,22 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -68,20 +74,24 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public async Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
             string topic,
-            DateTimeOffset? at,
+            long? at,
             ulong? after,
             byte? afterLevel,
             SwarmFeedType type,
-            bool onlyRootChunk)
+            bool onlyRootChunk,
+            HttpResponse response)
         {
-            // Init default parameters.
-            at ??= DateTimeOffset.UtcNow;
-
+            ArgumentNullException.ThrowIfNull(response, nameof(response));
+            
+            // Init.
+            at ??= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var topicByteArray = topic.HexToByteArray();
+            
             // Build feed.
             SwarmFeedBase feed = type switch
             {
-                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic.HexToByteArray(), new Hasher()),
-                SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic.HexToByteArray()),
+                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topicByteArray, new Hasher()),
+                SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topicByteArray),
                 _ => throw new InvalidOperationException()
             };
             SwarmFeedIndexBase? afterFeedIndex = after is null
@@ -93,10 +103,52 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     _ => throw new InvalidOperationException(),
                 };
 
+            // Find feed chunk at given moment.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
             var feedChunk = await feed.TryFindFeedAtAsync(chunkStore, at.Value, afterFeedIndex);
+            if (feedChunk is null)
+                throw new KeyNotFoundException("No feed update found");
+            
+            // Keep compatibility with Bee, and return next feed index if it's a sequence feed.
+            // Otherwise, it wouldn't be required because returning the current sequence index
+            // to find the next is trivial (prev+1). Instead, in case of an epoch feed, we would need
+            // an actual "at" value to compose it. In both cases better to do client side.
+            var nextFeedIndex = type == SwarmFeedType.Sequence ? feedChunk.Index.GetNext(0) : null;
 
-            return new OkResult();
+            // Unwrap original chunk from feed chunk.
+            var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore);
+            
+            // Build response headers.
+            var currentIndexBytes = feedChunk.Index.MarshalBinary().ToArray();
+            var nextIndexBytes = nextFeedIndex?.MarshalBinary().ToArray();
+            var signature = soc.Signature.ToArray();
+
+            response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexHeader, currentIndexBytes.ToHex());
+            if (nextIndexBytes != null)
+                response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexNextHeader, nextIndexBytes.ToHex());
+            response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, signature.ToHex());
+            response.Headers.Append(CorsConstants.AccessControlExposeHeaders, new StringValues(
+                [
+                    SwarmHttpConsts.SwarmFeedIndexHeader,
+                    SwarmHttpConsts.SwarmFeedIndexNextHeader,
+                    SwarmHttpConsts.SwarmSocSignatureHeader
+                ]));
+            response.Headers.SetNoCache(); //disable cache
+
+            // Return content.
+            //if only root, returns chunk's data
+            if (onlyRootChunk)
+                return new FileContentResult(
+                    unwrappedChunk.Data.ToArray(),
+                    BeehiveHttpConsts.OctetStreamContentType);
+
+            //else return joined data
+            var chunkJoiner = new ChunkJoiner(chunkStore);
+            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(unwrappedChunk, null, false);
+
+            return new FileStreamResult(
+                dataStream,
+                BeehiveHttpConsts.OctetStreamContentType);
         }
     }
 }

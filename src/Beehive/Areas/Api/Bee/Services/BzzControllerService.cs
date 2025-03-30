@@ -16,6 +16,7 @@ using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
@@ -68,11 +69,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (feedManifest != null)
             {
                 //dereference feed
-                var feedChunk = await feedManifest.TryFindFeedAtAsync(chunkStore, DateTimeOffset.UtcNow, null);
+                var feedChunk = await feedManifest.TryFindFeedAtAsync(chunkStore, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), null);
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
-                var wrappedChunk = await SingleOwnerChunk.UnwrapChunkAsync(feedChunk, chunkStore);
+                var (wrappedChunk, _) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore);
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
                 manifest = new ReferencedMantarayManifest(
                     chunkStore,
@@ -87,14 +88,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     SwarmHttpConsts.SwarmFeedIndexHeader);
 
                 //report no cache headers
-                httpContext.Response.Headers.CacheControl = new[]
-                {
-                    "no-store",
-                    "no-cache",
-                    "must-revalidate",
-                    "proxy-revalidate"
-                };
-                httpContext.Response.Headers.Expires = "0";
+                httpContext.Response.Headers.SetNoCache();
             }
             
             // Resolve content address.

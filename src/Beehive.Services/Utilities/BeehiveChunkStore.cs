@@ -143,8 +143,8 @@ namespace Etherna.Beehive.Services.Utilities
 
             return found;
         }
-        
-        protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash)
+
+        protected override async Task<SwarmChunk> LoadChunkAsync(SwarmHash hash, CancellationToken cancellationToken = default)
         {
             // Try to find on buffer.
             if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
@@ -157,7 +157,7 @@ namespace Etherna.Beehive.Services.Utilities
             using(var _ = new DbExecutionContextHandler(dbContext))
             {
                 //try to find on repository
-                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
+                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
                 if (chunkModel is not null)
                 {
                     var payload = chunkModel.Payload.ToArray();
@@ -167,7 +167,7 @@ namespace Etherna.Beehive.Services.Utilities
                 //fallback on old gridfs
                 try
                 {
-                    var payload = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString());
+                    var payload = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
                     return SwarmChunk.BuildFromSpanAndData(hash, payload);
                 }
                 catch (GridFSFileNotFoundException)
@@ -177,7 +177,7 @@ namespace Etherna.Beehive.Services.Utilities
             // If it's not found, search on a healthy bee node.
             var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
             var beeClientChunkStore = new BeeClientChunkStore(node.Client);
-            return await beeClientChunkStore.GetAsync(hash);
+            return await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
         }
         
         protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)

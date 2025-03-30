@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
@@ -45,7 +46,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 encryptionKey,
                 recursiveEncryption));
 
-            return new FileStreamResult(dataStream, "application/octet-stream");
+            return new FileStreamResult(dataStream, BeehiveHttpConsts.OctetStreamContentType);
         }
 
         public async Task<IActionResult> UploadBytesAsync(
