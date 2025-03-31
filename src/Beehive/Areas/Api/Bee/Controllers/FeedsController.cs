@@ -45,8 +45,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromQuery] ulong? after,
             [FromQuery] byte? afterLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk,
+            [FromHeader(Name = SwarmHttpConsts.SwarmFeedLegacyResolveHeader)] bool resolveLegacyPayload,
             [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence) =>
-            service.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk, Response);
+            service.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk, resolveLegacyPayload, Response);
 
         // Post.
 

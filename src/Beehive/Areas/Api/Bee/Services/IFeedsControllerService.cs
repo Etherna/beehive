@@ -37,6 +37,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             byte? afterLevel,
             SwarmFeedType type,
             bool onlyRootChunk,
+            bool resolveLegacyPayload,
             HttpResponse response);
     }
 }

@@ -84,6 +84,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             byte? afterLevel,
             SwarmFeedType type,
             bool onlyRootChunk,
+            bool resolveLegacyPayload,
             HttpResponse response)
         {
             ArgumentNullException.ThrowIfNull(response, nameof(response));
@@ -121,7 +122,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var nextFeedIndex = type == SwarmFeedType.Sequence ? feedChunk.Index.GetNext(0) : null;
 
             // Unwrap original chunk from feed chunk.
-            var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore, new Hasher());
+            var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(resolveLegacyPayload, new Hasher(), chunkStore);
             
             // Build response headers.
             var currentIndexBytes = feedChunk.Index.MarshalBinary().ToArray();

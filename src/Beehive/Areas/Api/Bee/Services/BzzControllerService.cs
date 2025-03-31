@@ -77,7 +77,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
-                var (wrappedChunk, _) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore, new Hasher());
+                var (wrappedChunk, _) = await feedChunk.UnwrapChunkAndSocAsync(false, new Hasher());
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
                 manifest = new ReferencedMantarayManifest(
                     chunkStore,
