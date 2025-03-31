@@ -15,6 +15,7 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Models;
@@ -83,6 +84,7 @@ namespace Etherna.Beehive.Services.Domain
                     batchOwner,
                     postageBuckets),
                 stampStore,
+                new Hasher(),
                 presignedPostageStamps);
 
             // Create pin if required.

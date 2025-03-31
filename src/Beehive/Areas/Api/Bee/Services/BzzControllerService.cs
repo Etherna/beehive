@@ -65,15 +65,19 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
             
             // Try to dereference feed manifest first.
-            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest, new Hasher());
+            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest);
             if (feedManifest != null)
             {
                 //dereference feed
-                var feedChunk = await feedManifest.TryFindFeedAtAsync(chunkStore, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), null);
+                var feedChunk = await feedManifest.TryFindFeedAtAsync(
+                    chunkStore,
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    null,
+                    () => new Hasher());
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
-                var (wrappedChunk, _) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore);
+                var (wrappedChunk, _) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore, new Hasher());
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
                 manifest = new ReferencedMantarayManifest(
                     chunkStore,
@@ -182,7 +186,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         utilization: 0),
                     null,
                     postageBuckets),
-                stampStore);
+                stampStore,
+                new Hasher());
 
             // Create pin if required.
             ChunkPin? pin = null;
@@ -247,6 +252,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         // Upload directory.
                         var uploadResult = await beeNetChunkService.UploadDirectoryAsync(
                             tempDirectory,
+                            () => new Hasher(),
                             indexDocument,
                             errorDocument,
                             compactLevel,
@@ -268,6 +274,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         httpContext.Request.Body,
                         contentType,
                         name,
+                        () => new Hasher(),
                         compactLevel,
                         false,
                         RedundancyLevel.None,

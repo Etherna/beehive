@@ -57,7 +57,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
             var hasher = new Hasher();
             var socChunk = new SwarmChunk(
-                soc.CalculateHash(hasher),
+                soc.BuildHash(hasher),
                 soc.ToByteArray());
             
             // Validate new SOC chunk.

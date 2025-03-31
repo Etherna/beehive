@@ -20,7 +20,6 @@ using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Hashing.Bmt;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +30,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
+using PostageStamp = Etherna.BeeNet.Models.PostageStamp;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
@@ -71,10 +71,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     //read and store chunk payload
                     var chunkPayload = payload[i..(i + chunkSize)];
                     i += chunkSize;
-                    var hash = SwarmChunkBmtHasher.Hash(
+                    var chunkBmt = new SwarmChunkBmt(hasher);
+                    var hash = chunkBmt.Hash(
                         chunkPayload[..SwarmChunk.SpanSize].ToArray(),
-                        chunkPayload[SwarmChunk.SpanSize..].ToArray(),
-                        hasher);
+                        chunkPayload[SwarmChunk.SpanSize..].ToArray());
                     var chunkRef = new UploadedChunkRef(hash, batchId);
 
                     //read check hash
@@ -131,7 +131,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         public async Task<IActionResult> UploadChunkAsync(
             PostageBatchId? batchId,
-            BeeNet.Models.PostageStamp? postageStamp,
+            PostageStamp? postageStamp,
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
@@ -147,10 +147,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 var hasher = new Hasher();
                 
                 //read and store chunk payload
-                var hash = SwarmChunkBmtHasher.Hash(
+                var chunkBmt = new SwarmChunkBmt(hasher);
+                var hash = chunkBmt.Hash(
                     payload[..SwarmChunk.SpanSize].ToArray(),
-                    payload[SwarmChunk.SpanSize..].ToArray(),
-                    hasher);
+                    payload[SwarmChunk.SpanSize..].ToArray());
                 var chunkRef = new UploadedChunkRef(hash, batchId!.Value);
 
                 var chunk = new Chunk(hash, payload);

@@ -18,6 +18,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
@@ -66,6 +67,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 {
                     using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                         chunkStore,
+                        () => new Hasher(),
                         postageStamper,
                         RedundancyLevel.None,
                         false,

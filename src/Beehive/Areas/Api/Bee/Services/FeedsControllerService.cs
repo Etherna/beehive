@@ -57,12 +57,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 {
                     SwarmFeedBase swarmFeed = type switch
                     {
-                        SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic.HexToByteArray(), new Hasher()),
+                        SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic.HexToByteArray()),
                         SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic.HexToByteArray()),
                         _ => throw new InvalidOperationException(),
                     };
                     
-                    return await feedService.UploadFeedManifestAsync(swarmFeed, compactLevel, postageStamper, chunkStore);
+                    return await feedService.UploadFeedManifestAsync(
+                        swarmFeed,
+                        () => new Hasher(),
+                        compactLevel,
+                        postageStamper,
+                        chunkStore);
                 });
 
             return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
@@ -90,7 +95,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Build feed.
             SwarmFeedBase feed = type switch
             {
-                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topicByteArray, new Hasher()),
+                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topicByteArray),
                 SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topicByteArray),
                 _ => throw new InvalidOperationException()
             };
@@ -105,7 +110,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
             // Find feed chunk at given moment.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
-            var feedChunk = await feed.TryFindFeedAtAsync(chunkStore, at.Value, afterFeedIndex);
+            var feedChunk = await feed.TryFindFeedAtAsync(chunkStore, at.Value, afterFeedIndex, () => new Hasher());
             if (feedChunk is null)
                 throw new KeyNotFoundException("No feed update found");
             
@@ -116,7 +121,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var nextFeedIndex = type == SwarmFeedType.Sequence ? feedChunk.Index.GetNext(0) : null;
 
             // Unwrap original chunk from feed chunk.
-            var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore);
+            var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(chunkStore, new Hasher());
             
             // Build response headers.
             var currentIndexBytes = feedChunk.Index.MarshalBinary().ToArray();
