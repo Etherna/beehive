@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -26,6 +27,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            byte[] data);
+            Stream dataStream);
     }
 }

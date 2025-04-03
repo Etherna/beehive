@@ -137,9 +137,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
             // Read payload.
-            await using var memoryStream = new MemoryStream();
-            await httpContext.Request.Body.CopyToAsync(memoryStream);
-            var payload = memoryStream.ToArray();
+            byte[] payload;
+            await using (var memoryStream = new MemoryStream())
+            {
+                await httpContext.Request.Body.CopyToAsync(memoryStream);
+                payload = memoryStream.ToArray();
+            }
             
             // Try consume data from request.
             try

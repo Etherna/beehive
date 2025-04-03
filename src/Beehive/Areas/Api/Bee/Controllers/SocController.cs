@@ -42,13 +42,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmChunk.SpanAndDataSize)]
+        [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             string id,
             [FromQuery(Name = "sig"), Required] string signature,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
-            [FromBody, Required] byte[] data) =>
-            service.UploadSocAsync(owner, id, signature, batchId, postageStamp, data);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp) =>
+            service.UploadSocAsync(owner, id, signature, batchId, postageStamp, HttpContext.Request.Body);
     }
 }

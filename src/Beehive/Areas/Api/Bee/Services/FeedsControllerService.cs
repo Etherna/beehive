@@ -125,9 +125,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(resolveLegacyPayload, new Hasher(), chunkStore);
             
             // Build response headers.
-            var currentIndexBytes = feedChunk.Index.MarshalBinary().ToArray();
-            var nextIndexBytes = nextFeedIndex?.MarshalBinary().ToArray();
-            var signature = soc.Signature.ToArray();
+            var currentIndexBytes = feedChunk.Index.MarshalBinary();
+            var nextIndexBytes = nextFeedIndex?.MarshalBinary();
+            var signature = soc.Signature!.Value.ToArray();
 
             response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexHeader, currentIndexBytes.ToHex());
             if (nextIndexBytes != null)

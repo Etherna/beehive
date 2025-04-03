@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Mvc;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -34,19 +35,27 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            byte[] data)
+            Stream dataStream)
         {
-            ArgumentNullException.ThrowIfNull(data, nameof(data));
+            ArgumentNullException.ThrowIfNull(dataStream, nameof(dataStream));
             
             if (!batchId.HasValue && postageStamp == null)
                 throw new ArgumentNullException(nameof(batchId), "Batch id or postage stamp are required");
             if (batchId.HasValue && postageStamp != null && batchId.Value != postageStamp.BatchId)
                 throw new ArgumentException("Postage batch Id doesn't match with postage stamp's batch Id");
             
+            // Read data.
+            byte[] data;
+            using (var dataMemoryStream = new MemoryStream())
+            {
+                await dataStream.CopyToAsync(dataMemoryStream);
+                data = dataMemoryStream.ToArray();
+            }
+            
             if (data.Length < SwarmChunk.SpanSize)
-                throw new ArgumentOutOfRangeException(nameof(data), data.Length, $"Data is smaller than {SwarmChunk.SpanSize} bytes");
+                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data is smaller than {SwarmChunk.SpanSize} bytes");
             if (data.Length > SwarmChunk.SpanAndDataSize)
-                throw new ArgumentOutOfRangeException(nameof(data), data.Length, $"Data exceeds max size of {SwarmChunk.SpanAndDataSize} bytes");
+                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data exceeds max size of {SwarmChunk.SpanAndDataSize} bytes");
             
             // Build SOC chunk.
             var soc = new SingleOwnerChunk(

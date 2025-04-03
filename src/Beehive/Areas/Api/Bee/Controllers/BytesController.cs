@@ -51,6 +51,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadBytesAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
