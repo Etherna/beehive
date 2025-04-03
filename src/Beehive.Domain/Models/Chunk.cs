@@ -25,10 +25,10 @@ namespace Etherna.Beehive.Domain.Models
         private List<ChunkPin> _pins = [];
         
         // Constructors.
-        public Chunk(SwarmHash hash, byte[] payload)
+        public Chunk(SwarmHash hash, byte[] spanData)
         {
             Hash = hash;
-            Payload = payload;
+            SpanData = spanData;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         protected Chunk() { }
@@ -38,7 +38,7 @@ namespace Etherna.Beehive.Domain.Models
         public virtual SwarmHash Hash { get; protected set; }
         
         [SuppressMessage("Performance", "CA1819:Properties should not return arrays")]
-        public virtual byte[] Payload { get; protected set; }
+        public virtual byte[] SpanData { get; protected set; }
 
         public virtual IEnumerable<ChunkPin> Pins
         {

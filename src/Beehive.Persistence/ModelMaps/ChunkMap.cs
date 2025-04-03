@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     mm.AutoMap();
 
                     // Set members with custom serializers.
-                    mm.SetMemberSerializer(c => c.Payload, ByteArraySerializer.Instance);
+                    mm.SetMemberSerializer(c => c.SpanData, ByteArraySerializer.Instance);
                     mm.SetMemberSerializer(c => c.Pins, new EnumerableSerializer<ChunkPin>(ChunkPinMap.ReferenceSerializer(dbContext)));
                 });
         }

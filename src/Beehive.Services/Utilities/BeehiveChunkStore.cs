@@ -134,7 +134,7 @@ namespace Etherna.Beehive.Services.Utilities
             // Try remove from old gridfs.
             try
             {
-                using var downStream = await dbContext.ChunksBucket.OpenDownloadStreamByNameAsync(hash.ToString());
+                await using var downStream = await dbContext.ChunksBucket.OpenDownloadStreamByNameAsync(hash.ToString());
                 found = true;
                 var id = downStream.FileInfo.Id;
                 await dbContext.ChunksBucket.DeleteAsync(id);
@@ -149,8 +149,8 @@ namespace Etherna.Beehive.Services.Utilities
             // Try to find on buffer.
             if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
             {
-                var payload = chunk.Payload.ToArray();
-                return SwarmChunk.BuildFromSpanAndData(hash, payload);
+                var spanData = chunk.SpanData.ToArray();
+                return new SwarmChunk(hash, spanData);
             }
             
             // Try load from db.
@@ -160,15 +160,15 @@ namespace Etherna.Beehive.Services.Utilities
                 var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
                 if (chunkModel is not null)
                 {
-                    var payload = chunkModel.Payload.ToArray();
-                    return SwarmChunk.BuildFromSpanAndData(hash, payload);
+                    var spanData = chunkModel.SpanData.ToArray();
+                    return new SwarmChunk(hash, spanData);
                 }
             
                 //fallback on old gridfs
                 try
                 {
-                    var payload = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
-                    return SwarmChunk.BuildFromSpanAndData(hash, payload);
+                    var spanData = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
+                    return new SwarmChunk(hash, spanData);
                 }
                 catch (GridFSFileNotFoundException)
                 { }
@@ -186,7 +186,7 @@ namespace Etherna.Beehive.Services.Utilities
             
             try
             {
-                var domainChunk = new Chunk(chunk.Hash, chunk.GetSpanAndData());
+                var domainChunk = new Chunk(chunk.Hash, chunk.SpanData.ToArray());
 
                 onSavingChunk?.Invoke(domainChunk);
 

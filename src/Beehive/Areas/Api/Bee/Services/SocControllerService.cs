@@ -16,6 +16,7 @@ using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
@@ -54,8 +55,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             if (data.Length < SwarmChunk.SpanSize)
                 throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data is smaller than {SwarmChunk.SpanSize} bytes");
-            if (data.Length > SwarmChunk.SpanAndDataSize)
-                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data exceeds max size of {SwarmChunk.SpanAndDataSize} bytes");
+            if (data.Length > SwarmChunk.SpanDataSize)
+                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data exceeds max size of {SwarmChunk.SpanDataSize} bytes");
             
             // Build SOC chunk.
             var soc = new SingleOwnerChunk(
@@ -93,7 +94,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         [socChunk.Hash] = postageStamp
                     });
 
-            return new JsonResult(new SimpleChunkReferenceDto(chunkReference.Hash));
+            return new JsonResult(new SimpleChunkReferenceDto(chunkReference.Hash))
+            {
+                StatusCode = StatusCodes.Status201Created
+            };
         }
     }
 }

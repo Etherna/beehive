@@ -65,7 +65,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     //read chunk size
                     var chunkSize = ReadUshort(payload.AsSpan()[i..(i + sizeof(ushort))]);
                     i += sizeof(ushort);
-                    if (chunkSize > SwarmChunk.SpanAndDataSize)
+                    if (chunkSize > SwarmChunk.SpanDataSize)
                         throw new InvalidOperationException();
 
                     //read and store chunk payload
@@ -113,7 +113,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 var chunk = await chunkStore.GetAsync(hash);
 
                 return Results.File(
-                    chunk.GetSpanAndData(),
+                    chunk.SpanData.ToArray(),
                     BeehiveHttpConsts.OctetStreamContentType,
                     hash.ToString());
             }
