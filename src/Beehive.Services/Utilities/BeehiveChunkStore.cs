@@ -36,7 +36,7 @@ namespace Etherna.Beehive.Services.Utilities
         : ChunkStoreBase, IAsyncDisposable, IDisposable
     {
         // Consts.
-        public const int DefaultSavingBufferLength = 10000; //~40MB
+        public const int DefaultSavingBufferLength = 25000; //~100MB
         
         // Fields.
         private readonly ConcurrentDictionary<SwarmHash, Chunk> chunkSavingBuffer = new();
