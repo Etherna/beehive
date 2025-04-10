@@ -114,7 +114,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         true);
                 
                 // Check index suffix to path.
-                var metadata = await manifest.GetResourceMetadataAsync(MantarayManifest.RootPath);
+                var metadata = await manifest.GetResourceMetadataAsync(MantarayManifest.RootPath, false);
                 if (metadata.TryGetValue(ManifestEntry.WebsiteIndexDocPathKey, out var indexDocument) &&
                     Path.GetFileName(address.Path) != indexDocument)
                     return await ServeContentAsync(
@@ -316,7 +316,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var reference = await manifest.ResolveAddressToChunkReferenceAsync(contentPath);
             
             // Get metadata.
-            var metadata = await manifest.GetResourceMetadataAsync(contentPath);
+            var metadata = await manifest.GetResourceMetadataAsync(contentPath, true);
             
             if (!metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
                 mimeType = FileContentTypeProvider.DefaultContentType;
