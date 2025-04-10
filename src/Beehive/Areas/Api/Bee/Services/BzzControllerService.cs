@@ -69,15 +69,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (feedManifest != null)
             {
                 //dereference feed
-                var feedChunk = await feedManifest.TryFindFeedAtAsync(
-                    chunkStore,
+                var feedChunk = await feedManifest.TryFindFeedChunkAtAsync(
                     DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                     null,
-                    () => new Hasher());
+                    chunkStore,
+                    new Hasher());
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
-                var (wrappedChunk, _) = await feedChunk.UnwrapChunkAndSocAsync(false, new Hasher());
+                var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(false, new SwarmChunkBmt());
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
                 manifest = new ReferencedMantarayManifest(
                     chunkStore,
@@ -186,8 +186,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         utilization: 0),
                     null,
                     postageBuckets),
-                stampStore,
-                new Hasher());
+                stampStore);
 
             // Create pin if required.
             ChunkPin? pin = null;
@@ -252,7 +251,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         // Upload directory.
                         var uploadResult = await beeNetChunkService.UploadDirectoryAsync(
                             tempDirectory,
-                            () => new Hasher(),
+                            new Hasher(),
                             indexDocument,
                             errorDocument,
                             compactLevel,
@@ -274,7 +273,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         httpContext.Request.Body,
                         contentType,
                         name,
-                        () => new Hasher(),
+                        new Hasher(),
                         compactLevel,
                         false,
                         RedundancyLevel.None,

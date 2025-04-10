@@ -41,7 +41,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [RequireAtLeastOneHeader(
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
-        [RequestSizeLimit(SwarmChunk.SpanDataSize)]
+        [RequestSizeLimit(SwarmCac.SpanDataSize)]
         [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadSocAsync(
             EthAddress owner,

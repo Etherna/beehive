@@ -15,7 +15,10 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Hashing;
+using Etherna.BeeNet.Hashing.Pipeline;
+using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Nethereum.Hex.HexConvertors.Extensions;
@@ -32,8 +35,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         public async Task<IActionResult> UploadSocAsync(
             EthAddress owner,
-            string id,
-            string signature,
+            SwarmSocIdentifier identifier,
+            SwarmSocSignature signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
             Stream dataStream)
@@ -53,25 +56,25 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 data = dataMemoryStream.ToArray();
             }
             
-            if (data.Length < SwarmChunk.SpanSize)
-                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data is smaller than {SwarmChunk.SpanSize} bytes");
-            if (data.Length > SwarmChunk.SpanDataSize)
-                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data exceeds max size of {SwarmChunk.SpanDataSize} bytes");
+            if (data.Length < SwarmCac.SpanSize)
+                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data is smaller than {SwarmCac.SpanSize} bytes");
+            if (data.Length > SwarmCac.SpanDataSize)
+                throw new ArgumentOutOfRangeException(nameof(dataStream), data.Length, $"Data exceeds max size of {SwarmCac.SpanDataSize} bytes");
             
             // Build SOC chunk.
-            var soc = new SingleOwnerChunk(
-                id.HexToByteArray(),
-                signature.HexToByteArray(),
-                owner,
-                data);
-
             var hasher = new Hasher();
-            var socChunk = new SwarmChunk(
-                soc.BuildHash(hasher),
-                soc.ToByteArray());
+            var chunkBmt = new SwarmChunkBmt(hasher);
+            var dataHash = chunkBmt.Hash(data.AsMemory()[..SwarmCac.SpanSize], data.AsMemory()[SwarmCac.SpanSize..]);
+            var soc = new SwarmSoc(
+                identifier,
+                owner,
+                new SwarmCac(dataHash, data),
+                null,
+                signature);
+            soc.BuildHash(hasher);
             
             // Validate new SOC chunk.
-            if (!SingleOwnerChunk.IsValidChunk(socChunk, hasher))
+            if (!soc.ValidateSoc(hasher))
                 throw new ArgumentException("Invalid chunk");
 
             // Stamp and store chunk.
@@ -82,16 +85,16 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 false,
                 async (chunkStore, postageStamper) =>
                 {
-                    postageStamper.Stamp(socChunk.Hash);
-                    await chunkStore.AddAsync(socChunk).ConfigureAwait(false);
+                    postageStamper.Stamp(soc.Hash);
+                    await chunkStore.AddAsync(soc).ConfigureAwait(false);
 
-                    return new SwarmChunkReference(socChunk.Hash, null, false);
+                    return new SwarmChunkReference(soc.Hash, null, false);
                 },
                 postageStamp is null
                     ? null
                     : new Dictionary<SwarmHash, PostageStamp>
                     {
-                        [socChunk.Hash] = postageStamp
+                        [soc.Hash] = postageStamp
                     });
 
             return new JsonResult(new SimpleChunkReferenceDto(chunkReference.Hash))

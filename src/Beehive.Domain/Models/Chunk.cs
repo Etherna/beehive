@@ -14,8 +14,8 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Attributes;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Etherna.Beehive.Domain.Models
 {
@@ -25,10 +25,14 @@ namespace Etherna.Beehive.Domain.Models
         private List<ChunkPin> _pins = [];
         
         // Constructors.
-        public Chunk(SwarmHash hash, byte[] spanData)
+        public Chunk(
+            SwarmHash hash,
+            ReadOnlyMemory<byte> payload,
+            bool isSoc)
         {
             Hash = hash;
-            SpanData = spanData;
+            IsSoc = isSoc;
+            Payload = payload;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         protected Chunk() { }
@@ -36,10 +40,8 @@ namespace Etherna.Beehive.Domain.Models
 
         // Properties.
         public virtual SwarmHash Hash { get; protected set; }
-        
-        [SuppressMessage("Performance", "CA1819:Properties should not return arrays")]
-        public virtual byte[] SpanData { get; protected set; }
-
+        public virtual bool IsSoc { get; protected set; }
+        public virtual ReadOnlyMemory<byte> Payload { get; protected set; }
         public virtual IEnumerable<ChunkPin> Pins
         {
             get => _pins;

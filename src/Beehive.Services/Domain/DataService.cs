@@ -84,7 +84,6 @@ namespace Etherna.Beehive.Services.Domain
                     batchOwner,
                     postageBuckets),
                 stampStore,
-                new Hasher(),
                 presignedPostageStamps);
 
             // Create pin if required.

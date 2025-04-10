@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Extensions;
@@ -32,7 +33,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     mm.AutoMap();
 
                     // Set members with custom serializers.
-                    mm.SetMemberSerializer(c => c.SpanData, ByteArraySerializer.Instance);
+                    mm.SetMemberSerializer(c => c.Payload, new ReadonlyMemorySerializer<byte>(BsonType.Binary));
                     mm.SetMemberSerializer(c => c.Pins, new EnumerableSerializer<ChunkPin>(ChunkPinMap.ReferenceSerializer(dbContext)));
                 });
         }

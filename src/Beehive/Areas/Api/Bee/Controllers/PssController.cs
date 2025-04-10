@@ -36,7 +36,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        [RequestSizeLimit(SwarmChunk.DataSize)]
+        [RequestSizeLimit(SwarmCac.DataSize)]
         public Task<IResult> SendPssMessageAsync(
             string topic,
             string targets,

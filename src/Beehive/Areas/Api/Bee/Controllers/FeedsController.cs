@@ -57,7 +57,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        [RequestSizeLimit(SwarmChunk.SpanDataSize)]
         public Task<IActionResult> CreateFeedRootManifestAsync(
             EthAddress owner,
             string topic,

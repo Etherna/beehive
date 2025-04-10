@@ -65,7 +65,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     //read chunk size
                     var chunkSize = ReadUshort(payload.AsSpan()[i..(i + sizeof(ushort))]);
                     i += sizeof(ushort);
-                    if (chunkSize > SwarmChunk.SpanDataSize)
+                    if (chunkSize > SwarmCac.SpanDataSize)
                         throw new InvalidOperationException();
 
                     //read and store chunk payload
@@ -73,8 +73,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     i += chunkSize;
                     var chunkBmt = new SwarmChunkBmt(hasher);
                     var hash = chunkBmt.Hash(
-                        chunkPayload[..SwarmChunk.SpanSize].ToArray(),
-                        chunkPayload[SwarmChunk.SpanSize..].ToArray());
+                        chunkPayload[..SwarmCac.SpanSize].ToArray(),
+                        chunkPayload[SwarmCac.SpanSize..].ToArray());
                     var chunkRef = new UploadedChunkRef(hash, batchId);
 
                     //read check hash
@@ -83,7 +83,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     if (checkHash != hash)
                         throw new InvalidDataException("Invalid hash with provided data");
 
-                    chunks.Add(new Chunk(hash, chunkPayload));
+                    chunks.Add(new Chunk(hash, chunkPayload, false));
                     chunkRefs.Add(chunkRef);
                 }
                 
@@ -113,7 +113,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 var chunk = await chunkStore.GetAsync(hash);
 
                 return Results.File(
-                    chunk.SpanData.ToArray(),
+                    chunk.GetFullPayloadToByteArray(),
                     BeehiveHttpConsts.OctetStreamContentType,
                     hash.ToString());
             }
@@ -152,11 +152,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 //read and store chunk payload
                 var chunkBmt = new SwarmChunkBmt(hasher);
                 var hash = chunkBmt.Hash(
-                    payload[..SwarmChunk.SpanSize].ToArray(),
-                    payload[SwarmChunk.SpanSize..].ToArray());
+                    payload[..SwarmCac.SpanSize].ToArray(),
+                    payload[SwarmCac.SpanSize..].ToArray());
                 var chunkRef = new UploadedChunkRef(hash, batchId!.Value);
 
-                var chunk = new Chunk(hash, payload);
+                var chunk = new Chunk(hash, payload, false);
                 
                 // Push data to db.
                 await dbContext.Chunks.CreateAsync(chunk);

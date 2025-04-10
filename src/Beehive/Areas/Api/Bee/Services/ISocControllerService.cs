@@ -23,8 +23,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         Task<IActionResult> UploadSocAsync(
             EthAddress owner,
-            string id,
-            string signature,
+            SwarmSocIdentifier identifier,
+            SwarmSocSignature signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
             Stream dataStream);

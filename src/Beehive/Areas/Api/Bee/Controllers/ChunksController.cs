@@ -51,7 +51,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [RequireAtLeastOneHeader(
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
-        [RequestSizeLimit(SingleOwnerChunk.MaxSocDataSize)]
+        [RequestSizeLimit(SwarmSoc.MaxSocSize)]
         [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadChunkAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,

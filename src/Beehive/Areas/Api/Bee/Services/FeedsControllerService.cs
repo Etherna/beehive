@@ -64,7 +64,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     
                     return await feedService.UploadFeedManifestAsync(
                         swarmFeed,
-                        () => new Hasher(),
+                        new Hasher(),
                         compactLevel,
                         postageStamper,
                         chunkStore);
@@ -111,7 +111,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
             // Find feed chunk at given moment.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
-            var feedChunk = await feed.TryFindFeedAtAsync(chunkStore, at.Value, afterFeedIndex, () => new Hasher());
+            var feedChunk = await feed.TryFindFeedChunkAtAsync(at.Value, afterFeedIndex, chunkStore, new Hasher());
             if (feedChunk is null)
                 throw new KeyNotFoundException("No feed update found");
             
@@ -122,17 +122,20 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var nextFeedIndex = type == SwarmFeedType.Sequence ? feedChunk.Index.GetNext(0) : null;
 
             // Unwrap original chunk from feed chunk.
-            var (unwrappedChunk, soc) = await feedChunk.UnwrapChunkAndSocAsync(resolveLegacyPayload, new Hasher(), chunkStore);
+            var unwrappedChunk = await feedChunk.UnwrapDataChunkAsync(
+                resolveLegacyPayload,
+                new SwarmChunkBmt(),
+                chunkStore);
             
             // Build response headers.
             var currentIndexBytes = feedChunk.Index.MarshalBinary();
             var nextIndexBytes = nextFeedIndex?.MarshalBinary();
-            var signature = soc.Signature!.Value.ToArray();
+            var signature = feedChunk.Signature!.Value;
 
             response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexHeader, currentIndexBytes.ToHex());
             if (nextIndexBytes != null)
                 response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexNextHeader, nextIndexBytes.ToHex());
-            response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, signature.ToHex());
+            response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, signature.ToString());
             response.Headers.Append(CorsConstants.AccessControlExposeHeaders, new StringValues(
                 [
                     SwarmHttpConsts.SwarmFeedIndexHeader,

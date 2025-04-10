@@ -149,8 +149,9 @@ namespace Etherna.Beehive.Services.Utilities
             // Try to find on buffer.
             if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
             {
-                var spanData = chunk.SpanData.ToArray();
-                return new SwarmChunk(hash, spanData);
+                return chunk.IsSoc ?
+                    SwarmSoc.BuildFromBytes(hash, chunk.Payload, new SwarmChunkBmt()) :
+                    new SwarmCac(hash, chunk.Payload);
             }
             
             // Try load from db.
@@ -159,16 +160,15 @@ namespace Etherna.Beehive.Services.Utilities
                 //try to find on repository
                 var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
                 if (chunkModel is not null)
-                {
-                    var spanData = chunkModel.SpanData.ToArray();
-                    return new SwarmChunk(hash, spanData);
-                }
+                    return chunkModel.IsSoc ?
+                        SwarmSoc.BuildFromBytes(hash, chunkModel.Payload, new SwarmChunkBmt()) :
+                        new SwarmCac(hash, chunkModel.Payload);
             
                 //fallback on old gridfs
                 try
                 {
                     var spanData = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
-                    return new SwarmChunk(hash, spanData);
+                    return new SwarmCac(hash, spanData);
                 }
                 catch (GridFSFileNotFoundException)
                 { }
@@ -186,7 +186,7 @@ namespace Etherna.Beehive.Services.Utilities
             
             try
             {
-                var domainChunk = new Chunk(chunk.Hash, chunk.SpanData.ToArray());
+                var domainChunk = new Chunk(chunk.Hash, chunk.GetFullPayload(), chunk is SwarmSoc);
 
                 onSavingChunk?.Invoke(domainChunk);
 

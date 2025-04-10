@@ -67,7 +67,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 {
                     using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                         chunkStore,
-                        () => new Hasher(),
                         postageStamper,
                         RedundancyLevel.None,
                         false,
