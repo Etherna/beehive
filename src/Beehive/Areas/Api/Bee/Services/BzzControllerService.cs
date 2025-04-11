@@ -15,19 +15,15 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
-using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Hashing.Postage;
-using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
-using Etherna.BeeNet.Stores;
-using Etherna.MongoDB.Driver.Linq;
+using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -35,10 +31,10 @@ using Microsoft.Net.Http.Headers;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Formats.Tar;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -47,9 +43,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public class BzzControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkService beeNetChunkService,
+        IDataService dataService,
         IBeehiveDbContext dbContext,
-        IFeedService feedService,
-        IPostageBatchService postageBatchService)
+        IFeedService feedService)
         : IBzzControllerService
     {
         // Methods.
@@ -137,6 +133,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         }
 
         public async Task<IActionResult> UploadBzzAsync(
+            HttpRequest request,
             string? name,
             PostageBatchId batchId,
             ushort compactLevel,
@@ -144,133 +141,89 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string contentType,
             bool isDirectory,
             string? indexDocument,
-            string? errorDocument,
-            HttpContext httpContext)
+            string? errorDocument)
         {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
-            // Acquire lock on postage batch.
-            await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, compactLevel > 0);
-            
-            // Verify postage batch, load status and build postage stamper.
-            var postageBatchCache = await postageBatchService.TryGetPostageBatchAsync(batchId);
-            if (postageBatchCache is null)
-                throw new KeyNotFoundException();
-            var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
-                elements => elements.Where(s => s.BatchId == batchId)
-                    .ToListAsync());
-
-            using var postageBuckets = new PostageBuckets(postageBatchCache.Buckets.ToArray());
-            var stampStore = new MemoryStampStore(
-                postageStampsCache.Select(stamp =>
-                    new StampStoreItem(
-                        batchId,
-                        stamp.ChunkHash,
-                        new StampBucketIndex(
-                            stamp.BucketId,
-                            stamp.BucketCounter))));
-            var postageStamper = new PostageStamper(
-                new FakeSigner(),
-                new PostageStampIssuer(
-                    new PostageBatch(
-                        id: postageBatchCache.BatchId,
-                        amount: 0,
-                        blockNumber: 0,
-                        depth: postageBatchCache.Depth,
-                        exists: true,
-                        isImmutable: postageBatchCache.IsImmutable,
-                        isUsable: true,
-                        label: null,
-                        storageRadius: null,
-                        ttl: TimeSpan.FromDays(3650),
-                        utilization: 0),
-                    null,
-                    postageBuckets),
-                stampStore);
-
-            // Create pin if required.
-            ChunkPin? pin = null;
-            if (pinContent)
-            {
-                pin = new ChunkPin(null); //set root hash later
-                await dbContext.ChunkPins.CreateAsync(pin);
-                pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
-            }
-            
-            // Upload.
-            List<UploadedChunkRef> chunkRefs = [];
-            SwarmChunkReference hashingResult;
-            await using (
-                var dbChunkStore = new BeehiveChunkStore(
-                    beeNodeLiveManager,
-                    dbContext,
-                    onSavingChunk: c =>
-                    {
-                        if (pin != null)
-                            c.AddPin(pin);
-                        chunkRefs.Add(new(c.Hash, batchId));
-                    }))
-            {
-                //create and store chunks
-                if (isDirectory || contentType == BeehiveHttpConsts.MultiPartFormDataContentType)
+            var hashingResult = await dataService.UploadAsync(
+                batchId,
+                null,
+                compactLevel > 0,
+                pinContent,
+                async (chunkStore, postageStamper) =>
                 {
-                    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                    try
+                    //upload directory
+                    if (isDirectory || contentType == BeehiveHttpConsts.MultiPartFormDataContentType)
                     {
-                        // Extract files in temp directory.
-                        Directory.CreateDirectory(tempDirectory);
-                        switch (contentType)
+                        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                        try
                         {
-                            case BeehiveHttpConsts.MultiPartFormDataContentType:
-                                foreach (var file in httpContext.Request.Form.Files)
-                                {
-                                    // Combine tempDirectory with file path to respect directory structure.
-                                    var filePath = Path.Combine(tempDirectory, file.FileName);
+                            // Extract files in temp directory.
+                            Directory.CreateDirectory(tempDirectory);
+                            switch (contentType)
+                            {
+                                case BeehiveHttpConsts.MultiPartFormDataContentType:
+                                    foreach (var file in request.Form.Files)
+                                    {
+                                        // Combine tempDirectory with file path to respect directory structure.
+                                        var filePath = Path.Combine(tempDirectory, file.FileName);
 
-                                    // Ensure directory structure exists.
-                                    var parentDirPath = Path.GetDirectoryName(filePath);
-                                    if (!string.IsNullOrEmpty(parentDirPath))
-                                        Directory.CreateDirectory(parentDirPath);
+                                        // Ensure directory structure exists.
+                                        var parentDirPath = Path.GetDirectoryName(filePath);
+                                        if (!string.IsNullOrEmpty(parentDirPath))
+                                            Directory.CreateDirectory(parentDirPath);
 
-                                    // Save file content to the determined path.
-                                    await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                                    await file.CopyToAsync(fileStream);
-                                }
-                                break;
-                        
-                            case BeehiveHttpConsts.TarContentType:
-                                await TarFile.ExtractToDirectoryAsync(httpContext.Request.Body, tempDirectory, true);
-                                break;
-                        
-                            default:
-                                throw new ArgumentException(
-                                    "Invalid content-type for directory upload",
-                                    nameof(contentType));
+                                        // Save file content to the determined path.
+                                        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                                        await file.CopyToAsync(fileStream);
+                                    }
+                                    break;
+                            
+                                case BeehiveHttpConsts.TarContentType:
+                                    await using (var tarInput = new TarInputStream(request.Body, Encoding.UTF8))
+                                    {
+                                        while (await tarInput.GetNextEntryAsync(CancellationToken.None) is { } entry)
+                                        {
+                                            var outputPath = Path.Combine(tempDirectory, entry.Name);
+                                            var parentDir = Path.GetDirectoryName(outputPath);
+                                            if (parentDir != null && !Directory.Exists(parentDir))
+                                                Directory.CreateDirectory(parentDir);
+
+                                            if (!entry.IsDirectory)
+                                            {
+                                                await using var outputStream = File.Create(outputPath);
+                                                await tarInput.CopyEntryContentsAsync(outputStream, CancellationToken.None);
+                                            }
+                                        }
+                                    }
+                                    break;
+
+                                default:
+                                    throw new ArgumentException(
+                                        "Invalid content-type for directory upload",
+                                        nameof(contentType));
+                            }
+                            
+                            // Upload directory.
+                            return (await beeNetChunkService.UploadDirectoryAsync(
+                                tempDirectory,
+                                new Hasher(),
+                                indexDocument,
+                                errorDocument,
+                                compactLevel,
+                                false,
+                                RedundancyLevel.None,
+                                postageStamper,
+                                null,
+                                chunkStore)).ChunkReference;
                         }
-                        
-                        // Upload directory.
-                        var uploadResult = await beeNetChunkService.UploadDirectoryAsync(
-                            tempDirectory,
-                            new Hasher(),
-                            indexDocument,
-                            errorDocument,
-                            compactLevel,
-                            false,
-                            RedundancyLevel.None,
-                            postageStamper,
-                            null,
-                            dbChunkStore);
-                        hashingResult = uploadResult.ChunkReference;
+                        finally
+                        {
+                            Directory.Delete(tempDirectory, true);
+                        }
                     }
-                    finally
-                    {
-                        Directory.Delete(tempDirectory, true);
-                    }
-                }
-                else
-                {
-                    var uploadResult = await beeNetChunkService.UploadSingleFileAsync(
-                        httpContext.Request.Body,
+
+                    //upload file
+                    return (await beeNetChunkService.UploadSingleFileAsync(
+                        request.Body,
                         contentType,
                         name,
                         new Hasher(),
@@ -279,26 +232,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         RedundancyLevel.None,
                         postageStamper,
                         null,
-                        dbChunkStore);
-                    hashingResult = uploadResult.ChunkReference;
-                }
-            }
-            
-            // Add new stamped chunks to postage batch cache.
-            await postageBatchService.StoreStampedChunksAsync(
-                postageBatchCache,
-                postageStampsCache.Select(s => s.ChunkHash).ToHashSet(),
-                postageStamper);
-
-            // Confirm chunk's push.
-            await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
-            
-            // Update pin, if required.
-            if (pin != null)
-            {
-                pin.SucceededProvisional(hashingResult, chunkRefs.Count);
-                await dbContext.SaveChangesAsync();
-            }
+                        chunkStore)).ChunkReference;
+                });
 
             return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
             {

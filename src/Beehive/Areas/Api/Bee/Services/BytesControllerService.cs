@@ -18,12 +18,11 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
-using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -51,13 +50,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         }
 
         public async Task<IActionResult> UploadBytesAsync(
+            Stream dataStream,
             PostageBatchId batchId,
             ushort compactLevel,
-            bool pinContent,
-            HttpContext httpContext)
+            bool pinContent)
         {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
             var hashingResult = await dataService.UploadAsync(
                 batchId,
                 null,
@@ -72,7 +69,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         false,
                         compactLevel,
                         null);
-                    return await fileHasherPipeline.HashDataAsync(httpContext.Request.Body);
+                    return await fileHasherPipeline.HashDataAsync(dataStream);
                 });
 
             return new JsonResult(new ChunkReferenceDto(

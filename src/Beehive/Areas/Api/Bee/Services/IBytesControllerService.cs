@@ -13,8 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -27,9 +27,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             bool recursiveEncryption);
         
         Task<IActionResult> UploadBytesAsync(
+            Stream dataStream,
             PostageBatchId batchId,
             ushort compactLevel,
-            bool pinContent,
-            HttpContext httpContext);
+            bool pinContent);
     }
 }

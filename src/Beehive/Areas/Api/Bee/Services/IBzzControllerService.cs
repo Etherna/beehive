@@ -26,6 +26,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext);
 
         Task<IActionResult> UploadBzzAsync(
+            HttpRequest request,
             string? name,
             PostageBatchId batchId,
             ushort compactLevel,
@@ -33,7 +34,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string contentType,
             bool isDirectory,
             string? indexDocument,
-            string? errorDocument,
-            HttpContext httpContext);
+            string? errorDocument);
     }
 }

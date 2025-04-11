@@ -58,6 +58,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromHeader(Name = SwarmHttpConsts.SwarmIndexDocumentHeader)] string? indexDocument,
             [FromHeader(Name = SwarmHttpConsts.SwarmErrorDocumentHeader)] string? errorDocument) =>
             service.UploadBzzAsync(
+                HttpContext.Request,
                 name,
                 batchId,
                 compactLevel,
@@ -65,7 +66,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
                 contentType,
                 isDirectory,
                 indexDocument,
-                errorDocument,
-                HttpContext);
+                errorDocument);
     }
 }
