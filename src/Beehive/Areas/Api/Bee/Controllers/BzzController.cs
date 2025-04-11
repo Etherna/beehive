@@ -38,7 +38,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> DownloadBzzAsync(SwarmAddress address) =>
+        public Task<IActionResult> DownloadBzzAsync(string address) =>
+            //receive address as a raw string, we need to redirect in case it is only an <hash> without final '/'
             service.DownloadBzzAsync(address, HttpContext);
         
         // Post.

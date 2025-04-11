@@ -50,14 +50,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         // Methods.
         public async Task<IActionResult> DownloadBzzAsync(
-            SwarmAddress address,
+            string strAddress,
             HttpContext httpContext)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            
+            // Append '/' if rawAddress is only a hash, and final slash is missing.
+            var address = SwarmAddress.FromString(strAddress);
+            if (address.ToString() != strAddress)
+                return new RedirectResult(address.ToString(), true, true);
             
             // Decode manifest.
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
             var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
             
             // Try to dereference feed manifest first.

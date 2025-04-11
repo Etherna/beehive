@@ -22,7 +22,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public interface IBzzControllerService
     {
         Task<IActionResult> DownloadBzzAsync(
-            SwarmAddress address,
+            string strAddress,
             HttpContext httpContext);
 
         Task<IActionResult> UploadBzzAsync(
