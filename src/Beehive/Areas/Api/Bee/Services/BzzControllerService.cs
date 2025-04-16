@@ -101,9 +101,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             try
             {
                 // Get content chunk reference with metadata.
-                var (reference, metadata) = await manifest.GetResourceChunkReferenceWithMetadataAsync(
+                var result = await manifest.GetResourceChunkReferenceWithMetadataAsync(
                     address.Path,
                     ManifestPathResolver.BrowserResolver);
+                var (reference, metadata) = result.Result;
             
                 // Read metadata.
                 if (!metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
@@ -127,6 +128,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     null,
                     CancellationToken.None).ConfigureAwait(false);
 
+                httpContext.Response.StatusCode = result.IsFromErrorDoc ? 404 : 200;
                 return new FileStreamResult(dataStream, mimeType)
                 {
                     EnableRangeProcessing = true
