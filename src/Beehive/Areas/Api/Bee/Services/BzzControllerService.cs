@@ -19,6 +19,7 @@ using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
+using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
@@ -55,10 +56,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
-            // Append '/' if rawAddress is only a hash, and final slash is missing.
+            // Normalize address and redirect to it.
+            // - append '/' if rawAddress is only a hash, and final slash is missing
             var address = SwarmAddress.FromString(strAddress);
             if (address.ToString() != strAddress)
-                return new RedirectResult(address.ToString(), true, true);
+                return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
             
             // Decode manifest.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
@@ -95,44 +97,46 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 httpContext.Response.Headers.SetNoCache();
             }
             
-            // Resolve content address.
+            // Serve content or redirect if required.
             try
             {
-                return await ServeContentAsync(
-                    manifest,
+                // Get content chunk reference with metadata.
+                var (reference, metadata) = await manifest.GetResourceChunkReferenceWithMetadataAsync(
                     address.Path,
-                    httpContext,
-                    chunkStore).ConfigureAwait(false);
+                    ManifestPathResolver.BrowserResolver);
+            
+                // Read metadata.
+                if (!metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
+                    mimeType = FileContentTypeProvider.DefaultContentType;
+                if (!metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
+                    filename = reference.Hash.ToString();
+            
+                // Set custom headers.
+                var contentDisposition = new ContentDisposition
+                {
+                    FileName = filename,
+                    Inline = true
+                };
+                httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
+                httpContext.Response.Headers.AccessControlExposeHeaders = HeaderNames.ContentDisposition;
+            
+                // Return content.
+                var chunkJoiner = new ChunkJoiner(chunkStore);
+                var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
+                    reference,
+                    null,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                return new FileStreamResult(dataStream, mimeType)
+                {
+                    EnableRangeProcessing = true
+                };
             }
-            catch(KeyNotFoundException)
+            catch (ManifestExplicitRedirectException e)
             {
-                // Check for existing directory redirect. Example: /mydir?args -> /mydir/?args
-                if (!address.Path.EndsWith(SwarmAddress.Separator) &&
-                    await manifest.HasPathPrefixAsync(address.Path + SwarmAddress.Separator))
-                    return new RedirectResult(
-                        httpContext.Request.Path + SwarmAddress.Separator + httpContext.Request.QueryString,
-                        true);
-                
-                // Check index suffix to path.
-                var metadata = await manifest.GetResourceMetadataAsync(MantarayManifest.RootPath, false);
-                if (metadata.TryGetValue(ManifestEntry.WebsiteIndexDocPathKey, out var indexDocument) &&
-                    Path.GetFileName(address.Path) != indexDocument)
-                    return await ServeContentAsync(
-                        manifest,
-                        Path.Combine(address.Path, indexDocument),
-                        httpContext,
-                        chunkStore).ConfigureAwait(false);
-                
-                // check if error document is to be shown
-                if (metadata.TryGetValue(ManifestEntry.WebsiteErrorDocPathKey, out var errorDocument) &&
-                    address.Path != SwarmAddress.Separator + errorDocument)
-                    return await ServeContentAsync(
-                        manifest,
-                        errorDocument,
-                        httpContext,
-                        chunkStore).ConfigureAwait(false);
-                
-                throw;
+                // Permanent redirect.
+                var redirectAddress = new SwarmAddress(address.Hash, e.RedirectToPath);
+                return NewPermanentRedirectResult(redirectAddress, httpContext.Request.QueryString);
             }
         }
 
@@ -244,44 +248,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 StatusCode = StatusCodes.Status201Created
             };
         }
-        
-        // Helpers.
-        private static async Task<IActionResult> ServeContentAsync(
-            ReferencedMantarayManifest manifest,
-            string contentPath,
-            HttpContext httpContext,
-            BeehiveChunkStore chunkStore)
-        {
-            var reference = await manifest.ResolveAddressToChunkReferenceAsync(contentPath);
-            
-            // Get metadata.
-            var metadata = await manifest.GetResourceMetadataAsync(contentPath, true);
-            
-            if (!metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
-                mimeType = FileContentTypeProvider.DefaultContentType;
-            if (!metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
-                filename = reference.Hash.ToString();
-            
-            // Set custom headers.
-            var contentDisposition = new ContentDisposition
-            {
-                FileName = filename,
-                Inline = true
-            };
-            httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
-            httpContext.Response.Headers.AccessControlExposeHeaders = HeaderNames.ContentDisposition;
-            
-            // Return content.
-            var chunkJoiner = new ChunkJoiner(chunkStore);
-            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
-                reference,
-                null,
-                CancellationToken.None).ConfigureAwait(false);
 
-            return new FileStreamResult(dataStream, mimeType)
-            {
-                EnableRangeProcessing = true
-            };
-        }
+        // Helpers.
+        private static RedirectResult NewPermanentRedirectResult(SwarmAddress address, QueryString queryString) =>
+            new("/bzz/" + address + queryString, true, true);
     }
 }
