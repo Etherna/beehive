@@ -101,16 +101,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             try
             {
                 // Get content chunk reference with metadata.
-                var result = await manifest.GetResourceChunkReferenceWithMetadataAsync(
+                var resourceInfo = await manifest.GetResourceInfoAsync(
                     address.Path,
                     ManifestPathResolver.BrowserResolver);
-                var (reference, metadata) = result.Result;
             
                 // Read metadata.
-                if (!metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
+                if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
                     mimeType = FileContentTypeProvider.DefaultContentType;
-                if (!metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
-                    filename = reference.Hash.ToString();
+                if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
+                    filename = resourceInfo.Result.ChunkReference.Hash.ToString();
             
                 // Set custom headers.
                 var contentDisposition = new ContentDisposition
@@ -124,11 +123,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 // Return content.
                 var chunkJoiner = new ChunkJoiner(chunkStore);
                 var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
-                    reference,
+                    resourceInfo.Result.ChunkReference,
                     null,
                     CancellationToken.None).ConfigureAwait(false);
 
-                httpContext.Response.StatusCode = result.IsFromErrorDoc ? 404 : 200;
+                httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
                 return new FileStreamResult(dataStream, mimeType)
                 {
                     EnableRangeProcessing = true
