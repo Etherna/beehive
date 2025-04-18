@@ -111,7 +111,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
             // Find feed chunk at given moment.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
-            var feedChunk = await feed.TryFindFeedChunkAtAsync(at.Value, afterFeedIndex, chunkStore, new Hasher());
+            var feedChunk = await feed.TryFindFeedChunkAtAsync(
+                at.Value,
+                afterFeedIndex,
+                chunkStore,
+                new Hasher());
             if (feedChunk is null)
                 throw new KeyNotFoundException("No feed update found");
             
@@ -122,7 +126,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var nextFeedIndex = type == SwarmFeedType.Sequence ? feedChunk.Index.GetNext(0) : null;
 
             // Unwrap original chunk from feed chunk.
-            var unwrappedChunk = await feedChunk.UnwrapDataChunkAsync(
+            var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(
                 resolveLegacyPayload,
                 new SwarmChunkBmt(),
                 chunkStore);
@@ -148,12 +152,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             //if only root, returns chunk's data
             if (onlyRootChunk)
                 return new FileContentResult(
-                    unwrappedChunk.Data.ToArray(),
+                    wrappedChunk.Data.ToArray(),
                     BeehiveHttpConsts.OctetStreamContentType);
 
             //else return joined data
             var chunkJoiner = new ChunkJoiner(chunkStore);
-            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(unwrappedChunk, null, false);
+            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(wrappedChunk, null, false);
 
             return new FileStreamResult(
                 dataStream,
