@@ -48,7 +48,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             string id,
             [FromQuery(Name = "sig"), Required] string signature,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp) =>
-            service.UploadSocAsync(owner, id, signature, batchId, postageStamp, HttpContext.Request.Body);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
+            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent) =>
+            service.UploadSocAsync(
+                owner,
+                id,
+                signature,
+                batchId,
+                postageStamp,
+                HttpContext.Request.Body,
+                pinContent);
     }
 }

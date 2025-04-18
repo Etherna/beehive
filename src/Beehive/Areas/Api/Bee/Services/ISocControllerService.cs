@@ -27,6 +27,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             SwarmSocSignature signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            Stream dataStream);
+            Stream dataStream,
+            bool pinContent);
     }
 }

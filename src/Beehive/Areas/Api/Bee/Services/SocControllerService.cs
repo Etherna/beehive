@@ -15,13 +15,9 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Hashing.Pipeline;
-using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,7 +35,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             SwarmSocSignature signature,
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            Stream dataStream)
+            Stream dataStream,
+            bool pinContent)
         {
             ArgumentNullException.ThrowIfNull(dataStream, nameof(dataStream));
             
@@ -64,11 +61,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Build SOC chunk.
             var hasher = new Hasher();
             var chunkBmt = new SwarmChunkBmt(hasher);
-            var dataHash = chunkBmt.Hash(data.AsMemory()[..SwarmCac.SpanSize], data.AsMemory()[SwarmCac.SpanSize..]);
             var soc = new SwarmSoc(
                 identifier,
                 owner,
-                new SwarmCac(dataHash, data),
+                new SwarmCac(chunkBmt.Hash(data), data),
                 null,
                 signature);
             soc.BuildHash(hasher);
@@ -82,7 +78,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 batchId ?? postageStamp?.BatchId ?? throw new InvalidOperationException(),
                 owner,
                 false,
-                false,
+                pinContent,
                 async (chunkStore, postageStamper) =>
                 {
                     postageStamper.Stamp(soc.Hash);
