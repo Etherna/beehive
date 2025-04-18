@@ -13,9 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Configs;
+using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
+using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -26,9 +31,48 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class SocControllerService(
-        IDataService dataService)
+        IBeeNodeLiveManager beeNodeLiveManager,
+        IDataService dataService,
+        IBeehiveDbContext dbContext)
         : ISocControllerService
     {
+        public async Task<IActionResult> ResolveSocAsync(
+            EthAddress owner,
+            SwarmSocIdentifier identifier,
+            bool onlyRootChunk,
+            HttpResponse response)
+        {
+            ArgumentNullException.ThrowIfNull(response, nameof(response));
+            
+            // Try find soc.
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            var chunk = await chunkStore.TryGetAsync(
+                SwarmSoc.BuildHash(identifier, owner, new Hasher()),
+                SwarmChunkType.Soc).ConfigureAwait(false);
+
+            if (chunk is not SwarmSoc soc)
+                throw new InvalidOperationException("Chunk is not a single owner chunk");
+            
+            // Build response headers.
+            response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, soc.Signature.ToString());
+            response.Headers.Append(CorsConstants.AccessControlExposeHeaders, SwarmHttpConsts.SwarmSocSignatureHeader);
+            
+            // Return content.
+            //if only root, returns chunk's data
+            if (onlyRootChunk)
+                return new FileContentResult(
+                    soc.InnerChunk.Data.ToArray(),
+                    BeehiveHttpConsts.OctetStreamContentType);
+
+            //else return joined data
+            var chunkJoiner = new ChunkJoiner(chunkStore);
+            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(soc.InnerChunk, null, false);
+
+            return new FileStreamResult(
+                dataStream,
+                BeehiveHttpConsts.OctetStreamContentType);
+        }
+
         public async Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             SwarmSocIdentifier identifier,

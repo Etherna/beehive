@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using System.Threading.Tasks;
@@ -21,6 +22,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface ISocControllerService
     {
+        Task<IActionResult> ResolveSocAsync(
+            EthAddress owner,
+            SwarmSocIdentifier identifier,
+            bool onlyRootChunk,
+            HttpResponse response);
+        
         Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             SwarmSocIdentifier identifier,

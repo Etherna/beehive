@@ -30,6 +30,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
     public class SocController(ISocControllerService service)
         : ControllerBase
     {
+        // Get.
+        [HttpGet("{owner}/{id}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> ResolveSocAsync(
+            EthAddress owner,
+            SwarmSocIdentifier id,
+            [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk) =>
+            service.ResolveSocAsync(owner, id, onlyRootChunk, HttpContext.Response);
+        
         // Post.
         
         [HttpPost("{owner}/{id}")]
