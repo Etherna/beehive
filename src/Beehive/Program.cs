@@ -212,10 +212,14 @@ namespace Etherna.Beehive
                 //add schema filters
                 options.SchemaFilter<DateTimeOffsetSchemaFilter>();
                 options.SchemaFilter<EthAddressSchemaFilter>();
+                options.SchemaFilter<EthTxHashSchemaFilter>();
                 options.SchemaFilter<PostageBatchIdSchemaFilter>();
                 options.SchemaFilter<PostageStampSchemaFilter>();
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
+                options.SchemaFilter<SwarmFeedTopicSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
+                options.SchemaFilter<SwarmSocIdentifierSchemaFilter>();
+                options.SchemaFilter<SwarmSocSignatureSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();
                 options.SchemaFilter<TagIdSchemaFilter>();
                 options.SchemaFilter<TimeSpanSchemaFilter>();

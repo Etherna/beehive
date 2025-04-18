@@ -23,7 +23,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         Task<IActionResult> CreateFeedRootManifestAsync(
             EthAddress owner,
-            string topic,
+            SwarmFeedTopic topic,
             SwarmFeedType type,
             PostageBatchId batchId,
             ushort compactLevel,
@@ -31,7 +31,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
-            string topic,
+            SwarmFeedTopic topic,
             long? at,
             ulong? after,
             byte? afterLevel,

@@ -45,7 +45,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadSocAsync(
             EthAddress owner,
-            string id,
+            SwarmSocIdentifier id,
             [FromQuery(Name = "sig"), Required] string signature,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,

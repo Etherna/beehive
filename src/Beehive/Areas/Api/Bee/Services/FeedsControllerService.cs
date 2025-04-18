@@ -42,7 +42,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         public async Task<IActionResult> CreateFeedRootManifestAsync(
             EthAddress owner,
-            string topic,
+            SwarmFeedTopic topic,
             SwarmFeedType type,
             PostageBatchId batchId,
             ushort compactLevel,
@@ -57,8 +57,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 {
                     SwarmFeedBase swarmFeed = type switch
                     {
-                        SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic.HexToByteArray()),
-                        SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic.HexToByteArray()),
+                        SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic),
+                        SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic),
                         _ => throw new InvalidOperationException(),
                     };
                     
@@ -78,7 +78,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         public async Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
-            string topic,
+            SwarmFeedTopic topic,
             long? at,
             ulong? after,
             byte? afterLevel,
@@ -91,13 +91,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             // Init.
             at ??= DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var topicByteArray = topic.HexToByteArray();
             
             // Build feed.
             SwarmFeedBase feed = type switch
             {
-                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topicByteArray),
-                SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topicByteArray),
+                SwarmFeedType.Epoch => new SwarmEpochFeed(owner, topic),
+                SwarmFeedType.Sequence => new SwarmSequenceFeed(owner, topic),
                 _ => throw new InvalidOperationException()
             };
             SwarmFeedIndexBase? afterFeedIndex = after is null

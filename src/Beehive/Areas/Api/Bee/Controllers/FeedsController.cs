@@ -40,7 +40,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IActionResult> FindFeedUpdateAsync(
             EthAddress owner,
-            string topic,
+            SwarmFeedTopic topic,
             [FromQuery] long? at,
             [FromQuery] ulong? after,
             [FromQuery] byte? afterLevel,
@@ -59,7 +59,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         public Task<IActionResult> CreateFeedRootManifestAsync(
             EthAddress owner,
-            string topic,
+            SwarmFeedTopic topic,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
