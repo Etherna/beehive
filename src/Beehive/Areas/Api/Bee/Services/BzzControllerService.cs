@@ -56,8 +56,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
-            // Normalize address and redirect to it.
-            // - append '/' if rawAddress is only a hash, and final slash is missing
+            // Normalize address and redirect to it:
+            // - append '/' if strAddress is only a hash, and a final slash is missing
             var address = SwarmAddress.FromString(strAddress);
             if (address.ToString() != strAddress)
                 return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
@@ -81,9 +81,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
                 var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(false, new SwarmChunkBmt());
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
-                manifest = new ReferencedMantarayManifest(
-                    chunkStore,
-                    wrappedChunk.Hash);
+                manifest = new ReferencedMantarayManifest(chunkStore, wrappedChunk);
                 
                 //report feed index header
                 var feedIndex = feedChunk.Index;
