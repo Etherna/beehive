@@ -31,8 +31,8 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
                 schema.Type = "string";
                 schema.Format = null;
                 schema.MinLength = EthAddress.AddressSize * 2;
-                schema.MaxLength = EthAddress.AddressSize * 2;
-                schema.Pattern = $"^[a-fA-F0-9]{{{EthAddress.AddressSize * 2}}}$";
+                schema.MaxLength = EthAddress.AddressSize * 2 + 2;
+                schema.Pattern = $"^(0x)?[a-fA-F0-9]{{{EthAddress.AddressSize * 2}}}$";
             }
         }
     }
