@@ -54,7 +54,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmCac.SpanDataSize)]
-        [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             SwarmSocIdentifier id,
