@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,13 +13,19 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface IPostageControllerService
+    public interface IStampsControllerService
     {
-        Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth);
-        Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount);
+        Task<IActionResult> BuyPostageBatchAsync(
+            BzzBalance amount,
+            int depth,
+            string? label,
+            bool immutable,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice);
     }
 }

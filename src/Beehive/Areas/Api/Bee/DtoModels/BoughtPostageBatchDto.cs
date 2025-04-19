@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,14 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using System.Text.Json.Serialization;
 
-namespace Etherna.Beehive.Areas.Api.DtoModels
+namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public class PostageBatchRefDto(
-        PostageBatchId batchId,
-        string nodeId)
+    public sealed class BoughtPostageBatchDto(PostageBatchId batchId, EthTxHash txHash)
     {
-        public string BatchId { get; } = batchId.ToString();
-        public string NodeId { get; } = nodeId;
+        [JsonPropertyName("batchID")]
+        public PostageBatchId BatchId { get; } = batchId;
+        public EthTxHash TxHash { get; } = txHash;
     }
 }

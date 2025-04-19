@@ -16,6 +16,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
@@ -49,7 +50,45 @@ namespace Etherna.Beehive.Services.Domain
 
             return handler;
         }
-        
+
+        public async Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
+            BzzBalance amount,
+            int depth,
+            string? label,
+            bool immutable,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice)
+        {
+            // Select node.
+            var beeNodeInstance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(
+                BeeNodeSelectionMode.RoundRobin,
+                "buyPostageBatch",
+                node => Task.FromResult(node.IsBatchCreationEnabled));
+
+            if (beeNodeInstance is null)
+                throw new InvalidOperationException("No healthy nodes available for batch creation");
+
+            // Buy postage.
+            var (batchId, txHash) = await beeNodeInstance.BuyPostageBatchAsync(
+                amount,
+                depth,
+                label,
+                immutable,
+                gasLimit,
+                gasPrice);
+            
+            // Store postage batch cache.
+            var batchCache = new PostageBatchCache(
+                batchId,
+                new uint[PostageBuckets.BucketsSize],
+                depth,
+                immutable,
+                beeNodeInstance.Id);
+            await dbContext.PostageBatchesCache.CreateAsync(batchCache);
+            
+            return (batchId, txHash);
+        }
+
         public Task<bool> IsLockedAsync(PostageBatchId batchId) =>
             resourceLockService.IsLockedAsync(
                 dbContext.PostageBatchLocks,
@@ -99,14 +138,14 @@ namespace Etherna.Beehive.Services.Domain
             bool forceRefreshCache = false)
         {
             // Try load existing cache from db.
-            var bucketsCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
+            var batchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             
             // Try load status from node.
-            if (bucketsCache == null || forceRefreshCache)
+            if (batchCache == null || forceRefreshCache)
             {
                 // Remove cached value from db.
-                if (bucketsCache != null)
-                    await dbContext.PostageBatchesCache.DeleteAsync(bucketsCache);
+                if (batchCache != null)
+                    await dbContext.PostageBatchesCache.DeleteAsync(batchCache);
                 
                 // Get fresh value.
                 var nodeLiveInstance = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
@@ -116,16 +155,16 @@ namespace Etherna.Beehive.Services.Domain
                 var (bucketsLiveCollisions, depth) = await nodeLiveInstance.GetPostageBatchBucketsCollisionsAsync(batchId);
                 
                 // Cache new value on db.
-                bucketsCache = new PostageBatchCache(
+                batchCache = new PostageBatchCache(
                     batchId,
                     bucketsLiveCollisions.ToArray(),
                     depth,
                     postageInfo.IsImmutable,
                     nodeLiveInstance.Id);
-                await dbContext.PostageBatchesCache.CreateAsync(bucketsCache);
+                await dbContext.PostageBatchesCache.CreateAsync(batchCache);
             }
 
-            return bucketsCache;
+            return batchCache;
         }
     }
 }

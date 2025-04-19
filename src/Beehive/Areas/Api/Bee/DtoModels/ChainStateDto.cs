@@ -26,8 +26,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
     {
         public long ChainTip { get; } = chainTip;
         public long Block { get; } = block;
-        public string TotalAmount { get; } = totalAmount.ToPlurString();
-        public string CurrentPrice { get; } = currentPrice.ToPlurString();
-        public long TimeStamp { get; } = timeStamp.ToUnixTimeSeconds();
+        public BzzBalance TotalAmount { get; } = totalAmount;
+        public BzzBalance CurrentPrice { get; } = currentPrice;
+        public DateTimeOffset TimeStamp { get; } = timeStamp;
     }
 }

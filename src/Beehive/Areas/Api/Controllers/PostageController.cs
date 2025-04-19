@@ -31,32 +31,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         IPostageControllerService service)
         : ControllerBase
     {
-        // Post.
-
-        /// <summary>
-        /// Buy a new postage batch
-        /// </summary>
-        /// <param name="amount">Amount of BZZ in Plur added that the postage batch will have</param>
-        /// <param name="depth">Batch depth</param>
-        /// <param name="immutable">Is batch immutable</param>
-        /// <param name="label">An optional label for this batch</param>
-        /// <param name="nodeId">Bee node Id</param>
-        /// <response code="200">Postage batch id</response>
-        [HttpPost("batches")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<PostageBatchRefDto> BuyPostageBatchAsync(
-            long amount,
-            int depth,
-            bool immutable = false,
-            string? label = null,
-            string? nodeId = null) =>
-            service.BuyPostageBatchAsync(BzzBalance.FromPlurLong(amount), depth, immutable, label, nodeId);
-
-        // Put.
-
         // Patch.
 
         [HttpPatch("batches/{id}/dilute/{depth}")]

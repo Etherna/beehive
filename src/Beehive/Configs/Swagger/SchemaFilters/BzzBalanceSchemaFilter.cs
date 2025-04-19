@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,13 +13,24 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using System.Threading.Tasks;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public interface IPostageControllerService
+    public sealed class BzzBalanceSchemaFilter : ISchemaFilter
     {
-        Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth);
-        Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount);
+        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        {
+            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
+            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            
+            if (context.Type == typeof(BzzBalance) || context.Type == typeof(BzzBalance?))
+            {
+                schema.Type = "integer";
+                schema.Format = "int64";
+            }
+        }
     }
 }

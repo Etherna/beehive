@@ -45,14 +45,26 @@ namespace Etherna.Beehive.Services.Utilities.Models
         public BeeNodeStatus Status { get; }
 
         // Public methods.
-        public async Task<PostageBatchId> BuyPostageBatchAsync(BzzBalance amount, int depth, string? label, bool immutable)
+        public async Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
+            BzzBalance amount,
+            int depth,
+            string? label,
+            bool immutable,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice)
         {
-            var batchId = await Client.BuyPostageBatchAsync(amount, depth, label, immutable);
+            var (batchId, txHash) = await Client.BuyPostageBatchAsync(
+                amount,
+                depth,
+                label,
+                immutable,
+                gasLimit,
+                gasPrice);
 
             //immediately add the batch to the node status
             Status.AddPostageBatchId(batchId);
 
-            return batchId;
+            return (batchId, txHash);
         }
 
         public Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth) =>

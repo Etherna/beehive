@@ -210,6 +210,7 @@ namespace Etherna.Beehive
                 options.OperationFilter<SwaggerDefaultValuesFilter>();
                 
                 //add schema filters
+                options.SchemaFilter<BzzBalanceSchemaFilter>();
                 options.SchemaFilter<DateTimeOffsetSchemaFilter>();
                 options.SchemaFilter<EthAddressSchemaFilter>();
                 options.SchemaFilter<EthTxHashSchemaFilter>();
@@ -223,6 +224,7 @@ namespace Etherna.Beehive
                 options.SchemaFilter<SwarmUriSchemaFilter>();
                 options.SchemaFilter<TagIdSchemaFilter>();
                 options.SchemaFilter<TimeSpanSchemaFilter>();
+                options.SchemaFilter<XDaiBalanceSchemaFilter>();
                 options.SchemaFilter<XorEncryptKeySchemaFilter>();
 
                 //integrate xml comments

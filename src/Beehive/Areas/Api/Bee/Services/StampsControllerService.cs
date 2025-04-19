@@ -12,37 +12,35 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Hashing.Postage;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Domain
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface IPostageBatchService
+    public class StampsControllerService(
+        IPostageBatchService postageBatchService)
+        : IStampsControllerService
     {
-        Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
-            PostageBatchId batchId,
-            bool exclusiveAccess);
-
-        Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
+        // Methods.
+        public async Task<IActionResult> BuyPostageBatchAsync(
             BzzBalance amount,
             int depth,
             string? label,
             bool immutable,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
-        
-        Task<bool> IsLockedAsync(PostageBatchId batchId);
+            XDaiBalance? gasPrice)
+        {
+            var (batchId, txHash) = await postageBatchService.BuyPostageBatchAsync(
+                amount, depth, label, immutable, gasLimit, gasPrice);
 
-        Task StoreStampedChunksAsync(
-            PostageBatchCache postageBatchCache,
-            HashSet<SwarmHash> stampedChunkHashesCache,
-            IPostageStamper newPostageStamper);
-        
-        public Task<PostageBatchCache?> TryGetPostageBatchAsync(
-            PostageBatchId batchId,
-            bool forceRefreshCache = false);
+            return new JsonResult(new BoughtPostageBatchDto(batchId, txHash))
+            {
+                StatusCode = StatusCodes.Status201Created
+            };
+        }
     }
 }
