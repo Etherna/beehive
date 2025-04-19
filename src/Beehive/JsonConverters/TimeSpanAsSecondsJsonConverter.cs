@@ -32,7 +32,7 @@ namespace Etherna.Beehive.JsonConverters
         {
             ArgumentNullException.ThrowIfNull(writer, nameof(writer));
             
-            writer.WriteNumberValue(value.TotalSeconds);
+            writer.WriteNumberValue((long)value.TotalSeconds);
         }
     }
 }

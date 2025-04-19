@@ -31,18 +31,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
         bool usable,
         uint utilization)
     {
-        public BzzBalance Amount { get; } = amount;
         [JsonPropertyName("batchID")]
         public PostageBatchId BatchId { get; } = batchId;
+        public uint Utilization { get; } = utilization;
+        public bool Usable { get; } = usable;
+        public string Label { get; } = label;
+        public int Depth { get; } = depth;
+        public BzzBalance Amount { get; } = amount;
+        public int BucketDepth { get; } = bucketDepth;
+        public ulong BlockNumber { get; } = blockNumber;
+        public bool ImmutableFlag { get; } = immutableFlag;
+        public bool Exists { get; } = exists;
         [JsonPropertyName("batchTTL")]
         public TimeSpan BatchTtl { get; } = batchTtl;
-        public ulong BlockNumber { get; } = blockNumber;
-        public int BucketDepth { get; } = bucketDepth;
-        public int Depth { get; } = depth;
-        public bool Exists { get; } = exists;
-        public bool ImmutableFlag { get; } = immutableFlag;
-        public string Label { get; } = label;
-        public bool Usable { get; } = usable;
-        public uint Utilization { get; } = utilization;
     }
 }
