@@ -42,5 +42,24 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 StatusCode = StatusCodes.Status201Created
             };
         }
+
+        public async Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId)
+        {
+            var postageBatch = await postageBatchService.TryGetPostageBatchDetailsAsync(batchId);
+            if (postageBatch is null)
+                return new NotFoundResult();
+            return new JsonResult(new PostageBatchDto(
+                postageBatch.Amount,
+                postageBatch.Id,
+                postageBatch.Ttl,
+                postageBatch.BlockNumber,
+                PostageBatch.BucketDepth,
+                postageBatch.Depth,
+                postageBatch.Exists,
+                postageBatch.IsImmutable,
+                postageBatch.Label,
+                postageBatch.IsUsable,
+                postageBatch.Utilization));
+        }
     }
 }

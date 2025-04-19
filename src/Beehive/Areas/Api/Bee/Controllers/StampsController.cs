@@ -29,6 +29,21 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
     public class StampsController(IStampsControllerService service)
         : ControllerBase
     {
+        // Get.
+
+        /// <summary>
+        /// Get details of a postage batch
+        /// </summary>
+        /// <param name="batchId">Postage Batch Id</param>
+        [HttpGet("{batchId}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(PostageBatchDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetPostageBatchAsync(
+            PostageBatchId batchId) =>
+            service.GetPostageBatchAsync(batchId);
+        
         // Post.
 
         /// <summary>

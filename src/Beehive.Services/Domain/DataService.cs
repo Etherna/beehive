@@ -15,7 +15,6 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Models;
@@ -50,7 +49,7 @@ namespace Etherna.Beehive.Services.Domain
             await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, useChunkCompaction);
             
             // Verify postage batch, load status and build postage stamper.
-            var postageBatchCache = await postageBatchService.TryGetPostageBatchAsync(batchId);
+            var postageBatchCache = await postageBatchService.TryGetPostageBatchCacheAsync(batchId);
             if (postageBatchCache is null)
                 throw new KeyNotFoundException();
             var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
@@ -78,7 +77,6 @@ namespace Etherna.Beehive.Services.Domain
                         isImmutable: postageBatchCache.IsImmutable,
                         isUsable: true,
                         label: null,
-                        storageRadius: null,
                         ttl: TimeSpan.FromDays(3650),
                         utilization: 0),
                     batchOwner,

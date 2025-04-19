@@ -25,7 +25,6 @@ namespace Etherna.Beehive.Areas.Api.Services
         Task<bool> ForceFullStatusRefreshAsync(string id);
         IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus();
         Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id);
-        Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId);
         Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id);
         Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash);
     }

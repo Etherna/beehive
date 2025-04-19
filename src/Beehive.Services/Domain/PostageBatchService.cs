@@ -133,7 +133,7 @@ namespace Etherna.Beehive.Services.Domain
                     new FindOneAndUpdateOptions<PostageBatchCache>());
         }
 
-        public async Task<PostageBatchCache?> TryGetPostageBatchAsync(
+        public async Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
             PostageBatchId batchId,
             bool forceRefreshCache = false)
         {
@@ -165,6 +165,15 @@ namespace Etherna.Beehive.Services.Domain
             }
 
             return batchCache;
+        }
+
+        public async Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId)
+        {
+            var nodeLiveInstance = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (nodeLiveInstance == null) //if postage doesn't exist
+                return null;
+            
+            return await nodeLiveInstance.GetPostageBatchAsync(batchId);
         }
     }
 }

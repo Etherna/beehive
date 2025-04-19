@@ -51,20 +51,6 @@ namespace Etherna.Beehive.Areas.Api.Services
             return new BeeNodeStatusDto(beeNodeInstance.Id, beeNodeInstance.Status);
         }
 
-        public async Task<PostageBatchDto> GetPostageBatchDetailsAsync(string id, PostageBatchId batchId)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            try
-            {
-                var postageBatch = await beeNodeInstance.Client.GetPostageBatchAsync(batchId);
-                return new PostageBatchDto(postageBatch);
-            }
-            catch (BeeNetApiException ex) when (ex.StatusCode == 400)
-            {
-                throw new KeyNotFoundException();
-            }
-        }
-
         public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);

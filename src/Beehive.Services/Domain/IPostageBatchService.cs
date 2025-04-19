@@ -41,8 +41,10 @@ namespace Etherna.Beehive.Services.Domain
             HashSet<SwarmHash> stampedChunkHashesCache,
             IPostageStamper newPostageStamper);
         
-        public Task<PostageBatchCache?> TryGetPostageBatchAsync(
+        public Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
             PostageBatchId batchId,
             bool forceRefreshCache = false);
+
+        Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
     }
 }

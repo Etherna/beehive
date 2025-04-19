@@ -27,5 +27,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             bool immutable,
             ulong? gasLimit,
             XDaiBalance? gasPrice);
+
+        Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId);
     }
 }

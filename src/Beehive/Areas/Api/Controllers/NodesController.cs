@@ -47,22 +47,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
             service.GetPostageBatchesByNodeAsync(id);
 
         /// <summary>
-        /// Get details of a postage batch owned by a node
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        /// <param name="batchId">Postage Batch Id</param>
-        /// <response code="200">Selected postage batch</response>
-        [HttpGet("{id}/batches/{batchId}")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<PostageBatchDto> GetPostageBatchDetailsAsync(
-            [Required] string id,
-            [Required] string batchId) =>
-            service.GetPostageBatchDetailsAsync(id, batchId);
-
-        /// <summary>
         /// Get live status of a Bee node
         /// </summary>
         /// <param name="id">Id of the bee node</param>
