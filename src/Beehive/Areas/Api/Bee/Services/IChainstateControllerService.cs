@@ -18,6 +18,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface IChainstateControllerService
     {
-        ChainstateDto GetChainstate();
+        ChainStateDto GetChainstate();
     }
 }

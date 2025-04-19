@@ -36,7 +36,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [HttpGet]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ChainstateDto GetChainstate() =>
+        public ChainStateDto GetChainstate() =>
             service.GetChainstate();
     }
 }

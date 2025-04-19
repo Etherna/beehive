@@ -17,17 +17,17 @@ using System;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public sealed class ChainstateDto(
+    public sealed class ChainStateDto(
         long chainTip,
         long block,
         BzzBalance totalAmount,
         BzzBalance currentPrice,
-        DateTime timeStamp)
+        DateTimeOffset timeStamp)
     {
         public long ChainTip { get; } = chainTip;
         public long Block { get; } = block;
         public string TotalAmount { get; } = totalAmount.ToPlurString();
         public string CurrentPrice { get; } = currentPrice.ToPlurString();
-        public DateTime TimeStamp { get; } = timeStamp;
+        public long TimeStamp { get; } = timeStamp.ToUnixTimeSeconds();
     }
 }

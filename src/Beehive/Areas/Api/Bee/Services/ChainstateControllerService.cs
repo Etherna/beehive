@@ -21,12 +21,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public class ChainstateControllerService(IBeeNodeLiveManager beeNodeLiveManager)
         : IChainstateControllerService
     {
-        public ChainstateDto GetChainstate()
+        public ChainStateDto GetChainstate()
         {
             var chainstate = beeNodeLiveManager.ChainState;
             if (chainstate is null)
                 throw new KeyNotFoundException();
-            return new ChainstateDto(
+            return new ChainStateDto(
                 chainstate.ChainTip,
                 chainstate.Block,
                 chainstate.TotalAmount,

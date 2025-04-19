@@ -27,7 +27,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
             ChainTip = chainStateDto.ChainTip;
             CurrentPrice = chainStateDto.CurrentPrice;
             SourceNodeId = nodeId;
-            TimeStamp = DateTime.UtcNow;
+            TimeStamp = DateTimeOffset.UtcNow;
             TotalAmount = chainStateDto.TotalAmount;
         }
 
@@ -35,7 +35,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
         public int ChainTip { get; }
         public BzzBalance CurrentPrice { get; }
         public string SourceNodeId { get; }
-        public DateTime TimeStamp { get; }
+        public DateTimeOffset TimeStamp { get; }
         public BzzBalance TotalAmount { get; }
     }
 }
