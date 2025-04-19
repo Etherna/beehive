@@ -33,20 +33,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         // Get.
 
         /// <summary>
-        /// Get all postage batches owned by a node
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        /// <response code="200">List of owned postage batches</response>
-        [HttpGet("{id}/batches")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(
-            [Required] string id) =>
-            service.GetPostageBatchesByNodeAsync(id);
-
-        /// <summary>
         /// Get live status of a Bee node
         /// </summary>
         /// <param name="id">Id of the bee node</param>
@@ -75,16 +61,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
             [Required] string id,
             [Required] string hash) =>
             service.CheckResourceAvailabilityFromNodeAsync(id, hash);
-
-        /// <summary>
-        /// Get live status of all Bee node
-        /// </summary>
-        /// <response code="200">Live status of all nodes</response>
-        [HttpGet("status")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus() =>
-            service.GetAllBeeNodeLiveStatus();
 
         // Put.
 

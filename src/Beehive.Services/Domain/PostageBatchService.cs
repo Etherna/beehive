@@ -22,6 +22,7 @@ using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
@@ -114,6 +115,30 @@ namespace Etherna.Beehive.Services.Domain
             await dbContext.SaveChangesAsync();
             
             return txHash;
+        }
+
+        [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
+        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
+        public async Task<IEnumerable<PostageBatch>> GetOwnedPostageBatchesAsync()
+        {
+            var healthyNodes = beeNodeLiveManager.HealthyNodes.ToArray();
+            List<Task<PostageBatch[]>> taskList = [];
+            List<PostageBatch> postageBatches = [];
+
+            foreach (var node in healthyNodes)
+                taskList.Add(node.Client.GetOwnedPostageBatchesAsync());
+
+            foreach (var task in taskList)
+            {
+                try
+                {
+                    postageBatches.AddRange(await task);
+                }
+                catch
+                { }
+            }
+            
+            return postageBatches;
         }
 
         public Task<bool> IsLockedAsync(PostageBatchId batchId) =>

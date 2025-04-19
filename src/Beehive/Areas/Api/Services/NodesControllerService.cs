@@ -42,20 +42,10 @@ namespace Etherna.Beehive.Areas.Api.Services
             return await beeNodeInstance.TryRefreshStatusAsync(true);
         }
 
-        public IEnumerable<BeeNodeStatusDto> GetAllBeeNodeLiveStatus() =>
-            beeNodeLiveManager.AllNodes.Select(n => new BeeNodeStatusDto(n.Id, n.Status));
-
         public async Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id)
         {
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             return new BeeNodeStatusDto(beeNodeInstance.Id, beeNodeInstance.Status);
-        }
-
-        public async Task<IEnumerable<PostageBatchDto>> GetPostageBatchesByNodeAsync(string id)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            var batches = await beeNodeInstance.Client.GetOwnedPostageBatchesByNodeAsync();
-            return batches.Select(b => new PostageBatchDto(b));
         }
 
         public async Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash)

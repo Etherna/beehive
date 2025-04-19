@@ -30,6 +30,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         : ControllerBase
     {
         // Get.
+        
+        /// <summary>
+        /// Get all owned postage batches
+        /// </summary>
+        [HttpGet]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(PostageBatchStampListDto), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetOwnedPostageBatchesAsync() =>
+            service.GetOwnedPostageBatchesAsync();
 
         /// <summary>
         /// Get details of a postage batch

@@ -179,7 +179,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
                 //postage batches
                 try
                 {
-                    var batches = await Client.GetOwnedPostageBatchesByNodeAsync();
+                    var batches = await Client.GetOwnedPostageBatchesAsync();
                     refreshedPostageBatchesId = batches.Select(b => b.Id);
                 }
                 catch { errors.Add("Can't read postage batches"); }

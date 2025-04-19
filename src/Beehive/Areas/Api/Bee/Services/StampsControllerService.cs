@@ -58,6 +58,25 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             };
         }
 
+        public async Task<IActionResult> GetOwnedPostageBatchesAsync()
+        {
+            var postageBatches = await postageBatchService.GetOwnedPostageBatchesAsync();
+            
+            return new JsonResult(new PostageBatchStampListDto(postageBatches.Select(b =>
+                new PostageBatchDto(
+                    b.Amount,
+                    b.Id,
+                    b.Ttl,
+                    b.BlockNumber,
+                    PostageBatch.BucketDepth,
+                    b.Depth,
+                    b.Exists,
+                    b.IsImmutable,
+                    b.Label,
+                    b.IsUsable,
+                    b.Utilization))));
+        }
+
         public async Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId)
         {
             var postageBatch = await postageBatchService.TryGetPostageBatchDetailsAsync(batchId);

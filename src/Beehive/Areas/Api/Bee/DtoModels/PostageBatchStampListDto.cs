@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,17 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.DtoModels;
-using Etherna.BeeNet.Models;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public interface INodesControllerService_old
+    public sealed class PostageBatchStampListDto(IEnumerable<PostageBatchDto> postageBatches)
     {
-        Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash);
-        Task<bool> ForceFullStatusRefreshAsync(string id);
-        Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id);
-        Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash);
+        public IEnumerable<PostageBatchDto> Stamps { get; } = postageBatches;
     }
 }

@@ -34,6 +34,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ulong? gasLimit,
             XDaiBalance? gasPrice);
 
+        Task<IActionResult> GetOwnedPostageBatchesAsync();
+
         Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId);
         
         Task<IActionResult> GetPostageBatchBucketsAsync(PostageBatchId batchId);
