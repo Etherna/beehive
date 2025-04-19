@@ -17,6 +17,7 @@ using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -60,6 +61,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 postageBatch.Label,
                 postageBatch.IsUsable,
                 postageBatch.Utilization));
+        }
+
+        public async Task<IActionResult> GetPostageBatchBucketsAsync(PostageBatchId batchId)
+        {
+            var postageBatch = await postageBatchService.TryGetPostageBatchCacheAsync(batchId);
+            if (postageBatch is null)
+                return new NotFoundResult();
+            return new JsonResult(new PostageBatchBucketsDto(
+                postageBatch.Depth,
+                PostageBatch.BucketDepth,
+                postageBatch.Buckets.Select((c, i) => new PostageBatchBucketDto(i, c))));
         }
     }
 }

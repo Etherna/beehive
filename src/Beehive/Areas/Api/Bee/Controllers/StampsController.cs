@@ -44,6 +44,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             PostageBatchId batchId) =>
             service.GetPostageBatchAsync(batchId);
         
+        [HttpGet("{batchId}/buckets")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(PostageBatchBucketsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetPostageBatchBucketsAsync(
+            PostageBatchId batchId) =>
+            service.GetPostageBatchBucketsAsync(batchId);
+        
         // Post.
 
         /// <summary>

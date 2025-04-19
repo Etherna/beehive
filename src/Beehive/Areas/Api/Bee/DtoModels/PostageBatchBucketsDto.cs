@@ -12,24 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public interface IStampsControllerService
+    public sealed class PostageBatchBucketsDto(
+        int depth,
+        int bucketDepth,
+        IEnumerable<PostageBatchBucketDto> buckets)
     {
-        Task<IActionResult> BuyPostageBatchAsync(
-            BzzBalance amount,
-            int depth,
-            string? label,
-            bool immutable,
-            ulong? gasLimit,
-            XDaiBalance? gasPrice);
-
-        Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId);
-        
-        Task<IActionResult> GetPostageBatchBucketsAsync(PostageBatchId batchId);
+        public int Depth { get; } = depth;
+        public int BucketDepth { get; } = bucketDepth;
+        public uint BucketUpperBound { get; } = (uint)1 << (depth - bucketDepth);
+        public IEnumerable<PostageBatchBucketDto> Buckets { get; } = buckets;
     }
 }
