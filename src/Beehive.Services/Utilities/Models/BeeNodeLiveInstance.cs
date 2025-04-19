@@ -97,8 +97,12 @@ namespace Etherna.Beehive.Services.Utilities.Models
             }
         }
 
-        public Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount) =>
-            Client.TopUpPostageBatchAsync(batchId, amount);
+        public Task<EthTxHash> TopUpPostageBatchAsync(
+            PostageBatchId batchId,
+            BzzBalance amount,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice) =>
+            Client.TopUpPostageBatchAsync(batchId, amount, gasPrice, gasLimit);
 
         /// <summary>
         /// Try to refresh node live status

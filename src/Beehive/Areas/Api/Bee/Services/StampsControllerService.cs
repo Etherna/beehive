@@ -87,5 +87,19 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 PostageBatch.BucketDepth,
                 postageBatch.Buckets.Select((c, i) => new PostageBatchBucketDto(i, c))));
         }
+
+        public async Task<IActionResult> TopUpPostageBatchAsync(
+            PostageBatchId batchId,
+            BzzBalance amount,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice)
+        {
+            var txHash = await postageBatchService.TopUpPostageBatchAsync(batchId, amount, gasLimit, gasPrice);
+            
+            return new JsonResult(new PostageBatchIdWithTxHashDto(batchId, txHash))
+            {
+                StatusCode = StatusCodes.Status202Accepted
+            };
+        }
     }
 }

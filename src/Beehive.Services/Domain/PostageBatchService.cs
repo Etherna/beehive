@@ -160,6 +160,27 @@ namespace Etherna.Beehive.Services.Domain
                     new FindOneAndUpdateOptions<PostageBatchCache>());
         }
 
+        public async Task<EthTxHash> TopUpPostageBatchAsync(
+            PostageBatchId batchId,
+            BzzBalance amount,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice)
+        {
+            // Acquire lock on postage batch.
+            await using var batchLockHandler = await AcquireLockAsync(batchId, true);
+
+            // Top up on node.
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
+            
+            return await node.TopUpPostageBatchAsync(
+                batchId,
+                amount,
+                gasLimit,
+                gasPrice);
+        }
+
         public async Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
             PostageBatchId batchId,
             bool forceRefreshCache = false)

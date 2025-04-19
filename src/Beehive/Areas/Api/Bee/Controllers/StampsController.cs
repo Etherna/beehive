@@ -67,6 +67,20 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromHeader(Name = SwarmHttpConsts.GasLimitHeader)] ulong? gasLimit = null,
             [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiBalance? gasPrice = null) =>
             service.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
+
+        [HttpPatch("topup/{batchId}/{amount}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(PostageBatchIdWithTxHashDto), StatusCodes.Status202Accepted)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public Task<IActionResult> TopUpPostageBatchAsync(
+            PostageBatchId batchId,
+            BzzBalance amount,
+            [FromHeader(Name = SwarmHttpConsts.GasLimitHeader)] ulong? gasLimit = null,
+            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiBalance? gasPrice = null) =>
+            service.TopUpPostageBatchAsync(batchId, amount, gasLimit, gasPrice);
         
         // Post.
 

@@ -47,6 +47,12 @@ namespace Etherna.Beehive.Services.Domain
             HashSet<SwarmHash> stampedChunkHashesCache,
             IPostageStamper newPostageStamper);
         
+        Task<EthTxHash> TopUpPostageBatchAsync(
+            PostageBatchId batchId,
+            BzzBalance amount,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice);
+        
         public Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
             PostageBatchId batchId,
             bool forceRefreshCache = false);
