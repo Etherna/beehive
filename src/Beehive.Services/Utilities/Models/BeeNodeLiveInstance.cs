@@ -67,8 +67,12 @@ namespace Etherna.Beehive.Services.Utilities.Models
             return (batchId, txHash);
         }
 
-        public Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth) =>
-            Client.DilutePostageBatchAsync(batchId, depth);
+        public Task<EthTxHash> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice) =>
+            Client.DilutePostageBatchAsync(batchId, depth, gasPrice, gasLimit);
 
         public Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
             Client.GetPostageBatchAsync(batchId);

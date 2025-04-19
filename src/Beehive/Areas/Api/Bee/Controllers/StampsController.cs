@@ -53,6 +53,21 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             PostageBatchId batchId) =>
             service.GetPostageBatchBucketsAsync(batchId);
         
+        // Patch.
+
+        [HttpPatch("dilute/{batchId}/{depth}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(PostageBatchIdWithTxHashDto), StatusCodes.Status202Accepted)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public Task<IActionResult> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            [FromHeader(Name = SwarmHttpConsts.GasLimitHeader)] ulong? gasLimit = null,
+            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiBalance? gasPrice = null) =>
+            service.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
+        
         // Post.
 
         /// <summary>
@@ -66,7 +81,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         /// <param name="gasPrice">Ethereum tx gas price</param>
         [HttpPost("{amount}/{depth}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(BoughtPostageBatchDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(PostageBatchIdWithTxHashDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public Task<IActionResult> BuyPostageBatchAsync(

@@ -89,6 +89,33 @@ namespace Etherna.Beehive.Services.Domain
             return (batchId, txHash);
         }
 
+        public async Task<EthTxHash> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice)
+        {
+            // Acquire lock on postage batch.
+            await using var batchLockHandler = await AcquireLockAsync(batchId, true);
+            
+            // Try get cached postage batch.
+            var postageCache = await TryGetPostageBatchCacheAsync(batchId);
+            if (postageCache is null)
+                throw new KeyNotFoundException();
+            
+            // Dilute on node.
+            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            if (node == null)
+                throw new KeyNotFoundException();
+            var txHash = await node.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
+            
+            // Update cache.
+            postageCache.Depth = depth;
+            await dbContext.SaveChangesAsync();
+            
+            return txHash;
+        }
+
         public Task<bool> IsLockedAsync(PostageBatchId batchId) =>
             resourceLockService.IsLockedAsync(
                 dbContext.PostageBatchLocks,

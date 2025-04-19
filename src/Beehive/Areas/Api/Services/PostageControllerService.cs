@@ -32,16 +32,6 @@ namespace Etherna.Beehive.Areas.Api.Services
         }
 
         // Methods.
-        public async Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth)
-        {
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
-            if (node == null)
-                throw new KeyNotFoundException();
-
-            // Top up.
-            return await node.DilutePostageBatchAsync(batchId, depth);
-        }
-
         public async Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount)
         {
             var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);

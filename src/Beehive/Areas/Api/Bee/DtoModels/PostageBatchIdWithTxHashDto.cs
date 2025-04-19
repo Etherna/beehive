@@ -17,7 +17,7 @@ using System.Text.Json.Serialization;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public sealed class BoughtPostageBatchDto(PostageBatchId batchId, EthTxHash txHash)
+    public sealed class PostageBatchIdWithTxHashDto(PostageBatchId batchId, EthTxHash txHash)
     {
         [JsonPropertyName("batchID")]
         public PostageBatchId BatchId { get; } = batchId;

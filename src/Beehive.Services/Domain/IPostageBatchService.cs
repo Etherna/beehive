@@ -34,6 +34,12 @@ namespace Etherna.Beehive.Services.Domain
             ulong? gasLimit,
             XDaiBalance? gasPrice);
         
+        Task<EthTxHash> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice);
+        
         Task<bool> IsLockedAsync(PostageBatchId batchId);
 
         Task StoreStampedChunksAsync(

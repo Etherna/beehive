@@ -33,17 +33,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
     {
         // Patch.
 
-        [HttpPatch("batches/{id}/dilute/{depth}")]
-        [SimpleExceptionFilter]
-        [Produces("application/json")] //force because of https://github.com/RicoSuter/NSwag/issues/4132
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<string> DilutePostageBatchAsync(
-            [Required] string id,
-            [Required] int depth) =>
-            (await service.DilutePostageBatchAsync(id, depth)).ToString();
-
         [HttpPatch("batches/{id}/topup/{amount}")]
         [SimpleExceptionFilter]
         [Produces("application/json")] //force because of https://github.com/RicoSuter/NSwag/issues/4132

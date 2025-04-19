@@ -19,7 +19,6 @@ namespace Etherna.Beehive.Areas.Api.Services
 {
     public interface IPostageControllerService
     {
-        Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth);
         Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount);
     }
 }

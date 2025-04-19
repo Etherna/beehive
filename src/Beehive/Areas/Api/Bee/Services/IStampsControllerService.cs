@@ -27,6 +27,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             bool immutable,
             ulong? gasLimit,
             XDaiBalance? gasPrice);
+        
+        Task<IActionResult> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice);
 
         Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId);
         

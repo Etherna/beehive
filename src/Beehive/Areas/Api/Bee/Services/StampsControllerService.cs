@@ -38,9 +38,23 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var (batchId, txHash) = await postageBatchService.BuyPostageBatchAsync(
                 amount, depth, label, immutable, gasLimit, gasPrice);
 
-            return new JsonResult(new BoughtPostageBatchDto(batchId, txHash))
+            return new JsonResult(new PostageBatchIdWithTxHashDto(batchId, txHash))
             {
                 StatusCode = StatusCodes.Status201Created
+            };
+        }
+
+        public async Task<IActionResult> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice)
+        {
+            var txHash = await postageBatchService.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
+            
+            return new JsonResult(new PostageBatchIdWithTxHashDto(batchId, txHash))
+            {
+                StatusCode = StatusCodes.Status202Accepted
             };
         }
 

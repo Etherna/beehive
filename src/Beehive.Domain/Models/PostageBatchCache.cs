@@ -53,7 +53,7 @@ namespace Etherna.Beehive.Domain.Models
             get => _buckets;
             protected set => _buckets = value.ToArray();
         }
-        public virtual int Depth { get; protected set; }
+        public virtual int Depth { get; set; }
         public virtual bool IsImmutable { get; protected set; }
         public virtual string OwnerNodeId { get; protected set; }
     }
