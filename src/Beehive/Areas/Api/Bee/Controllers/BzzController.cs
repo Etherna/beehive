@@ -42,6 +42,16 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             //receive address as a raw string, we need to redirect in case it is only an <hash> without final '/'
             service.DownloadBzzAsync(address, HttpContext);
         
+        // Head.
+        
+        [HttpHead("{*address:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetBzzHeadersAsync(string address) =>
+            service.GetBzzHeadersAsync(address, HttpContext);
+        
         // Post.
         
         [HttpPost]

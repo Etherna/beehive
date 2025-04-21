@@ -70,8 +70,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     HeaderNames.AcceptRanges,
                     HeaderNames.ContentEncoding
                 ]));
-            response.Headers.ContentType = BeehiveHttpConsts.OctetStreamContentType;
-            response.Headers.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
+            response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
+            response.ContentType = BeehiveHttpConsts.OctetStreamContentType;
 
             return new OkResult();
         }

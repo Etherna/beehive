@@ -24,6 +24,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         Task<IActionResult> DownloadBzzAsync(
             string strAddress,
             HttpContext httpContext);
+        
+        Task<IActionResult> GetBzzHeadersAsync(
+            string strAddress,
+            HttpContext httpContext);
 
         Task<IActionResult> UploadBzzAsync(
             HttpRequest request,

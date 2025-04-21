@@ -50,94 +50,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         : IBzzControllerService
     {
         // Methods.
-        public async Task<IActionResult> DownloadBzzAsync(
-            string strAddress,
-            HttpContext httpContext)
-        {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
-            
-            // Normalize address and redirect to it:
-            // - append '/' if strAddress is only a hash, and a final slash is missing
-            var address = SwarmAddress.FromString(strAddress);
-            if (address.ToString() != strAddress)
-                return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
-            
-            // Decode manifest.
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
-            var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
-            
-            // Try to dereference feed manifest first.
-            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest);
-            if (feedManifest != null)
-            {
-                //dereference feed
-                var feedChunk = await feedManifest.TryFindFeedChunkAtAsync(
-                    DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                    null,
-                    chunkStore,
-                    new Hasher());
-                if (feedChunk == null)
-                    throw new KeyNotFoundException("Can't find feed updates");
+        public Task<IActionResult> DownloadBzzAsync(string strAddress, HttpContext httpContext) =>
+            ReplyToBzzReadAsync(strAddress, httpContext, false);
 
-                var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(false, new SwarmChunkBmt());
-                address = new SwarmAddress(wrappedChunk.Hash, address.Path);
-                manifest = new ReferencedMantarayManifest(chunkStore, wrappedChunk);
-                
-                //report feed index header
-                var feedIndex = feedChunk.Index;
-                var binaryFeedIndex = feedIndex.MarshalBinary();
-                httpContext.Response.Headers[SwarmHttpConsts.SwarmFeedIndexHeader] = binaryFeedIndex.ToArray().ToHex();
-                httpContext.Response.Headers.Append(
-                    CorsConstants.AccessControlExposeHeaders,
-                    SwarmHttpConsts.SwarmFeedIndexHeader);
-
-                //report no cache headers
-                httpContext.Response.Headers.SetNoCache();
-            }
-            
-            // Serve content or redirect if required.
-            try
-            {
-                // Get content chunk reference with metadata.
-                var resourceInfo = await manifest.GetResourceInfoAsync(
-                    address.Path,
-                    ManifestPathResolver.BrowserResolver);
-            
-                // Read metadata.
-                if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
-                    mimeType = FileContentTypeProvider.DefaultContentType;
-                if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
-                    filename = resourceInfo.Result.ChunkReference.Hash.ToString();
-            
-                // Set custom headers.
-                var contentDisposition = new ContentDisposition
-                {
-                    FileName = filename,
-                    Inline = true
-                };
-                httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
-                httpContext.Response.Headers.AccessControlExposeHeaders = HeaderNames.ContentDisposition;
-            
-                // Return content.
-                var chunkJoiner = new ChunkJoiner(chunkStore);
-                var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
-                    resourceInfo.Result.ChunkReference,
-                    null,
-                    CancellationToken.None).ConfigureAwait(false);
-
-                httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
-                return new FileStreamResult(dataStream, mimeType)
-                {
-                    EnableRangeProcessing = true
-                };
-            }
-            catch (ManifestExplicitRedirectException e)
-            {
-                // Permanent redirect.
-                var redirectAddress = new SwarmAddress(address.Hash, e.RedirectToPath);
-                return NewPermanentRedirectResult(redirectAddress, httpContext.Request.QueryString);
-            }
-        }
+        public Task<IActionResult> GetBzzHeadersAsync(string strAddress, HttpContext httpContext) =>
+            ReplyToBzzReadAsync(strAddress, httpContext, true);
 
         public async Task<IActionResult> UploadBzzAsync(
             HttpRequest request,
@@ -251,5 +168,111 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         // Helpers.
         private static RedirectResult NewPermanentRedirectResult(SwarmAddress address, QueryString queryString) =>
             new("/bzz/" + address + queryString, true, true);
+        
+        private async Task<IActionResult> ReplyToBzzReadAsync(
+            string strAddress,
+            HttpContext httpContext,
+            bool onlyHeaders)
+        {
+            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            
+            // Normalize address and redirect to it:
+            // - append '/' if strAddress is only a hash, and a final slash is missing
+            var address = SwarmAddress.FromString(strAddress);
+            if (address.ToString() != strAddress)
+                return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
+            
+            // Decode manifest.
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
+            
+            // Try to dereference feed manifest first.
+            var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest);
+            if (feedManifest != null)
+            {
+                //dereference feed
+                var feedChunk = await feedManifest.TryFindFeedChunkAtAsync(
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    null,
+                    chunkStore,
+                    new Hasher());
+                if (feedChunk == null)
+                    throw new KeyNotFoundException("Can't find feed updates");
+
+                var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(false, new SwarmChunkBmt());
+                address = new SwarmAddress(wrappedChunk.Hash, address.Path);
+                manifest = new ReferencedMantarayManifest(chunkStore, wrappedChunk);
+                
+                //report feed index header
+                var feedIndex = feedChunk.Index;
+                var binaryFeedIndex = feedIndex.MarshalBinary();
+                httpContext.Response.Headers[SwarmHttpConsts.SwarmFeedIndexHeader] = binaryFeedIndex.ToArray().ToHex();
+                httpContext.Response.Headers.Append(
+                    CorsConstants.AccessControlExposeHeaders,
+                    SwarmHttpConsts.SwarmFeedIndexHeader);
+
+                //report no cache headers
+                httpContext.Response.Headers.SetNoCache();
+            }
+            
+            // Serve content or redirect if required.
+            try
+            {
+                // Get content chunk reference with metadata.
+                var resourceInfo = await manifest.GetResourceInfoAsync(
+                    address.Path,
+                    ManifestPathResolver.BrowserResolver);
+            
+                // Read metadata.
+                if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
+                    mimeType = FileContentTypeProvider.DefaultContentType;
+                if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
+                    filename = resourceInfo.Result.ChunkReference.Hash.ToString();
+            
+                // Set custom headers.
+                var contentDisposition = new ContentDisposition
+                {
+                    FileName = filename,
+                    Inline = true
+                };
+                httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
+                httpContext.Response.Headers.AccessControlExposeHeaders = HeaderNames.ContentDisposition;
+            
+                // Return result.
+                //if only headers
+                if (onlyHeaders)
+                {
+                    if (resourceInfo.IsFromErrorDoc)
+                        return new NotFoundResult();
+                    
+                    var chunk = await chunkStore.GetAsync(resourceInfo.Result.ChunkReference.Hash);
+                    if (chunk is not SwarmCac cac) //bzz content can only be read from cac
+                        return new BadRequestResult();
+
+                    httpContext.Response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
+                    httpContext.Response.ContentType = mimeType;
+                    return new OkResult();
+                }
+
+                //if full content
+                var chunkJoiner = new ChunkJoiner(chunkStore);
+                var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
+                    resourceInfo.Result.ChunkReference,
+                    null,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
+                return new FileStreamResult(dataStream, mimeType)
+                {
+                    EnableRangeProcessing = true
+                };
+            }
+            catch (ManifestExplicitRedirectException e)
+            {
+                // Permanent redirect.
+                var redirectAddress = new SwarmAddress(address.Hash, e.RedirectToPath);
+                return NewPermanentRedirectResult(redirectAddress, httpContext.Request.QueryString);
+            }
+        }
     }
 }
