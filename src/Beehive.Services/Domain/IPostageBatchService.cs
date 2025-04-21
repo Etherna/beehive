@@ -40,6 +40,8 @@ namespace Etherna.Beehive.Services.Domain
             ulong? gasLimit,
             XDaiBalance? gasPrice);
         
+        Task<(PostageBatch PostageBatch, EthAddress Owner)[]> GetGlobalValidPostageBatchesAsync();
+        
         Task<IEnumerable<PostageBatch>> GetOwnedPostageBatchesAsync();
         
         Task<bool> IsLockedAsync(PostageBatchId batchId);

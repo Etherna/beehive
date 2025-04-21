@@ -117,6 +117,20 @@ namespace Etherna.Beehive.Services.Domain
             return txHash;
         }
 
+        public async Task<(PostageBatch PostageBatch, EthAddress Owner)[]> GetGlobalValidPostageBatchesAsync()
+        {
+            // Select node.
+            var beeNodeInstance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(
+                BeeNodeSelectionMode.RoundRobin,
+                "getGlobalPostageBatches");
+
+            if (beeNodeInstance is null)
+                throw new InvalidOperationException("No healthy nodes available for batch creation");
+
+            // Get globale batches from node.
+            return await beeNodeInstance.Client.GetGlobalValidPostageBatchesAsync();
+        }
+
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
         public async Task<IEnumerable<PostageBatch>> GetOwnedPostageBatchesAsync()

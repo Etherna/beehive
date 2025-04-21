@@ -84,19 +84,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
             return (buckets.Collisions, buckets.Depth);
         }
 
-        public async Task<bool> IsPinningResourceAsync(SwarmHash hash)
-        {
-            try
-            {
-                await Client.GetPinStatusAsync(hash);
-                return true;
-            }
-            catch (BeeNetApiException e) when (e.StatusCode == 404)
-            {
-                return false;
-            }
-        }
-
         public Task<EthTxHash> TopUpPostageBatchAsync(
             PostageBatchId batchId,
             BzzBalance amount,
