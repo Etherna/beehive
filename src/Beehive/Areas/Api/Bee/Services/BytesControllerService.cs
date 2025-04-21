@@ -20,8 +20,12 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -47,6 +51,29 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 recursiveEncryption));
 
             return new FileStreamResult(dataStream, BeehiveHttpConsts.OctetStreamContentType);
+        }
+
+        public async Task<IActionResult> GetBytesHeadersAsync(
+            SwarmHash hash,
+            HttpResponse response)
+        {
+            ArgumentNullException.ThrowIfNull(response, nameof(response));
+            
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            var chunk = await chunkStore.GetAsync(hash);
+            if (chunk is not SwarmCac cac) //bytes can only read from cac
+                return new BadRequestResult();
+
+            response.Headers.Append(
+                CorsConstants.AccessControlExposeHeaders, new StringValues(
+                [
+                    HeaderNames.AcceptRanges,
+                    HeaderNames.ContentEncoding
+                ]));
+            response.Headers.ContentType = BeehiveHttpConsts.OctetStreamContentType;
+            response.Headers.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
+
+            return new OkResult();
         }
 
         public async Task<IActionResult> UploadBytesAsync(

@@ -146,7 +146,6 @@ namespace Etherna.Beehive.Services.Utilities
 
         protected override async Task<SwarmChunk> LoadChunkAsync(
             SwarmHash hash,
-            SwarmChunkType? tryGetChunkType,
             CancellationToken cancellationToken = default)
         {
             // Try to find on buffer.
@@ -180,7 +179,7 @@ namespace Etherna.Beehive.Services.Utilities
             // If it's not found, search on a healthy bee node.
             var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
             var beeClientChunkStore = new BeeClientChunkStore(node.Client);
-            return await beeClientChunkStore.GetAsync(hash, tryGetChunkType, cancellationToken: cancellationToken);
+            return await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
         }
         
         protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)

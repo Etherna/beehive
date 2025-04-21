@@ -44,6 +44,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
             service.DownloadBytesAsync(hash, encryptionKey, recursiveEncryption);
         
+        // Head.
+        
+        [HttpHead("{*hash:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetBytesHeadersAsync(
+            SwarmHash hash) =>
+            service.GetBytesHeadersAsync(hash, HttpContext.Response);
+        
         // Post.
 
         [HttpPost]

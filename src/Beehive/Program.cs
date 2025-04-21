@@ -159,12 +159,10 @@ namespace Etherna.Beehive
             
             // Configure APIs.
             services.AddApiVersioning(options =>
-            {
-                options.AssumeDefaultVersionWhenUnspecified = true;
-                options.DefaultApiVersion = new ApiVersion(1);
-                options.ReportApiVersions = true;
-            });
-            services.AddApiVersioning()
+                {
+                    options.AssumeDefaultVersionWhenUnspecified = true;
+                    options.DefaultApiVersion = new ApiVersion(1);
+                })
                 .AddApiExplorer(options =>
                 {
                     // add the versioned api explorer, which also adds IApiVersionDescriptionProvider service

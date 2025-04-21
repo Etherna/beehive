@@ -47,8 +47,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Try find soc.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
             var chunk = await chunkStore.TryGetAsync(
-                SwarmSoc.BuildHash(identifier, owner, new Hasher()),
-                SwarmChunkType.Soc).ConfigureAwait(false);
+                SwarmSoc.BuildHash(identifier, owner, new Hasher())).ConfigureAwait(false);
 
             if (chunk is not SwarmSoc soc)
                 throw new InvalidOperationException("Chunk is not a single owner chunk");

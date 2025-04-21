@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using System.Threading.Tasks;
@@ -25,6 +26,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             SwarmHash hash,
             XorEncryptKey? encryptionKey,
             bool recursiveEncryption);
+
+        Task<IActionResult> GetBytesHeadersAsync(
+            SwarmHash hash,
+            HttpResponse response);
         
         Task<IActionResult> UploadBytesAsync(
             Stream dataStream,

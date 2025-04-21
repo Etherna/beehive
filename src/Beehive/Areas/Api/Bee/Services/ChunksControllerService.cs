@@ -110,7 +110,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 dbContext);
             try
             {
-                var chunk = await chunkStore.GetAsync(hash, null);
+                var chunk = await chunkStore.GetAsync(hash);
 
                 return Results.File(
                     chunk.GetFullPayloadToByteArray(),
