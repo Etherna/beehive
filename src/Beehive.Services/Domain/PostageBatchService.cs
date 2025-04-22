@@ -70,7 +70,7 @@ namespace Etherna.Beehive.Services.Domain
                 throw new InvalidOperationException("No healthy nodes available for batch creation");
 
             // Buy postage.
-            var (batchId, txHash) = await beeNodeInstance.BuyPostageBatchAsync(
+            var (batchId, txHash) = await beeNodeInstance.Client.BuyPostageBatchAsync(
                 amount,
                 depth,
                 label,
@@ -105,7 +105,7 @@ namespace Etherna.Beehive.Services.Domain
                 throw new KeyNotFoundException();
             
             // Dilute on node.
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            var node = await TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
             var txHash = await node.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
@@ -209,7 +209,7 @@ namespace Etherna.Beehive.Services.Domain
             await using var batchLockHandler = await AcquireLockAsync(batchId, true);
 
             // Top up on node.
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            var node = await TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
             
@@ -235,7 +235,7 @@ namespace Etherna.Beehive.Services.Domain
                     await dbContext.PostageBatchesCache.DeleteAsync(batchCache);
                 
                 // Get fresh value.
-                var nodeLiveInstance = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+                var nodeLiveInstance = await TryGetPostageBatchOwnerNodeAsync(batchId);
                 if (nodeLiveInstance == null) //postage doesn't exist
                     return null;
                 var postageInfo = await nodeLiveInstance.GetPostageBatchAsync(batchId);
@@ -256,11 +256,20 @@ namespace Etherna.Beehive.Services.Domain
 
         public async Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId)
         {
-            var nodeLiveInstance = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            var nodeLiveInstance = await TryGetPostageBatchOwnerNodeAsync(batchId);
             if (nodeLiveInstance == null) //if postage doesn't exist
                 return null;
             
             return await nodeLiveInstance.GetPostageBatchAsync(batchId);
+        }
+
+        public async Task<BeeNodeLiveInstance?> TryGetPostageBatchOwnerNodeAsync(PostageBatchId batchId)
+        {
+            var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
+            if (postageCache == null)
+                return null;
+
+            return beeNodeLiveManager.AllNodes.FirstOrDefault(n => n.Id == postageCache.OwnerNodeId);
         }
     }
 }

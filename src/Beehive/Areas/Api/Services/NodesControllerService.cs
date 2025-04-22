@@ -12,13 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Services
@@ -34,18 +30,6 @@ namespace Etherna.Beehive.Areas.Api.Services
 
             var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
             return await beeNodeInstance.Client.IsContentRetrievableAsync(hash);
-        }
-
-        public async Task<bool> ForceFullStatusRefreshAsync(string id)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            return await beeNodeInstance.TryRefreshStatusAsync(true);
-        }
-
-        public async Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(string id)
-        {
-            var beeNodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(id);
-            return new BeeNodeStatusDto(beeNodeInstance.Id, beeNodeInstance.Status);
         }
 
         public async Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash)

@@ -23,23 +23,14 @@ namespace Etherna.Beehive.Services.Utilities.Models
     {
         // Fields.
         private readonly List<string> _errors = new();
-        private readonly HashSet<PostageBatchId> _postageBatchesId = new();
 
         // Properties.
         public BeeNodeAddresses? Addresses { get; private set; }
         public IEnumerable<string> Errors => _errors;
         public DateTime HeartbeatTimeStamp { get; private set; }
         public bool IsAlive { get; private set; }
-        public IEnumerable<PostageBatchId> PostageBatchesId => _postageBatchesId;
-        public bool RequireFullRefresh { get; private set; } = true;
 
         // Internal methods.
-        internal void AddPostageBatchId(PostageBatchId batchId)
-        {
-            lock (_postageBatchesId)
-                _postageBatchesId.Add(batchId);
-        }
-
         internal void FailedHeartbeatAttempt(IEnumerable<string> errors, DateTime timestamp)
         {
             lock (_errors)
@@ -58,35 +49,14 @@ namespace Etherna.Beehive.Services.Utilities.Models
             Addresses = addresses;
         }
 
-        internal void SucceededHeartbeatAttempt(
-            IEnumerable<string> errors,
-            DateTime timestamp,
-            IEnumerable<PostageBatchId>? refreshedPostageBatchesId)
+        internal void SucceededHeartbeatAttempt(DateTime timestamp)
         {
             lock (_errors)
             {
                 _errors.Clear();
-                _errors.AddRange(errors);
             }
             HeartbeatTimeStamp = timestamp;
             IsAlive = true;
-
-            if (refreshedPostageBatchesId is not null)
-            {
-                lock (_postageBatchesId)
-                {
-                    /* Don't clear, because postage batches just created on node could not appear from the node query.
-                     * Because of this, if we created a new postage, and we try to refresh with only info coming from node,
-                     * the postage Id reference could be lost in status.
-                     * Adding instead never remove a postage batch id. This is fine, because an owned postage batch can't be removed
-                     * by node's logic. It only can expire, but this is not concern of this part of code. */
-                    foreach (var batchId in refreshedPostageBatchesId)
-                        _postageBatchesId.Add(batchId);
-                }
-            }
-
-            RequireFullRefresh &= errors.Any() ||
-                refreshedPostageBatchesId is null;
         }
     }
 }

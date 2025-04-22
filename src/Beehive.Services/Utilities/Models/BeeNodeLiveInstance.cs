@@ -45,28 +45,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
         public BeeNodeStatus Status { get; }
 
         // Public methods.
-        public async Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
-            BzzBalance amount,
-            int depth,
-            string? label,
-            bool immutable,
-            ulong? gasLimit,
-            XDaiBalance? gasPrice)
-        {
-            var (batchId, txHash) = await Client.BuyPostageBatchAsync(
-                amount,
-                depth,
-                label,
-                immutable,
-                gasLimit,
-                gasPrice);
-
-            //immediately add the batch to the node status
-            Status.AddPostageBatchId(batchId);
-
-            return (batchId, txHash);
-        }
-
         public Task<EthTxHash> DilutePostageBatchAsync(
             PostageBatchId batchId,
             int depth,
@@ -94,9 +72,8 @@ namespace Etherna.Beehive.Services.Utilities.Models
         /// <summary>
         /// Try to refresh node live status
         /// </summary>
-        /// <param name="forceFullRefresh">True if status have to be full checked</param>
         /// <returns>True if node was alive</returns>
-        public async Task<bool> TryRefreshStatusAsync(bool forceFullRefresh = false)
+        public async Task<bool> TryRefreshStatusAsync()
         {
             var heartbeatTimeStamp = DateTime.UtcNow;
 
@@ -135,14 +112,13 @@ namespace Etherna.Beehive.Services.Utilities.Models
                     heartbeatTimeStamp);
                 return false;
             }
-
-#pragma warning disable CA1031 // Do not catch general exception types
-
+            
             /***
              * If here, node is Alive
              ***/
 
             // Verify addresses initialization.
+#pragma warning disable CA1031 // Do not catch general exception types
             if (Status.Addresses is null)
             {
                 try
@@ -156,28 +132,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
                 }
                 catch { }
             }
-
-            // Full refresh if is required (or if is forced).
-            var errors = new List<string>();
-            IEnumerable<PostageBatchId>? refreshedPostageBatchesId = null;
-
-            if (Status.RequireFullRefresh || forceFullRefresh)
-            {
-                //postage batches
-                try
-                {
-                    var batches = await Client.GetOwnedPostageBatchesAsync();
-                    refreshedPostageBatchesId = batches.Select(b => b.Id);
-                }
-                catch { errors.Add("Can't read postage batches"); }
-            }
-
 #pragma warning restore CA1031 // Do not catch general exception types
 
-            Status.SucceededHeartbeatAttempt(
-                errors,
-                heartbeatTimeStamp,
-                refreshedPostageBatchesId);
+            Status.SucceededHeartbeatAttempt(heartbeatTimeStamp);
 
             return true;
         }

@@ -13,12 +13,10 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Asp.Versioning;
-using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.Services;
 using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -31,20 +29,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
         : ControllerBase
     {
         // Get.
-
-        /// <summary>
-        /// Get live status of a Bee node
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        /// <response code="200">Live status of the node</response>
-        [HttpGet("{id}/status")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<BeeNodeStatusDto> GetBeeNodeLiveStatusAsync(
-            [Required] string id) =>
-            service.GetBeeNodeLiveStatusAsync(id);
 
         /// <summary>
         /// Check if resource is available from a specific node
@@ -63,20 +47,6 @@ namespace Etherna.Beehive.Areas.Api.Controllers
             service.CheckResourceAvailabilityFromNodeAsync(id, hash);
 
         // Put.
-
-        /// <summary>
-        /// Force full status refresh on a Bee node
-        /// </summary>
-        /// <param name="id">Id of the bee node</param>
-        /// <response code="200">True if node was alive</response>
-        [HttpPut("{id}/status")]
-        [SimpleExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<bool> ForceFullStatusRefreshAsync(
-            [Required] string id) =>
-            service.ForceFullStatusRefreshAsync(id);
 
         /// <summary>
         /// Reupload resource to the network

@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Extensions;
-using Etherna.Beehive.Services.Utilities;
+using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
@@ -23,8 +23,8 @@ using Yarp.ReverseProxy.Forwarder;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class PssControllerService(
-        IBeeNodeLiveManager beeNodeLiveManager,
-        IHttpForwarder forwarder)
+        IHttpForwarder forwarder,
+        IPostageBatchService postageBatchService)
         : IPssControllerService
     {
         public async Task<IResult> SendPssMessageAsync(
@@ -34,7 +34,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             HttpContext httpContext)
         {
             // Select node and forward request.
-            var node = beeNodeLiveManager.TryGetPostageBatchOwnerNode(batchId);
+            var node = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
             return await node.ForwardRequestAsync(forwarder, httpContext);

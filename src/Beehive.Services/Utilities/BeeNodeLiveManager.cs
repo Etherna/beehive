@@ -90,9 +90,6 @@ namespace Etherna.Beehive.Services.Utilities
         public bool RemoveBeeNode(string nodeId) =>
             beeNodeInstances.TryRemove(nodeId, out _);
 
-        public Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmAddress address) =>
-            SelectDownloadNodeAsync(address.Hash);
-
         public Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmHash hash) =>
             SelectHealthyNodeAsync();
 
@@ -111,9 +108,6 @@ namespace Etherna.Beehive.Services.Utilities
 
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
-
-        public BeeNodeLiveInstance? TryGetPostageBatchOwnerNode(PostageBatchId batchId) =>
-            AllNodes.FirstOrDefault(n => n.Status.PostageBatchesId.Contains(batchId));
 
         public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,

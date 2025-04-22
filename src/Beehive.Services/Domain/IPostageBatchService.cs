@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using System.Collections.Generic;
@@ -62,5 +63,7 @@ namespace Etherna.Beehive.Services.Domain
             bool forceRefreshCache = false);
 
         Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
+
+        Task<BeeNodeLiveInstance?> TryGetPostageBatchOwnerNodeAsync(PostageBatchId batchId);
     }
 }
