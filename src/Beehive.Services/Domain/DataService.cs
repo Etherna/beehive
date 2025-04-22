@@ -62,7 +62,7 @@ namespace Etherna.Beehive.Services.Domain
                     new StampStoreItem(
                         batchId,
                         stamp.ChunkHash,
-                        new StampBucketIndex(
+                        new PostageBucketIndex(
                             stamp.BucketId,
                             stamp.BucketCounter))));
             var postageStamper = new PostageStamper(

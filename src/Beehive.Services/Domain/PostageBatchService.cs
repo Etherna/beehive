@@ -174,8 +174,8 @@ namespace Etherna.Beehive.Services.Domain
                 .Select(s => new PostageStamp(
                     postageBatchCache.BatchId,
                     s.ChunkHash,
-                    s.StampBucketIndex.BucketId,
-                    s.StampBucketIndex.BucketCounter))
+                    s.BucketIndex.BucketId,
+                    s.BucketIndex.BucketCounter))
                 .ToArray();
             if (newPostageStamps.Length != 0)
                 await dbContext.PostageStamps.CreateAsync(newPostageStamps);
