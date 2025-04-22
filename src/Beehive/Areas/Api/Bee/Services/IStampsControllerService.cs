@@ -39,6 +39,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId);
         
         Task<IActionResult> GetPostageBatchBucketsAsync(PostageBatchId batchId);
+
+        Task<IActionResult> GetPostagesStampsByBatchIdAsync(PostageBatchId batchId);
         
         Task<IActionResult> TopUpPostageBatchAsync(
             PostageBatchId batchId,

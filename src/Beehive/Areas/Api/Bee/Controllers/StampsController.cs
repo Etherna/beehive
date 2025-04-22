@@ -18,6 +18,7 @@ using Etherna.Beehive.Attributes;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
@@ -61,6 +62,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         public Task<IActionResult> GetPostageBatchBucketsAsync(
             PostageBatchId batchId) =>
             service.GetPostageBatchBucketsAsync(batchId);
+        
+        [HttpGet("~/ev1/stamps/{batchId}/stamps")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(IEnumerable<PostageStampWithoutBatchIdDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public Task<IActionResult> GetPostagesStampsByBatchIdAsync(
+            PostageBatchId batchId) =>
+            service.GetPostagesStampsByBatchIdAsync(batchId);
         
         // Patch.
 

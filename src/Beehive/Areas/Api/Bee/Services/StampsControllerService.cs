@@ -13,8 +13,10 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
+using Etherna.MongoDB.Driver.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
@@ -23,6 +25,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class StampsControllerService(
+        IBeehiveDbContext dbContext,
         IPostageBatchService postageBatchService)
         : IStampsControllerService
     {
@@ -105,6 +108,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 postageBatch.Depth,
                 PostageBatch.BucketDepth,
                 postageBatch.Buckets.Select((c, i) => new PostageBatchBucketDto(i, c))));
+        }
+
+        public async Task<IActionResult> GetPostagesStampsByBatchIdAsync(PostageBatchId batchId)
+        {
+            var postageStamps = await dbContext.PostageStamps.QueryElementsAsync(elements =>
+                elements.Where(s => s.BatchId == batchId)
+                    .ToListAsync());
+            return new JsonResult(postageStamps.Select(s => new PostageStampWithoutBatchIdDto(
+                new PostageBucketIndexDto(s.BucketId, s.BucketCounter),
+                s.CreationDateTime,
+                s.Signature)));
         }
 
         public async Task<IActionResult> TopUpPostageBatchAsync(
