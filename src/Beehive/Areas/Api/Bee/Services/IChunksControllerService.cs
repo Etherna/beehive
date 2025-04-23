@@ -15,6 +15,7 @@
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -39,6 +40,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         Task<IActionResult> UploadChunkAsync(
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            HttpContext httpContext);
+            Stream bodyStream);
     }
 }

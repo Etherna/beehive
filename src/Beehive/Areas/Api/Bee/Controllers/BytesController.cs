@@ -20,6 +20,7 @@ using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
@@ -62,10 +63,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadBytesAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent) =>
-            service.UploadBytesAsync(HttpContext.Request.Body, batchId, compactLevel, pinContent);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
+            [FromBody, Required] Stream bodyStream) =>
+            service.UploadBytesAsync(bodyStream, batchId, compactLevel, pinContent);
     }
 }

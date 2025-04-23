@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
@@ -52,10 +53,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmCac.SpanDataSize)]
+        [Consumes("application/octet-stream")]
         public Task<IActionResult> UploadChunkAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp) =>
-            service.UploadChunkAsync(batchId, postageStamp, HttpContext);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
+            [FromBody, Required] Stream bodyStream) =>
+            service.UploadChunkAsync(batchId, postageStamp, bodyStream);
 
         [Obsolete("Used with BeeTurbo")]
         [HttpPost("~/chunks/bulk-upload")]

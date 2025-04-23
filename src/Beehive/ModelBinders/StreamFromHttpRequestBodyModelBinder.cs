@@ -12,15 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System;
+using System.Threading.Tasks;
+
+namespace Etherna.Beehive.ModelBinders
 {
-    public static class BeehiveHttpConsts
+    public class StreamFromHttpRequestBodyModelBinder : IModelBinder
     {
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string OctetStreamContentType = "application/octet-stream";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
-        public const string SwarmEncryptionKeyQuery = "swarmEncKey";
-        public const string SwarmRecursiveEncryptionQuery = "swarmRecEnc";
-        public const string TarContentType = "application/x-tar";
+        public Task BindModelAsync(ModelBindingContext bindingContext)
+        {
+            ArgumentNullException.ThrowIfNull(bindingContext, nameof(bindingContext));
+
+            bindingContext.Result = ModelBindingResult.Success(bindingContext.HttpContext.Request.Body);
+            return Task.CompletedTask;
+        }
     }
 }

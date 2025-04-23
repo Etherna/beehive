@@ -132,15 +132,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public async Task<IActionResult> UploadChunkAsync(
             PostageBatchId? batchId,
             PostageStamp? postageStamp,
-            HttpContext httpContext)
+            Stream bodyStream)
         {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            ArgumentNullException.ThrowIfNull(bodyStream, nameof(bodyStream));
             
             // Read payload.
             byte[] payload;
             await using (var memoryStream = new MemoryStream())
             {
-                await httpContext.Request.Body.CopyToAsync(memoryStream);
+                await bodyStream.CopyToAsync(memoryStream);
                 payload = memoryStream.ToArray();
             }
             

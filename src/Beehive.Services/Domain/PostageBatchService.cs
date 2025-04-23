@@ -125,7 +125,7 @@ namespace Etherna.Beehive.Services.Domain
                 "getGlobalPostageBatches");
 
             if (beeNodeInstance is null)
-                throw new InvalidOperationException("No healthy nodes available for batch creation");
+                throw new InvalidOperationException("No healthy nodes available for batch read");
 
             // Get globale batches from node.
             return await beeNodeInstance.Client.GetGlobalValidPostageBatchesAsync();
