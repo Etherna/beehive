@@ -18,6 +18,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
+using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
@@ -36,6 +37,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class ChunksControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
+        IDataService dataService,
         IBeehiveDbContext dbContext,
         IHttpForwarder forwarder,
         IHttpContextAccessor httpContextAccessor)
@@ -130,48 +132,56 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         }
 
         public async Task<IActionResult> UploadChunkAsync(
+            Stream dataStream,
             PostageBatchId? batchId,
-            PostageStamp? postageStamp,
-            Stream bodyStream)
+            PostageStamp? postageStamp)
         {
-            ArgumentNullException.ThrowIfNull(bodyStream, nameof(bodyStream));
+            ArgumentNullException.ThrowIfNull(dataStream, nameof(dataStream));
             
             // Read payload.
             byte[] payload;
             await using (var memoryStream = new MemoryStream())
             {
-                await bodyStream.CopyToAsync(memoryStream);
+                await dataStream.CopyToAsync(memoryStream);
                 payload = memoryStream.ToArray();
             }
             
-            // Try consume data from request.
-            try
-            {
-                var hasher = new Hasher();
-                
-                //read and store chunk payload
-                var chunkBmt = new SwarmChunkBmt(hasher);
-                var hash = chunkBmt.Hash(
-                    payload[..SwarmCac.SpanSize].ToArray(),
-                    payload[SwarmCac.SpanSize..].ToArray());
-                var chunkRef = new UploadedChunkRef(hash, batchId!.Value);
-
-                var chunk = new Chunk(hash, payload, false);
-                
-                // Push data to db.
-                await dbContext.Chunks.CreateAsync(chunk);
-                await dbContext.ChunkPushQueue.CreateAsync(chunkRef);
-
-                // Reply.
-                return new JsonResult(new ChunkReferenceDto(hash, null, false))
+            // Hash Content Addressed Chunk.
+            var chunkBmt = new SwarmChunkBmt();
+            var hash = chunkBmt.Hash(
+                payload[..SwarmCac.SpanSize].ToArray(),
+                payload[SwarmCac.SpanSize..].ToArray());
+            var chunk = new SwarmCac(hash, payload);
+            
+            // Recover batch owner, if required.
+            EthAddress? owner = null;
+            if (postageStamp != null)
+                owner = postageStamp.RecoverBatchOwner(hash, chunkBmt.Hasher);
+            
+            // Store chunk.
+            var hashingResult = await dataService.UploadAsync(
+                batchId ?? postageStamp?.BatchId ?? throw new InvalidOperationException(),
+                owner,
+                false,
+                false,
+                async (chunkStore, postageStamper) =>
                 {
-                    StatusCode = StatusCodes.Status201Created
-                };
-            }
-            catch(InvalidDataException)
+                    postageStamper.Stamp(hash);
+                    await chunkStore.AddAsync(chunk).ConfigureAwait(false);
+
+                    return new SwarmChunkReference(hash, null, false);
+                },
+                postageStamp is null
+                    ? null
+                    : new Dictionary<SwarmHash, PostageStamp>
+                    {
+                        [hash] = postageStamp
+                    });
+            
+            return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
             {
-                return new BadRequestResult();
-            }
+                StatusCode = StatusCodes.Status201Created
+            };
         }
 
         // Helpers.
