@@ -123,7 +123,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
             {
                 try
                 {
-                    var response = await Client.GetAddressesAsync();
+                    var response = await Client.GetNodeAddressesAsync();
                     Status.InitializeAddresses(new BeeNodeAddresses(
                         response.Ethereum,
                         response.Overlay,

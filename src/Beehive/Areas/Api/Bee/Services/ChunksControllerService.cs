@@ -15,12 +15,10 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
-using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -45,61 +43,66 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        public async Task BulkUploadChunksAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext)
+        public async Task<IActionResult> BulkUploadChunksAsync(
+            Stream dataStream,
+            PostageBatchId batchId)
         {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            ArgumentNullException.ThrowIfNull(dataStream, nameof(dataStream));
             
             // Read payload.
-            await using var memoryStream = new MemoryStream();
-            await httpContext.Request.Body.CopyToAsync(memoryStream);
-            var payload = memoryStream.ToArray();
+            byte[] payload;
+            await using (var memoryStream = new MemoryStream())
+            {
+                await dataStream.CopyToAsync(memoryStream);
+                payload = memoryStream.ToArray();
+            }
             
-            // Try consume data from request.
-            try
+            // Try to consume data from request.
+            var chunkBmt = new SwarmChunkBmt();
+            List<SwarmCac> chunks = [];
+            for (int i = 0; i < payload.Length;)
             {
-                var hasher = new Hasher();
-                List<Chunk> chunks = [];
-                List<UploadedChunkRef> chunkRefs = [];
-                for (int i = 0; i < payload.Length;)
-                {
-                    //read chunk size
-                    var chunkSize = ReadUshort(payload.AsSpan()[i..(i + sizeof(ushort))]);
-                    i += sizeof(ushort);
-                    if (chunkSize > SwarmCac.SpanDataSize)
-                        throw new InvalidOperationException();
+                //read chunk size
+                var chunkSize = ReadUshort(payload.AsSpan()[i..(i + sizeof(ushort))]);
+                i += sizeof(ushort);
+                if (chunkSize > SwarmCac.SpanDataSize)
+                    throw new InvalidOperationException("Invalid chunk size");
 
-                    //read and store chunk payload
-                    var chunkPayload = payload[i..(i + chunkSize)];
-                    i += chunkSize;
-                    var chunkBmt = new SwarmChunkBmt(hasher);
-                    var hash = chunkBmt.Hash(
-                        chunkPayload[..SwarmCac.SpanSize].ToArray(),
-                        chunkPayload[SwarmCac.SpanSize..].ToArray());
-                    var chunkRef = new UploadedChunkRef(hash, batchId);
-
-                    //read check hash
-                    var checkHash = ReadSwarmHash(payload.AsSpan()[i..(i + SwarmHash.HashSize)]);
-                    i += SwarmHash.HashSize;
-                    if (checkHash != hash)
-                        throw new InvalidDataException("Invalid hash with provided data");
-
-                    chunks.Add(new Chunk(hash, chunkPayload, false));
-                    chunkRefs.Add(chunkRef);
-                }
+                //read and hash chunk payload
+                var chunkPayload = payload[i..(i + chunkSize)];
+                i += chunkSize;
                 
-                // Push data to db.
-                await dbContext.Chunks.CreateAsync(chunks);
-                await dbContext.ChunkPushQueue.CreateAsync(chunkRefs);
+                var hash = chunkBmt.Hash(chunkPayload);
+                chunkBmt.Clear();
+                var chunk = new SwarmCac(hash, chunkPayload);
+                chunks.Add(chunk);
+                
+                //verify hash
+                var checkHash = ReadSwarmHash(payload.AsSpan()[i..(i + SwarmHash.HashSize)]);
+                i += SwarmHash.HashSize;
+                if (checkHash != hash)
+                    throw new InvalidDataException("Invalid hash with provided data");
+            }
+            
+            // Store chunk.
+            await dataService.UploadAsync(
+                batchId,
+                null,
+                false,
+                false,
+                async (chunkStore, postageStamper) =>
+                {
+                    foreach (var chunk in chunks)
+                    {
+                        postageStamper.Stamp(chunk.Hash);
+                        await chunkStore.AddAsync(chunk);
+                    }
 
-                // Reply.
-                httpContext.Response.StatusCode =  StatusCodes.Status201Created;
-            }
-            catch(InvalidDataException)
-            {
-                httpContext.Response.StatusCode =  StatusCodes.Status400BadRequest;
-            }
+                    return new SwarmChunkReference(SwarmHash.Zero, null, false);
+                });
+
+            // Reply.
+            return new CreatedResult();
         }
 
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
@@ -167,7 +170,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 async (chunkStore, postageStamper) =>
                 {
                     postageStamper.Stamp(hash);
-                    await chunkStore.AddAsync(chunk).ConfigureAwait(false);
+                    await chunkStore.AddAsync(chunk);
 
                     return new SwarmChunkReference(hash, null, false);
                 },

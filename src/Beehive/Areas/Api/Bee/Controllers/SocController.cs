@@ -63,14 +63,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
-            [FromBody, Required] Stream bodyStream) =>
+            [FromBody, Required] Stream dataStream) =>
             service.UploadSocAsync(
                 owner,
                 id,
                 signature,
                 batchId,
                 postageStamp,
-                bodyStream,
+                dataStream,
                 pinContent);
     }
 }

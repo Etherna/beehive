@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Etherna.Beehive.Attributes
 {
@@ -38,6 +39,7 @@ namespace Etherna.Beehive.Attributes
                 // Error code 400.
                 ArgumentException _ or
                     FormatException _ or
+                    InvalidDataException _ or
                     InvalidOperationException _ or
                     MongodmInvalidEntityTypeException _ =>
                     new JsonResult(new BeeErrorDto(400, context.Exception.Message)) { StatusCode = 400 },

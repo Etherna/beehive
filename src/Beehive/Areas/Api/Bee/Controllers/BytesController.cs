@@ -68,7 +68,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
-            [FromBody, Required] Stream bodyStream) =>
-            service.UploadBytesAsync(bodyStream, batchId, compactLevel, pinContent);
+            [FromBody, Required] Stream dataStream) =>
+            service.UploadBytesAsync(dataStream, batchId, compactLevel, pinContent);
     }
 }
