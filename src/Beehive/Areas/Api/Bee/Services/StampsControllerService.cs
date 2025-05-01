@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +24,7 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class StampsControllerService(
+        IBeehiveDbContext dbContext,
         IPostageBatchService postageBatchService)
         : IStampsControllerService
     {
@@ -98,7 +100,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         public async Task<IActionResult> GetPostageBatchBucketsAsync(PostageBatchId batchId)
         {
-            var postageBatch = await postageBatchService.TryGetPostageBatchCacheAsync(batchId);
+            var postageBatch = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             if (postageBatch is null)
                 return new NotFoundResult();
             return new JsonResult(new PostageBatchBucketsDto(

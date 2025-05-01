@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
-    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.0-alpha.227" />
+    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.0-alpha.236" />
     <PackageReference Include="EthernaACR" Version="0.4.0-alpha.62" />
     <PackageReference Include="GitVersion.MsBuild" Version="6.2.0">
       <PrivateAssets>all</PrivateAssets>

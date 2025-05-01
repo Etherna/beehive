@@ -57,10 +57,6 @@ namespace Etherna.Beehive.Services.Domain
             BzzBalance amount,
             ulong? gasLimit,
             XDaiBalance? gasPrice);
-        
-        public Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
-            PostageBatchId batchId,
-            bool forceRefreshCache = false);
 
         Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
 
