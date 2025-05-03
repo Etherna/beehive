@@ -24,6 +24,7 @@ using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Manifest;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -46,7 +47,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IChunkService beeNetChunkService,
         IDataService dataService,
         IBeehiveDbContext dbContext,
-        IFeedService feedService)
+        IFeedService feedService,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IBzzControllerService
     {
         // Methods.
@@ -183,7 +185,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
             
             // Decode manifest.
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
             
             // Try to dereference feed manifest first.
@@ -255,11 +257,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 }
 
                 //if full content
-                var chunkJoiner = new ChunkJoiner(chunkStore);
-                var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(
-                    resourceInfo.Result.ChunkReference,
-                    null,
-                    CancellationToken.None).ConfigureAwait(false);
+                var dataStream = await ChunkDataStream.BuildNewAsync(resourceInfo.Result.ChunkReference, chunkStore);
 
                 httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
                 return new FileStreamResult(dataStream, mimeType)

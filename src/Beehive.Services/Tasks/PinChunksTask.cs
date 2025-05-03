@@ -16,6 +16,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Hangfire.Server;
 using System;
 using System.Threading.Tasks;
@@ -25,7 +26,8 @@ namespace Etherna.Beehive.Services.Tasks
     public class PinChunksTask(
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkPinService chunkPinService,
-        IBeehiveDbContext dbContext)
+        IBeehiveDbContext dbContext,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IPinChunksTask
     {
         // Methods.
@@ -42,7 +44,7 @@ namespace Etherna.Beehive.Services.Tasks
             if (pin.IsSucceeded)
                 return;
 
-            using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var chunkTraverser = new ChunkTraverser(chunkStore);
 
             await chunkTraverser.TraverseFromMantarayManifestRootAsync(

@@ -20,6 +20,7 @@ using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Extensions;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Hangfire;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +32,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBackgroundJobClient backgroundJobClient,
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkPinService chunkPinService,
-        IBeehiveDbContext dbContext)
+        IBeehiveDbContext dbContext,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IPinsControllerService
     {
         public Task CreatePinBeeAsync(string hash) =>
@@ -93,7 +95,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 var task = new PinChunksTask(
                     beeNodeLiveManager,
                     chunkPinService,
-                    dbContext);
+                    dbContext,
+                    serializerModifierAccessor);
                 await task.RunAsync(pin.Id, null!);
             }
         }

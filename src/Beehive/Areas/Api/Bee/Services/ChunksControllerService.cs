@@ -20,6 +20,7 @@ using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -38,7 +39,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IDataService dataService,
         IBeehiveDbContext dbContext,
         IHttpForwarder forwarder,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IChunksControllerService
     {
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
@@ -112,7 +114,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Try to get from chunk's db.
             using var chunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
-                dbContext);
+                dbContext,
+                serializerModifierAccessor);
             try
             {
                 var chunk = await chunkStore.GetAsync(hash);

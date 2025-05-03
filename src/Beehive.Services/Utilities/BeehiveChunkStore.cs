@@ -17,6 +17,7 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
 using Etherna.MongoDB.Driver.GridFS;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Etherna.MongODM.Core.Utility;
 using System;
 using System.Collections.Concurrent;
@@ -31,6 +32,7 @@ namespace Etherna.Beehive.Services.Utilities
     public sealed class BeehiveChunkStore(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
+        ISerializerModifierAccessor serializerModifierAccessor,
         int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
         Action<Chunk>? onSavingChunk = null)
         : ChunkStoreBase, IAsyncDisposable, IDisposable
@@ -157,7 +159,8 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // Try load from db.
-            using(var _ = new DbExecutionContextHandler(dbContext))
+            using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
+            using(var __ = new DbExecutionContextHandler(dbContext))
             {
                 //try to find on repository
                 var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
