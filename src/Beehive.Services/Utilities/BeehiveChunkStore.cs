@@ -14,13 +14,16 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Etherna.MongODM.Core.Utility;
+using MongoDB.Driver.Linq;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -122,10 +125,10 @@ namespace Etherna.Beehive.Services.Utilities
         {
             using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
 
-            // Try remove from buffer.
+            // Try to remove from buffer.
             var found = chunkSavingBuffer.TryRemove(hash, out _);
             
-            // Try remove from repository.
+            // Try to remove from repository.
             var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
             if (chunk is not null)
             {
@@ -133,7 +136,7 @@ namespace Etherna.Beehive.Services.Utilities
                 await dbContext.Chunks.DeleteAsync(chunk);
             }
             
-            // Try remove from old gridfs.
+            // Try to remove from old gridfs.
             try
             {
                 await using var downStream = await dbContext.ChunksBucket.OpenDownloadStreamByNameAsync(hash.ToString());
@@ -158,7 +161,7 @@ namespace Etherna.Beehive.Services.Utilities
                     new SwarmCac(hash, chunk.Payload);
             }
             
-            // Try load from db.
+            // Try to load from db.
             using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
             using(var __ = new DbExecutionContextHandler(dbContext))
             {
@@ -184,7 +187,80 @@ namespace Etherna.Beehive.Services.Utilities
             var beeClientChunkStore = new BeeClientChunkStore(node.Client);
             return await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
         }
-        
+
+        protected override async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk>> LoadChunksAsync(
+            IEnumerable<SwarmHash> hashes,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(hashes, nameof(hashes));
+            
+            var missingHashes = new HashSet<SwarmHash>();
+            var results = new Dictionary<SwarmHash, SwarmChunk>();
+            
+            // Try to find on buffer.
+            foreach (var hash in hashes)
+            {
+                if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
+                {
+                    results.Add(hash, chunk.IsSoc ?
+                        SwarmSoc.BuildFromBytes(hash, chunk.Payload, new SwarmChunkBmt()) :
+                        new SwarmCac(hash, chunk.Payload));
+                }
+                else
+                {
+                    missingHashes.Add(hash);
+                }
+            }
+            if (missingHashes.Count == 0)
+                return results;
+            
+            // Try to load from db.
+            using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
+            using(var __ = new DbExecutionContextHandler(dbContext))
+            {
+                //try to find on repository
+                var chunkModels = await dbContext.Chunks.QueryElementsAsync(chunks =>
+                    chunks.Where(c => missingHashes.Contains(c.Hash))
+                        .ToListAsync(cancellationToken));
+
+                foreach (var chunkModel in chunkModels)
+                {
+                    results.Add(chunkModel.Hash, chunkModel.IsSoc ?
+                        SwarmSoc.BuildFromBytes(chunkModel.Hash, chunkModel.Payload, new SwarmChunkBmt()) :
+                        new SwarmCac(chunkModel.Hash, chunkModel.Payload));
+                    missingHashes.Remove(chunkModel.Hash);
+                }
+                
+                //fallback on old gridfs
+                foreach (var hash in missingHashes)
+                {
+                    try
+                    {
+                        var spanData = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(),
+                            cancellationToken: cancellationToken);
+                        
+                        results.Add(hash, new SwarmCac(hash, spanData));
+                        missingHashes.Remove(hash);
+                    }
+                    catch (GridFSFileNotFoundException) { }
+                }
+            }
+            
+            // If it's not found, search on a healthy bee node.
+            foreach (var hash in missingHashes)
+            {
+                try
+                {
+                    var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+                    var beeClientChunkStore = new BeeClientChunkStore(node.Client);
+                    results.Add(hash, await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken));
+                }
+                catch (BeeNetApiException) { }
+            }
+            
+            return results;
+        }
+
         protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)
         {
             ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
