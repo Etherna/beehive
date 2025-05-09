@@ -15,8 +15,6 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
-using Etherna.Beehive.Extensions;
-using Etherna.Beehive.HttpTransformers;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Models;
@@ -29,7 +27,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 using PostageStamp = Etherna.BeeNet.Models.PostageStamp;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -38,8 +35,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBeeNodeLiveManager beeNodeLiveManager,
         IDataService dataService,
         IBeehiveDbContext dbContext,
-        IHttpForwarder forwarder,
-        IHttpContextAccessor httpContextAccessor,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IChunksControllerService
     {
@@ -112,7 +107,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
         {
             // Try to get from chunk's db.
-            using var chunkStore = new BeehiveChunkStore(
+            await using var chunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
                 serializerModifierAccessor);
@@ -131,10 +126,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
             // Select node and forward request.
             var node = await beeNodeLiveManager.SelectDownloadNodeAsync(hash);
-            return await node.ForwardRequestAsync(
-                forwarder,
-                httpContextAccessor.HttpContext!,
-                new DownloadHttpTransformer());
+            // return await node.ForwardRequestAsync(
+            //     forwarder,
+            //     httpContextAccessor.HttpContext!,
+            //     new DownloadHttpTransformer());
+
+            throw new NotImplementedException();
         }
 
         public async Task<IActionResult> UploadChunkAsync(

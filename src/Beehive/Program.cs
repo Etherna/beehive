@@ -173,9 +173,6 @@ namespace Etherna.Beehive
                     // can also be used to control the format of the API version in route templates
                     options.SubstituteApiVersionInUrl = true;
                 });
-            
-            // Configure reverse proxy.
-            services.AddHttpForwarder();
 
             // Configure Hangfire server.
             if (!env.IsStaging()) //don't start server in staging

@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
-    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.0-alpha.243" />
+    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.0-alpha.252" />
     <PackageReference Include="EthernaACR" Version="0.4.0-alpha.62" />
     <PackageReference Include="GitVersion.MsBuild" Version="6.3.0">
       <PrivateAssets>all</PrivateAssets>
@@ -31,7 +31,6 @@
     <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
-    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>

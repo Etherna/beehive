@@ -12,18 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Yarp.ReverseProxy.Forwarder;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public class TagsControllerService(
-        IHttpForwarder forwarder,
         IPostageBatchService postageBatchService)
         : ITagsControllerService
     {
@@ -35,7 +33,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var node = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            // return await node.ForwardRequestAsync(forwarder, httpContext);
+
+            throw new NotImplementedException();
         }
 
         public async Task<IResult> DeleteTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
@@ -44,7 +44,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var node = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            // return await node.ForwardRequestAsync(forwarder, httpContext);
+
+            throw new NotImplementedException();
         }
 
         public async Task<IResult> GetTagAsync(
@@ -56,7 +58,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var node = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            // return await node.ForwardRequestAsync(forwarder, httpContext);
+
+            throw new NotImplementedException();
         }
 
         public async Task<IResult> UpdateTagAsync(TagId tagId, PostageBatchId batchId, HttpContext httpContext)
@@ -65,7 +69,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             var node = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(batchId);
             if (node == null)
                 throw new KeyNotFoundException();
-            return await node.ForwardRequestAsync(forwarder, httpContext);
+            // return await node.ForwardRequestAsync(forwarder, httpContext);
+
+            throw new NotImplementedException();
         }
     }
 }

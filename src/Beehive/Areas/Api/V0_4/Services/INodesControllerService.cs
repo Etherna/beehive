@@ -23,7 +23,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
     {
         Task AddBeeNodeAsync(BeeNodeInput nodeInput);
         Task<BeeNodeDto> FindByIdAsync(string id);
-        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take);
+        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync();
         Task RemoveBeeNodeAsync(string id);
         Task UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
     }
