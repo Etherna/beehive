@@ -59,7 +59,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
-        [ConsumesUnrestricted("application/octet-stream", "application/x-tar", "multipart/form-data")]
+        [ConsumesUnrestricted(
+            BeehiveHttpConsts.ApplicationOctetStreamContentType,
+            BeehiveHttpConsts.ApplicationTarContentType,
+            BeehiveHttpConsts.MultiPartFormDataContentType)]
         public Task<IActionResult> UploadBzzAsync(
             [FromQuery] string? name,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,

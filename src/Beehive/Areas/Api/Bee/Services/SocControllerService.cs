@@ -63,13 +63,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (onlyRootChunk)
                 return new FileContentResult(
                     soc.InnerChunk.Data.ToArray(),
-                    BeehiveHttpConsts.OctetStreamContentType);
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
             var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, null, false, chunkStore);
             return new FileStreamResult(
                 dataStream,
-                BeehiveHttpConsts.OctetStreamContentType);
+                BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
 
         public async Task<IActionResult> UploadSocAsync(

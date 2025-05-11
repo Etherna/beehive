@@ -51,7 +51,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 encryptionKey,
                 recursiveEncryption), chunkStore);
 
-            return new FileStreamResult(dataStream, BeehiveHttpConsts.OctetStreamContentType);
+            return new FileStreamResult(dataStream, BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
 
         public async Task<IActionResult> GetBytesHeadersAsync(
@@ -72,7 +72,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     HeaderNames.ContentEncoding
                 ]));
             response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
-            response.ContentType = BeehiveHttpConsts.OctetStreamContentType;
+            response.ContentType = BeehiveHttpConsts.ApplicationOctetStreamContentType;
 
             return new OkResult();
         }

@@ -119,6 +119,39 @@ namespace Etherna.Beehive.Services.Utilities
                 flushSemaphore.Release();
             }
         }
+
+        public override async Task<bool> HasChunkAsync(
+            SwarmHash hash,
+            CancellationToken cancellationToken = default)
+        {
+            // Try to find on buffer.
+            if (chunkSavingBuffer.ContainsKey(hash))
+                return true;
+            
+            // Try to find on db.
+            using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
+            using(var __ = new DbExecutionContextHandler(dbContext))
+            {
+                //try to find on repository
+                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+                if (chunkModel is not null)
+                    return true;
+            
+                //fallback on old gridfs
+                try
+                {
+                    await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
+                    return true;
+                }
+                catch (GridFSFileNotFoundException)
+                { }
+            }
+            
+            // If it's not found, search on a healthy bee node.
+            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+            var beeClientChunkStore = new BeeClientChunkStore(node.Client);
+            return await beeClientChunkStore.HasChunkAsync(hash, cancellationToken);
+        }
         
         // Protected methods.
         protected override async Task<bool> DeleteChunkAsync(SwarmHash hash)

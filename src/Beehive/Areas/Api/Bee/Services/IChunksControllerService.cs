@@ -35,7 +35,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         /// </summary>
         /// <param name="hash">The chunk's hash</param>
         /// <returns>Request result</returns>
-        Task<IResult> DownloadChunkAsync(SwarmHash hash);
+        Task<IActionResult> DownloadChunkAsync(SwarmHash hash);
+
+        Task<IActionResult> GetChunkHeadersAsync(
+            SwarmHash hash);
         
         Task<IActionResult> UploadChunkAsync(
             Stream dataStream,

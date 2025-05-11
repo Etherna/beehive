@@ -15,6 +15,7 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -39,8 +40,19 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DownloadChunkAsync(SwarmHash hash) =>
+        public Task<IActionResult> DownloadChunkAsync(SwarmHash hash) =>
             service.DownloadChunkAsync(hash);
+        
+        // Head.
+        
+        [HttpHead("{*hash:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetChunkHeadersAsync(
+            SwarmHash hash) =>
+            service.GetChunkHeadersAsync(hash);
 
         // Post.
 
@@ -53,7 +65,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmCac.SpanDataSize)]
-        [Consumes("application/octet-stream")]
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> UploadChunkAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
@@ -67,7 +79,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         [RequestSizeLimit(100 * 1024 * 1024)] //100MB
-        [Consumes("application/octet-stream")]
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> BulkUploadChunksBeeTurboAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromBody, Required] Stream dataStream) =>
@@ -79,7 +91,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         [RequestSizeLimit(100 * 1024 * 1024)] //100MB
-        [Consumes("application/octet-stream")]
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> BulkUploadChunksAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromBody, Required] Stream dataStream) =>

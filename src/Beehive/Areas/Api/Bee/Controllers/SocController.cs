@@ -15,6 +15,7 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -55,7 +56,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmCac.SpanDataSize)]
-        [Consumes("application/octet-stream")]
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             SwarmSocIdentifier id,

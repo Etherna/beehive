@@ -104,34 +104,30 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
         [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
-        public async Task<IResult> DownloadChunkAsync(SwarmHash hash)
+        public async Task<IActionResult> DownloadChunkAsync(SwarmHash hash)
         {
-            // Try to get from chunk's db.
             await using var chunkStore = new BeehiveChunkStore(
                 beeNodeLiveManager,
                 dbContext,
                 serializerModifierAccessor);
-            try
-            {
-                var chunk = await chunkStore.GetAsync(hash);
+            
+            var chunk = await chunkStore.GetAsync(hash);
 
-                return Results.File(
-                    chunk.GetFullPayloadToByteArray(),
-                    BeehiveHttpConsts.OctetStreamContentType,
-                    hash.ToString());
-            }
-            catch
-            {
-            } //proceed with forward on any error
+            return new FileContentResult(
+                chunk.GetFullPayload().ToArray(),
+                BeehiveHttpConsts.BinaryOctetStreamContentType);
+        }
 
-            // Select node and forward request.
-            var node = await beeNodeLiveManager.SelectDownloadNodeAsync(hash);
-            // return await node.ForwardRequestAsync(
-            //     forwarder,
-            //     httpContextAccessor.HttpContext!,
-            //     new DownloadHttpTransformer());
+        public async Task<IActionResult> GetChunkHeadersAsync(
+            SwarmHash hash)
+        {
+            await using var chunkStore = new BeehiveChunkStore(
+                beeNodeLiveManager,
+                dbContext,
+                serializerModifierAccessor);
 
-            throw new NotImplementedException();
+            var hasChunk = await chunkStore.HasChunkAsync(hash);
+            return hasChunk ? new OkResult() : new NotFoundResult();
         }
 
         public async Task<IActionResult> UploadChunkAsync(

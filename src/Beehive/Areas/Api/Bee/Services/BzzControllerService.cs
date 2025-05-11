@@ -103,7 +103,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                                     }
                                     break;
                             
-                                case BeehiveHttpConsts.TarContentType:
+                                case BeehiveHttpConsts.ApplicationTarContentType:
                                     await using (var tarInput = new TarInputStream(request.Body, Encoding.UTF8))
                                     {
                                         while (await tarInput.GetNextEntryAsync(CancellationToken.None) is { } entry)

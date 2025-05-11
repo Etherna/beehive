@@ -154,13 +154,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (onlyRootChunk)
                 return new FileContentResult(
                     wrappedChunk.Data.ToArray(),
-                    BeehiveHttpConsts.OctetStreamContentType);
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
             var dataStream = ChunkDataStream.BuildNew(wrappedChunk, null, false, chunkStore);
             return new FileStreamResult(
                 dataStream,
-                BeehiveHttpConsts.OctetStreamContentType);
+                BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
     }
 }
