@@ -258,7 +258,7 @@ namespace Etherna.Beehive.Services.Utilities
 
                 foreach (var chunkModel in chunkModels)
                 {
-                    results.Add(chunkModel.Hash, chunkModel.IsSoc ?
+                    results.TryAdd(chunkModel.Hash, chunkModel.IsSoc ?
                         SwarmSoc.BuildFromBytes(chunkModel.Hash, chunkModel.Payload, new SwarmChunkBmt()) :
                         new SwarmCac(chunkModel.Hash, chunkModel.Payload));
                     missingHashes.Remove(chunkModel.Hash);
@@ -272,7 +272,7 @@ namespace Etherna.Beehive.Services.Utilities
                         var spanData = await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(),
                             cancellationToken: cancellationToken);
                         
-                        results.Add(hash, new SwarmCac(hash, spanData));
+                        results.TryAdd(hash, new SwarmCac(hash, spanData));
                         missingHashes.Remove(hash);
                     }
                     catch (GridFSFileNotFoundException) { }
@@ -286,7 +286,7 @@ namespace Etherna.Beehive.Services.Utilities
                 {
                     var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
                     var beeClientChunkStore = new BeeClientChunkStore(node.Client);
-                    results.Add(hash, await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken));
+                    results.TryAdd(hash, await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken));
                 }
                 catch (BeeNetApiException) { }
             }

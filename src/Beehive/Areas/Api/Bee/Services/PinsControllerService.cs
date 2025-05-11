@@ -44,8 +44,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         public async Task<BeePinsDto> GetPinsBeeAsync()
         {
-            var pinnedHashes = await dbContext.ChunkPins.QueryElementsAsync(
-                q => q.Where(p => p.IsSucceeded)
+            var pinnedHashes = await dbContext.ChunkPins.QueryElementsAsync(elements =>
+                elements.Where(p => p.IsSucceeded)
                     .Where(p => p.Hash.HasValue)
                     .Select(p => p.Hash!.Value)
                     .ToListAsync());
