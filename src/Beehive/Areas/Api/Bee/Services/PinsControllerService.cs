@@ -18,11 +18,13 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Utilities;
+using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Extensions;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Hangfire;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -42,30 +44,39 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public Task CreatePinBeehiveAsync(string hash) =>
             CreatePinHelperAsync(hash, true);
 
-        public async Task<BeePinsDto> GetPinsBeeAsync()
+        public async Task<IActionResult> GetPinsBeeAsync()
         {
             var pinnedHashes = await dbContext.ChunkPins.QueryElementsAsync(elements =>
                 elements.Where(p => p.IsSucceeded)
                     .Where(p => p.Hash.HasValue)
                     .Select(p => p.Hash!.Value)
                     .ToListAsync());
-            return new BeePinsDto(pinnedHashes);
+            return new JsonResult(new BeePinsDto(pinnedHashes));
         }
 
-        public async Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(int page, int take)
+        public async Task<IActionResult> GetPinsBeehiveAsync(int page, int take)
         {
             var pins = await dbContext.ChunkPins.QueryElementsAsync(elements =>
                 elements.Where(p => p.Hash.HasValue)
                     .PaginateDescending(p => p.CreationDateTime, page, take)
                     .ToListAsync());
-            return pins.Select(p => new BeehivePinDto(
+            return new JsonResult(pins.Select(p => new BeehivePinDto(
                 p.Hash!.Value,
                 p.MissingChunks,
                 p.IsProcessed,
                 p.IsSucceeded,
-                p.TotPinnedChunks));
+                p.TotPinnedChunks)));
         }
         
+
+        public async Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash)
+        {
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
+            if (pin is null)
+                return new NotFoundResult();
+            return new JsonResult(new SimpleChunkReferenceDto(hash));
+        }
+
         // Helpers.
         private async Task CreatePinHelperAsync(string hash, bool runBackgroundTask)
         {

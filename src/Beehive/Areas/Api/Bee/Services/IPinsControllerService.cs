@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using System.Collections.Generic;
+using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Services
@@ -22,7 +22,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         Task CreatePinBeeAsync(string hash);
         Task CreatePinBeehiveAsync(string hash);
-        Task<BeePinsDto> GetPinsBeeAsync();
-        Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(int page, int take);
+        Task<IActionResult> GetPinsBeeAsync();
+        Task<IActionResult> GetPinsBeehiveAsync(int page, int take);
+        Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash);
     }
 }

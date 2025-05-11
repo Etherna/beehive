@@ -34,17 +34,24 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         
         [HttpGet]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<BeePinsDto> GetPinsBeeAsync() =>
+        [ProducesResponseType(typeof(BeePinsDto), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetPinsBeeAsync() =>
             service.GetPinsBeeAsync();
         
         [HttpGet("~/ev1/pins")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(
+        [ProducesResponseType(typeof(IEnumerable<BeehivePinDto>), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetPinsBeehiveAsync(
             [Range(0, int.MaxValue)] int page,
             [Range(1, 10000)] int take = 500) =>
             service.GetPinsBeehiveAsync(page, take);
+        
+        [HttpGet("{*hash:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetPinStatusBeeAsync(
+            SwarmHash hash) =>
+            service.GetPinStatusBeeAsync(hash);
         
         // Post.
 
