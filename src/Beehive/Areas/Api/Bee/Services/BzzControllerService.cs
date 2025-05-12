@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Results;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Extensions;
@@ -245,11 +246,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 if (onlyHeaders)
                 {
                     if (resourceInfo.IsFromErrorDoc)
-                        return new NotFoundResult();
+                        return new BeeNotFoundResult();
                     
                     var chunk = await chunkStore.GetAsync(resourceInfo.Result.ChunkReference.Hash);
                     if (chunk is not SwarmCac cac) //bzz content can only be read from cac
-                        return new BadRequestResult();
+                        return new BeeBadRequestResult();
 
                     httpContext.Response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
                     httpContext.Response.ContentType = mimeType;

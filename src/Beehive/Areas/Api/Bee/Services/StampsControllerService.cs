@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Results;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
@@ -83,7 +84,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             var postageBatch = await postageBatchService.TryGetPostageBatchDetailsAsync(batchId);
             if (postageBatch is null)
-                return new NotFoundResult();
+                return new BeeNotFoundResult();
             return new JsonResult(new PostageBatchDto(
                 postageBatch.Amount,
                 postageBatch.Id,
@@ -102,7 +103,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             var postageBatch = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             if (postageBatch is null)
-                return new NotFoundResult();
+                return new BeeNotFoundResult();
             return new JsonResult(new PostageBatchBucketsDto(
                 postageBatch.Depth,
                 PostageBatch.BucketDepth,

@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Results;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
@@ -63,7 +64,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var chunk = await chunkStore.GetAsync(hash);
             if (chunk is not SwarmCac cac) //bytes can only read from cac
-                return new BadRequestResult();
+                return new BeeBadRequestResult();
 
             response.Headers.Append(
                 CorsConstants.AccessControlExposeHeaders, new StringValues(

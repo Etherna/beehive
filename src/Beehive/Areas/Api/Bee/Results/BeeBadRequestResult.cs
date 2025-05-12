@@ -12,11 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Etherna.Beehive.Areas.Api.Bee.Results
 {
-    public sealed class BeeErrorDto(int code, string? message)
+    public class BeeBadRequestResult : JsonResult
     {
-        public int Code { get; } = code;
-        public string Message { get; } = message ?? "";
+        private const int DefaultStatusCode = 400;
+        public BeeBadRequestResult(string? message = null)
+            : base(new BeeErrorDto(DefaultStatusCode, message ?? "Bad Request"))
+        {
+            StatusCode = DefaultStatusCode;
+        }
     }
 }

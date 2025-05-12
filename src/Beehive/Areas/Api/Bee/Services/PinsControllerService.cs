@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Results;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
@@ -67,13 +68,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 p.IsSucceeded,
                 p.TotPinnedChunks)));
         }
-        
 
         public async Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash)
         {
             var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
             if (pin is null)
-                return new NotFoundResult();
+                return new BeeNotFoundResult();
             return new JsonResult(new SimpleChunkReferenceDto(hash));
         }
 
