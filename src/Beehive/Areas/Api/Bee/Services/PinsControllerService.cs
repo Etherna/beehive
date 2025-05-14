@@ -63,18 +63,35 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     .ToListAsync());
             return new JsonResult(pins.Select(p => new BeehivePinDto(
                 p.Hash!.Value,
+                p.EncryptionKey,
                 p.MissingChunks,
                 p.IsProcessed,
+                p.RecursiveEncryption,
                 p.IsSucceeded,
                 p.TotPinnedChunks)));
         }
 
         public async Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash)
         {
-            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash && p.IsSucceeded);
             if (pin is null)
                 return new BeeNotFoundResult();
             return new JsonResult(new SimpleChunkReferenceDto(hash));
+        }
+
+        public async Task<IActionResult> GetPinStatusBeehiveAsync(SwarmHash hash)
+        {
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
+            if (pin is null)
+                return new BeeNotFoundResult();
+            return new JsonResult(new BeehivePinDto(
+                pin.Hash!.Value,
+                pin.EncryptionKey,
+                pin.MissingChunks,
+                pin.IsProcessed,
+                pin.RecursiveEncryption,
+                pin.IsSucceeded,
+                pin.TotPinnedChunks));
         }
 
         // Helpers.
