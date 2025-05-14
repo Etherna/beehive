@@ -25,7 +25,6 @@ using Etherna.MongODM.Core.Extensions;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -63,6 +62,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     .ToListAsync());
             return new JsonResult(pins.Select(p => new BeehivePinDto(
                 p.Hash!.Value,
+                p.CreationDateTime,
                 p.EncryptionKey,
                 p.MissingChunks,
                 p.IsProcessed,
@@ -86,6 +86,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 return new BeeNotFoundResult();
             return new JsonResult(new BeehivePinDto(
                 pin.Hash!.Value,
+                pin.CreationDateTime,
                 pin.EncryptionKey,
                 pin.MissingChunks,
                 pin.IsProcessed,

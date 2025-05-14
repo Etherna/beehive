@@ -13,25 +13,28 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using System;
 using System.Collections.Generic;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
     public sealed class BeehivePinDto(
         SwarmHash hash,
+        DateTimeOffset creationTime,
         XorEncryptKey? encryptionKey,
         IEnumerable<SwarmHash> missingChunks,
         bool processed,
         bool recursiveEncryption,
         bool succeeded,
-        long totPinnedChunks)
+        long pinnedChunks)
     {
         public SwarmHash Hash { get; } = hash;
+        public DateTimeOffset CreationTime { get; } = creationTime;
         public XorEncryptKey? EncryptionKey { get; } = encryptionKey;
-        public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
-        public bool Processed { get; } = processed;
         public bool RecursiveEncryption { get; } = recursiveEncryption;
+        public bool Processed { get; } = processed;
         public bool Succeeded { get; } = succeeded;
-        public long TotPinnedChunks { get; } = totPinnedChunks;
+        public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
+        public long PinnedChunks { get; } = pinnedChunks;
     }
 }
