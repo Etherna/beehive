@@ -90,9 +90,6 @@ namespace Etherna.Beehive.Services.Utilities
         public bool RemoveBeeNode(string nodeId) =>
             beeNodeInstances.TryRemove(nodeId, out _);
 
-        public Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmHash hash) =>
-            SelectHealthyNodeAsync();
-
         public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
             string? selectionContext = null,
@@ -100,6 +97,26 @@ namespace Etherna.Beehive.Services.Utilities
         {
             var node = await TrySelectHealthyNodeAsync(mode, selectionContext, isValidPredicate);
             return node ?? throw new InvalidOperationException();
+        }
+
+        public BeeNodeLiveInstance SelectNearestHealthyNode(SwarmHash hash)
+        {
+            // Select the closest healthy node.
+            var healthyNodes = HealthyNodes.Where(n => n.Status.Addresses != null).ToArray();
+            if (healthyNodes.Length == 0)
+                throw new InvalidOperationException("No healthy nodes found.");
+            
+            var closest = healthyNodes[0];
+            for (var i = 1; i < healthyNodes.Length; i++)
+            {
+                if (SwarmHash.CompareDistances(
+                        closest.Status.Addresses!.Overlay.ToReadOnlyMemory().Span,
+                        healthyNodes[i].Status.Addresses!.Overlay.ToReadOnlyMemory().Span,
+                        hash.ToReadOnlyMemory().Span) > 0)
+                    closest = healthyNodes[i];
+            }
+            
+            return closest;
         }
 
         public void StartHealthHeartbeat() =>

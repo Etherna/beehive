@@ -148,7 +148,7 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // If it's not found, search on a healthy bee node.
-            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
             var beeClientChunkStore = new BeeClientChunkStore(node.Client);
             return await beeClientChunkStore.HasChunkAsync(hash, cancellationToken);
         }
@@ -216,7 +216,7 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // If it's not found, search on a healthy bee node.
-            var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
             var beeClientChunkStore = new BeeClientChunkStore(node.Client);
             return await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
         }
@@ -284,7 +284,7 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 try
                 {
-                    var node = await beeNodeLiveManager.SelectHealthyNodeAsync();
+                    var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
                     var beeClientChunkStore = new BeeClientChunkStore(node.Client);
                     results.TryAdd(hash, await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken));
                 }

@@ -19,13 +19,13 @@ namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class BeeNodeAddresses(
         EthAddress ethereum,
-        string overlay,
+        SwarmOverlayAddress overlay,
         string pssPublicKey,
         string publicKey)
     {
         // Properties.
         public EthAddress Ethereum { get; } = ethereum;
-        public string Overlay { get; } = overlay ?? throw new ArgumentNullException(nameof(overlay));
+        public SwarmOverlayAddress Overlay { get; } = overlay;
         public string PssPublicKey { get; } = pssPublicKey ?? throw new ArgumentNullException(nameof(pssPublicKey));
         public string PublicKey { get; } = publicKey ?? throw new ArgumentNullException(nameof(publicKey));
     }

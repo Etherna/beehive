@@ -26,7 +26,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.DtoModels
         DateTime heartbeatTimeStamp,
         bool isAlive,
         bool isBatchCreationEnabled,
-        string? overlayAddress,
+        SwarmOverlayAddress? overlayAddress,
         string? pssPublicKey,
         string? publicKey)
     {
@@ -37,7 +37,7 @@ namespace Etherna.Beehive.Areas.Api.V0_4.DtoModels
         public DateTime HeartbeatTimeStamp { get; } = heartbeatTimeStamp;
         public bool IsAlive { get; } = isAlive;
         public bool IsBatchCreationEnabled { get; } = isBatchCreationEnabled;
-        public string? OverlayAddress { get; } = overlayAddress;
+        public SwarmOverlayAddress? OverlayAddress { get; } = overlayAddress;
         public string? PssPublicKey { get; } = pssPublicKey;
         public string? PublicKey { get; } = publicKey;
     }

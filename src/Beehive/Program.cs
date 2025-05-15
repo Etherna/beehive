@@ -214,6 +214,7 @@ namespace Etherna.Beehive
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
                 options.SchemaFilter<SwarmFeedTopicSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
+                options.SchemaFilter<SwarmOverlayAddressSchemaFilter>();
                 options.SchemaFilter<SwarmSocIdentifierSchemaFilter>();
                 options.SchemaFilter<SwarmSocSignatureSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();
