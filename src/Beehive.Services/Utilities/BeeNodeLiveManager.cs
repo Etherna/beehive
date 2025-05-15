@@ -57,26 +57,13 @@ namespace Etherna.Beehive.Services.Utilities
         public IEnumerable<BeeNodeLiveInstance> HealthyNodes => AllNodes.Where(i => i.Status.IsAlive);
 
         // Methods.
-        public async Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode)
-        {
-            // Add node.
-            var liveInstance = new BeeNodeLiveInstance(beeNode);
-            var result = beeNodeInstances.TryAdd(beeNode.Id, liveInstance);
-
-            // Refresh live status (if necessary).
-            if (result)
-                await liveInstance.TryRefreshStatusAsync();
-
-            return beeNodeInstances[beeNode.Id];
-        }
-
         public async Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId)
         {
             if (beeNodeInstances.TryGetValue(nodeId, out var instance))
                 return instance;
 
             var beeNode = await dbContext.BeeNodes.FindOneAsync(nodeId);
-            return await AddBeeNodeAsync(beeNode);
+            return await TryAddBeeNodeAsync(beeNode);
         }
 
         public async Task LoadAllNodesAsync()
@@ -84,11 +71,8 @@ namespace Etherna.Beehive.Services.Utilities
             var nodes = await dbContext.BeeNodes.QueryElementsAsync(
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
-                await AddBeeNodeAsync(node);
+                await TryAddBeeNodeAsync(node);
         }
-
-        public bool RemoveBeeNode(string nodeId) =>
-            beeNodeInstances.TryRemove(nodeId, out _);
 
         public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
@@ -125,6 +109,22 @@ namespace Etherna.Beehive.Services.Utilities
 
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
+        
+        public async Task<BeeNodeLiveInstance> TryAddBeeNodeAsync(BeeNode beeNode)
+        {
+            if (beeNodeInstances.TryGetValue(beeNode.Id, out var liveInstance))
+                return liveInstance;
+            
+            // Try to add node and refresh live status (if necessary).
+            liveInstance = new BeeNodeLiveInstance(beeNode);
+            if (beeNodeInstances.TryAdd(beeNode.Id, liveInstance))
+                await liveInstance.TryRefreshStatusAsync();
+
+            return beeNodeInstances[beeNode.Id];
+        }
+
+        public bool TryRemoveBeeNode(string nodeId) =>
+            beeNodeInstances.TryRemove(nodeId, out _);
 
         public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
@@ -202,14 +202,22 @@ namespace Etherna.Beehive.Services.Utilities
         // Helpers.
         private async Task HeartbeatCallbackAsync()
         {
-            var tasks = new List<Task>();
+            // Update nodes from db.
+            //add new nodes from db
+            var dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
+            foreach (var dbNode in dbNodes)
+                await TryAddBeeNodeAsync(dbNode);
+            //remove missing nodes from db
+            foreach (var instance in AllNodes.Where(n => !dbNodes.Select(dbN => dbN.Id).Contains(n.Id)).ToArray())
+                TryRemoveBeeNode(instance.Id);
 
-            //update nodes
+            // Refresh nodes status.
+            var tasks = new List<Task>();
             foreach (var instance in beeNodeInstances.Values)
                 tasks.Add(instance.TryRefreshStatusAsync());
             await Task.WhenAll(tasks);
 
-            //update chain state
+            // Update chain state.
             var node = await TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "chainState");
             if (node is not null)
             {

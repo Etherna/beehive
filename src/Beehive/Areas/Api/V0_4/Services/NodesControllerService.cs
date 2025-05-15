@@ -119,8 +119,8 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
             // Update config.
             await beehiveDbContext.SaveChangesAsync();
             
-            beeNodeLiveManager.RemoveBeeNode(id);
-            await beeNodeLiveManager.AddBeeNodeAsync(nodeDb);
+            beeNodeLiveManager.TryRemoveBeeNode(id);
+            await beeNodeLiveManager.TryAddBeeNodeAsync(nodeDb);
 
             logger.NodeConfigurationUpdated(id);
         }
