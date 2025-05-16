@@ -13,7 +13,6 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Hangfire;
-using Hangfire.Server;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks
@@ -21,8 +20,6 @@ namespace Etherna.Beehive.Services.Tasks
     public interface IPinChunksTask
     {
         [Queue(Queues.PIN_CONTENTS)]
-        Task RunAsync(
-            string chunkPinId,
-            PerformContext hangfireContext);
+        Task RunAsync(string chunkPinId);
     }
 }

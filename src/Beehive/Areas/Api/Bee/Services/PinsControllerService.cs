@@ -98,8 +98,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         // Helpers.
         private async Task CreatePinHelperAsync(string hash, bool runBackgroundTask)
         {
-            /* Pin created from this API are always recursive on chunks. */
-            // Try find recursive pin with this hash.
+            // Try find pin with this hash.
             var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
             
             // If doesn't exist create it.
@@ -117,7 +116,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (runBackgroundTask)
             {
                 backgroundJobClient.Enqueue<IPinChunksTask>(
-                    t => t.RunAsync(pin.Id, null!));
+                    t => t.RunAsync(pin.Id));
             }
             else
             {
@@ -126,7 +125,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     chunkPinService,
                     dbContext,
                     serializerModifierAccessor);
-                await task.RunAsync(pin.Id, null!);
+                await task.RunAsync(pin.Id);
             }
         }
     }
