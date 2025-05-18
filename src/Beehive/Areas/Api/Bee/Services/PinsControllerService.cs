@@ -38,8 +38,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinsControllerService
     {
-        public Task CreatePinBeeAsync(SwarmHash hash) =>
-            CreatePinHelperAsync(hash, false);
+        public async Task<IActionResult> CreatePinBeeAsync(SwarmHash hash)
+        {
+            await CreatePinHelperAsync(hash, false);
+            var pin = await dbContext.ChunkPins.FindOneAsync(p => p.Hash == hash);
+            return pin.IsSucceeded ?
+                new CreatedResult() :
+                new BeeNotFoundResult("pin collection failed");
+        }
 
         public Task CreatePinBeehiveAsync(SwarmHash hash) =>
             CreatePinHelperAsync(hash, true);

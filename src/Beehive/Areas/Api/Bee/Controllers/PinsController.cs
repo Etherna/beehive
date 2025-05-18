@@ -73,7 +73,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task CreatePinBeeAsync(SwarmHash hash) =>
+        public Task<IActionResult> CreatePinBeeAsync(SwarmHash hash) =>
             service.CreatePinBeeAsync(hash);
 
         [HttpPost("~/ev1/pins/{hash}")]
