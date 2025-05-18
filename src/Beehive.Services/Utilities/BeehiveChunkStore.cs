@@ -149,8 +149,7 @@ namespace Etherna.Beehive.Services.Utilities
             
             // If it's not found, search on a healthy bee node.
             var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
-            var beeClientChunkStore = new BeeClientChunkStore(node.Client);
-            return await beeClientChunkStore.HasChunkAsync(hash, cancellationToken);
+            return await node.ChunkStore.HasChunkAsync(hash, cancellationToken);
         }
         
         // Protected methods.
@@ -216,9 +215,7 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // If it's not found, search on a healthy bee node.
-            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
-            var beeClientChunkStore = new BeeClientChunkStore(node.Client);
-            return await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
+            return await GetFromBeeNodeAsync(hash, cancellationToken);
         }
 
         protected override async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk>> LoadChunksAsync(
@@ -284,9 +281,8 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 try
                 {
-                    var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
-                    var beeClientChunkStore = new BeeClientChunkStore(node.Client);
-                    results.TryAdd(hash, await beeClientChunkStore.GetAsync(hash, cancellationToken: cancellationToken));
+                    var chunk = await GetFromBeeNodeAsync(hash, cancellationToken);
+                    results.TryAdd(hash, chunk);
                 }
                 catch (BeeNetApiException) { }
             }
@@ -321,6 +317,21 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 return false;
             }
+        }
+        
+        // Helpers.
+        private async Task<SwarmChunk> GetFromBeeNodeAsync(SwarmHash hash, CancellationToken cancellationToken)
+        {
+            // Get from node.
+            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
+            var chunk = await node.ChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
+            
+            // Save in local db. Force flush on db now.
+            //flush is required, for example, by pinning, that needs to update chunk's pin reference on db.
+            await SaveChunkAsync(chunk);
+            await FlushSaveAsync();
+            
+            return chunk;
         }
     }
 }

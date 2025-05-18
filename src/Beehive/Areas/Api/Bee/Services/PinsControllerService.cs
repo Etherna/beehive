@@ -38,16 +38,16 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinsControllerService
     {
-        public Task CreatePinBeeAsync(string hash) =>
+        public Task CreatePinBeeAsync(SwarmHash hash) =>
             CreatePinHelperAsync(hash, false);
 
-        public Task CreatePinBeehiveAsync(string hash) =>
+        public Task CreatePinBeehiveAsync(SwarmHash hash) =>
             CreatePinHelperAsync(hash, true);
 
         public async Task<IActionResult> GetPinsBeeAsync()
         {
             var pinnedHashes = await dbContext.ChunkPins.QueryElementsAsync(elements =>
-                elements.Where(p => p.IsSucceeded)
+                elements.Where(p => p.IsProcessed && !p.MissingChunks.Any())
                     .Where(p => p.Hash.HasValue)
                     .Select(p => p.Hash!.Value)
                     .ToListAsync());
@@ -73,7 +73,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         public async Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash)
         {
-            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash && p.IsSucceeded);
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p =>
+                p.Hash == hash && p.IsProcessed && !p.MissingChunks.Any());
             if (pin is null)
                 return new BeeNotFoundResult();
             return new JsonResult(new SimpleChunkReferenceDto(hash));
@@ -96,7 +97,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         }
 
         // Helpers.
-        private async Task CreatePinHelperAsync(string hash, bool runBackgroundTask)
+        private async Task CreatePinHelperAsync(SwarmHash hash, bool runBackgroundTask)
         {
             // Try find pin with this hash.
             var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);

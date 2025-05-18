@@ -51,26 +51,28 @@ namespace Etherna.Beehive.Services.Tasks
             var chunkTraverser = new ChunkTraverser(chunkStore);
 
             HashSet<SwarmHash> missingChunksHash = [];
-            long totPinnedChunks = 0;
+            HashSet<SwarmHash> pinnedChunksHash = [];
             await chunkTraverser.TraverseFromMantarayManifestRootAsync(
                 pin.Hash.Value,
                 async foundChunk =>
                 {
+                    if (!pinnedChunksHash.Add(foundChunk.Hash))
+                        return;
                     await dbContext.Chunks.FindOneAndAddToSetAsync(
                         new ExpressionFilterDefinition<Chunk>(c => c.Hash == foundChunk.Hash),
                         c => c.Pins,
                         pin,
                         new FindOneAndUpdateOptions<Chunk>());
-                    totPinnedChunks++;
                 },
                 async invalidFoundChunk =>
                 {
+                    if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
+                        return;
                     await dbContext.Chunks.FindOneAndAddToSetAsync(
                         new ExpressionFilterDefinition<Chunk>(c => c.Hash == invalidFoundChunk.Hash),
                         c => c.Pins,
                         pin,
                         new FindOneAndUpdateOptions<Chunk>());
-                    totPinnedChunks++;
                 },
                 notFoundHash =>
                 {
@@ -79,7 +81,7 @@ namespace Etherna.Beehive.Services.Tasks
                 });
             
             // Update pin with result.
-            pin.UpdateProcessed(missingChunksHash, totPinnedChunks);
+            pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
             await dbContext.SaveChangesAsync();
         }
     }

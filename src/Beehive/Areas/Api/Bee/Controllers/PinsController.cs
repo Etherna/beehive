@@ -73,13 +73,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task CreatePinBeeAsync(string hash) =>
+        public Task CreatePinBeeAsync(SwarmHash hash) =>
             service.CreatePinBeeAsync(hash);
 
         [HttpPost("~/ev1/pins/{hash}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task CreatePinBeehiveAsync(string hash) =>
+        public Task CreatePinBeehiveAsync(SwarmHash hash) =>
             service.CreatePinBeehiveAsync(hash);
     }
 }
