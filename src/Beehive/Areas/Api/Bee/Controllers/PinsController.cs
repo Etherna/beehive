@@ -69,7 +69,6 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpPost("{hash}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

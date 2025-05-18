@@ -52,7 +52,7 @@ namespace Etherna.Beehive.Services.Tasks
 
             HashSet<SwarmHash> missingChunksHash = [];
             HashSet<SwarmHash> pinnedChunksHash = [];
-            await chunkTraverser.TraverseFromMantarayManifestRootAsync(
+            await chunkTraverser.TraverseAsync(
                 pin.Hash.Value,
                 async foundChunk =>
                 {
