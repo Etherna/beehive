@@ -30,8 +30,8 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 mm =>
                 {
                     mm.AutoMap();
-                    mm.GetMemberMap(p => p.EncryptionKey).SetIgnoreIfDefault(true);
-                    mm.GetMemberMap(p => p.RecursiveEncryption).SetIgnoreIfDefault(true);
+                    mm.GetMemberMap(p => p.EncryptionKey).SetElementName("EncKey");
+                    mm.GetMemberMap(p => p.RecursiveEncryption).SetElementName("RecEnc");
                 });
         }
 

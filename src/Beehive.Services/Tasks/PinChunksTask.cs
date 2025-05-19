@@ -53,7 +53,7 @@ namespace Etherna.Beehive.Services.Tasks
             HashSet<SwarmHash> missingChunksHash = [];
             HashSet<SwarmHash> pinnedChunksHash = [];
             await chunkTraverser.TraverseAsync(
-                pin.Hash.Value,
+                new SwarmChunkReference(pin.Hash.Value, pin.EncryptionKey, pin.RecursiveEncryption),
                 async foundChunk =>
                 {
                     if (!pinnedChunksHash.Add(foundChunk.Hash))

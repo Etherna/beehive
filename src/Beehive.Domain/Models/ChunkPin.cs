@@ -35,10 +35,12 @@ namespace Etherna.Beehive.Domain.Models
         /// The root pinning hash.
         /// Set to null for a provisional pin, when the chunk reference isn't known upfront.
         /// </param>
-        public ChunkPin(SwarmHash? hash)
+        public ChunkPin(SwarmChunkReference? chunkReference)
         {
-            Hash = hash;
+            EncryptionKey = chunkReference?.EncryptionKey;
+            Hash = chunkReference?.Hash;
             IsProcessed = false;
+            RecursiveEncryption = chunkReference?.UseRecursiveEncryption ?? false;
         }
         protected ChunkPin() { }
 

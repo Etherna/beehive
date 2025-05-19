@@ -15,6 +15,7 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -72,13 +73,19 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> CreatePinBeeAsync(SwarmHash hash) =>
-            service.CreatePinBeeAsync(hash);
+        public Task<IActionResult> CreatePinBeeAsync(
+            SwarmHash hash,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
+            service.CreatePinBeeAsync(hash, encryptionKey, recursiveEncryption);
 
         [HttpPost("~/ev1/pins/{hash}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task CreatePinBeehiveAsync(SwarmHash hash) =>
-            service.CreatePinBeehiveAsync(hash);
+        public Task CreatePinBeehiveAsync(
+            SwarmHash hash,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
+            service.CreatePinBeehiveAsync(hash, encryptionKey, recursiveEncryption);
     }
 }
