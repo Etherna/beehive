@@ -15,14 +15,17 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
+using Etherna.BeeNet.Models;
+using Etherna.MongoDB.Driver;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public sealed class ChunkPinService(
+    public sealed class PinService(
         IBeehiveDbContext dbContext,
         IResourceLockService resourceLockService)
-        : IChunkPinService
+        : IPinService
     {
         // Methods.
         public async Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
@@ -45,5 +48,26 @@ namespace Etherna.Beehive.Services.Domain
             resourceLockService.IsLockedAsync(
                 dbContext.ChunkPinLocks,
                 chunkPinId);
+
+        public async Task<bool> TryDeletePinAsync(SwarmChunkReference pinReference)
+        {
+            // Try find pin and acquire lock on it.
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p =>
+                p.Hash == pinReference.Hash &&
+                p.EncryptionKey == pinReference.EncryptionKey &&
+                p.RecursiveEncryption == pinReference.UseRecursiveEncryption);
+            if (pin is null)
+                return false;
+            
+            await using var pinLockHandler = await AcquireLockAsync(pin.Id, true);
+            
+            // Delete it, and then remove references from chunks.
+            await dbContext.ChunkPins.DeleteAsync(pin);
+            await dbContext.Chunks.UpdateMany(
+                c => c.Pins.Any(p => p.Id == pin.Id),
+                Builders<Chunk>.Update.PullFilter(c => c.Pins, p => p.Id == pin.Id));
+            
+            return true;
+        }
     }
 }

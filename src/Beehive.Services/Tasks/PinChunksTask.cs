@@ -28,7 +28,7 @@ namespace Etherna.Beehive.Services.Tasks
 {
     public class PinChunksTask(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IChunkPinService chunkPinService,
+        IPinService pinService,
         IBeehiveDbContext dbContext,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinChunksTask
@@ -37,7 +37,7 @@ namespace Etherna.Beehive.Services.Tasks
         public async Task RunAsync(string chunkPinId)
         {
             // Acquire lock on pin.
-            await using var chunkPinLockHandler = await chunkPinService.AcquireLockAsync(chunkPinId, true);
+            await using var pinLockHandler = await pinService.AcquireLockAsync(chunkPinId, true);
 
             var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
             if (!pin.Hash.HasValue)

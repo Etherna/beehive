@@ -25,7 +25,6 @@ using Etherna.MongODM.Core.Extensions;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -34,8 +33,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public class PinsControllerService(
         IBackgroundJobClient backgroundJobClient,
         IBeeNodeLiveManager beeNodeLiveManager,
-        IChunkPinService chunkPinService,
         IBeehiveDbContext dbContext,
+        IPinService pinService,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinsControllerService
     {
@@ -65,13 +64,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         public Task CreatePinBeehiveAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption) =>
             CreatePinHelperAsync(new SwarmChunkReference(hash, encryptionKey, recursiveEncryption), true);
 
-        public Task DeletePinAsync(
+        public async Task<IActionResult> DeletePinAsync(
             SwarmHash hash,
             XorEncryptKey? encryptionKey,
-            bool recursiveEncryption)
-        {
-            throw new NotImplementedException();
-        }
+            bool recursiveEncryption) =>
+            await pinService.TryDeletePinAsync(new SwarmChunkReference(hash, encryptionKey, recursiveEncryption))
+                ? new OkResult()
+                : new NotFoundResult();
 
         public async Task<IActionResult> GetPinsBeeAsync()
         {
@@ -156,7 +155,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             {
                 var task = new PinChunksTask(
                     beeNodeLiveManager,
-                    chunkPinService,
+                    pinService,
                     dbContext,
                     serializerModifierAccessor);
                 await task.RunAsync(pin.Id);

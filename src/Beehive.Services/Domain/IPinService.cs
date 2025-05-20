@@ -13,16 +13,19 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.BeeNet.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public interface IChunkPinService
+    public interface IPinService
     {
         Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
             string chunkPinId,
             bool exclusiveAccess);
 
         Task<bool> IsLockedAsync(string chunkPinId);
+        
+        Task<bool> TryDeletePinAsync(SwarmChunkReference pinReference);
     }
 }

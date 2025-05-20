@@ -22,6 +22,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         Task<IActionResult> CreatePinBeeAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
         Task CreatePinBeehiveAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
+        Task<IActionResult> DeletePinAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
         Task<IActionResult> GetPinsBeeAsync();
         Task<IActionResult> GetPinsBeehiveAsync(int page, int take);
         Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash);

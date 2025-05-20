@@ -87,5 +87,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
             [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
             service.CreatePinBeehiveAsync(hash, encryptionKey, recursiveEncryption);
+        
+        // Delete.
+        
+        [HttpDelete("{hash}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> DeletePinAsync(
+            SwarmHash hash,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
+            service.DeletePinAsync(hash, encryptionKey, recursiveEncryption);
     }
 }
