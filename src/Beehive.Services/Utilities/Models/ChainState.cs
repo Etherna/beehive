@@ -24,16 +24,18 @@ namespace Etherna.Beehive.Services.Utilities.Models
             ArgumentNullException.ThrowIfNull(chainStateDto, nameof(chainStateDto));
 
             Block = chainStateDto.Block;
+            ChainTip = chainStateDto.ChainTip;
             CurrentPrice = chainStateDto.CurrentPrice;
             SourceNodeId = nodeId;
-            TimeStamp = DateTime.UtcNow;
+            TimeStamp = DateTimeOffset.UtcNow;
             TotalAmount = chainStateDto.TotalAmount;
         }
 
         public long Block { get; }
+        public int ChainTip { get; }
         public BzzBalance CurrentPrice { get; }
         public string SourceNodeId { get; }
-        public DateTime TimeStamp { get; }
+        public DateTimeOffset TimeStamp { get; }
         public BzzBalance TotalAmount { get; }
     }
 }

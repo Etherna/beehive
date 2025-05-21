@@ -26,7 +26,7 @@ namespace Etherna.Beehive.Services.EventHandlers
         // Methods.
         public override Task HandleAsync(EntityDeletedEvent<BeeNode> @event)
         {
-            beeNodeLiveManager.RemoveBeeNode(@event.Entity.Id);
+            beeNodeLiveManager.TryRemoveBeeNode(@event.Entity.Id);
             return Task.CompletedTask;
         }
     }

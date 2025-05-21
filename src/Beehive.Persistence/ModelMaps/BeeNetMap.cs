@@ -23,21 +23,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.MapRegistry.AddModelMap<PostageBatchId>( //v0.4.0
-                "57e606db-94be-4b3f-85fc-193483020012",
-                customSerializer: new PostageBatchIdSerializer());
-            
-            dbContext.MapRegistry.AddModelMap<SwarmAddress>( //v0.4.0
-                "5d4d4d6a-5448-43ca-aa74-50c6d0d82f25",
-                customSerializer: new SwarmAddressSerializer());
-            
-            dbContext.MapRegistry.AddModelMap<SwarmHash>( //v0.4.0
-                "64231e24-1cfc-4b24-8c7a-20f0f708969a",
-                customSerializer: new SwarmHashSerializer());
-
-            dbContext.MapRegistry.AddModelMap<SwarmUri>( //v0.4.0
-                "99d8f98f-cfa4-4490-aeda-5dc2df7fdba8",
-                customSerializer: new SwarmUriSerializer());
+            dbContext.MapRegistry.AddCustomSerializerMap<PostageBatchId>(new PostageBatchIdSerializer()); //v0.4.0
+            dbContext.MapRegistry.AddCustomSerializerMap<SwarmAddress>(new SwarmAddressSerializer()); //v0.4.0
+            dbContext.MapRegistry.AddCustomSerializerMap<SwarmHash>(new SwarmHashSerializer()); //v0.4.0
+            dbContext.MapRegistry.AddCustomSerializerMap<SwarmUri>(new SwarmUriSerializer()); //v0.4.0
+            dbContext.MapRegistry.AddCustomSerializerMap<XorEncryptKey>(new XorEncryptKeySerializer()); //0.4.0
         }
     }
 }

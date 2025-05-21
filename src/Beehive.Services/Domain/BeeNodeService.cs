@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public class BeeNodeService(
+    public sealed class BeeNodeService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext)
         : IBeeNodeService

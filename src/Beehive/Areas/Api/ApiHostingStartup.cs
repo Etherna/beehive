@@ -23,21 +23,25 @@ namespace Etherna.Beehive.Areas.Api
 {
     public class ApiHostingStartup : IHostingStartup
     {
-        private const string ServicesSubNamespace = "Areas.Api.Services";
+        private readonly string[] servicesSubNamespaces =
+        [
+            "Areas.Api.Bee.Services",
+            "Areas.Api.V0_4.Services"
+        ];
 
         public void Configure(IWebHostBuilder builder)
         {
             ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
-            builder.ConfigureServices((_, services) => {
-
+            builder.ConfigureServices((_, services) =>
+            {
                 var currentType = typeof(Program).GetTypeInfo();
-                var servicesNamespace = $"{currentType.Namespace}.{ServicesSubNamespace}";
 
                 // Register services.
+                foreach (var servicesNamespace in servicesSubNamespaces.Select(sns => $"{currentType.Namespace}.{sns}"))
                 foreach (var serviceType in from t in currentType.Assembly.GetTypes()
-                                            where t.IsClass && t.Namespace == servicesNamespace && t.DeclaringType == null
-                                            select t)
+                         where t.IsClass && t.Namespace == servicesNamespace && t.DeclaringType == null
+                         select t)
                 {
                     var serviceInterfaceType = serviceType.GetInterface($"I{serviceType.Name}");
                     if (serviceInterfaceType is not null)

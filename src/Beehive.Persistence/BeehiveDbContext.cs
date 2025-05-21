@@ -48,8 +48,25 @@ namespace Etherna.Beehive.Persistence
             {
                 IndexBuilders =
                 [
-                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.GatewayPort)
-                                                .Ascending(n => n.Hostname), new CreateIndexOptions<BeeNode> { Unique = true })
+                    (Builders<BeeNode>.IndexKeys.Ascending(n => n.ConnectionString), new CreateIndexOptions<BeeNode> { Unique = true })
+                ]
+            });
+        public IRepository<ChunkPinLock, string> ChunkPinLocks { get; } = new DomainRepository<ChunkPinLock, string>(
+            new RepositoryOptions<ChunkPinLock>("chunkPinLocks")
+            {
+                IndexBuilders =
+                [
+                    (Builders<ChunkPinLock>.IndexKeys.Ascending(l => l.ResourceId),
+                        new CreateIndexOptions<ChunkPinLock> { Unique = true })
+                ]
+            });
+        public IRepository<ChunkPin, string> ChunkPins { get; } = new DomainRepository<ChunkPin, string>(
+            new RepositoryOptions<ChunkPin>("chunkPins")
+            {
+                IndexBuilders =
+                [
+                    (Builders<ChunkPin>.IndexKeys.Ascending(p => p.Hash),
+                        new CreateIndexOptions<ChunkPin>())
                 ]
             });
         public IRepository<UploadedChunkRef, string> ChunkPushQueue { get; } =
@@ -75,6 +92,35 @@ namespace Etherna.Beehive.Persistence
                 });
             }
         }
+        public IRepository<PostageBatchLock, string> PostageBatchLocks { get; } = new DomainRepository<PostageBatchLock, string>(
+            new RepositoryOptions<PostageBatchLock>("postageBatchLocks")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PostageBatchLock>.IndexKeys.Ascending(l => l.ResourceId),
+                        new CreateIndexOptions<PostageBatchLock> { Unique = true })
+                ]
+            });
+        public IRepository<PostageBatchCache, string> PostageBatchesCache { get; } = new Repository<PostageBatchCache, string>(
+            new RepositoryOptions<PostageBatchCache>("postageBatchesCache")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PostageBatchCache>.IndexKeys.Ascending(b => b.BatchId),
+                        new CreateIndexOptions<PostageBatchCache> { Unique = true }),
+                ]
+            });
+        public IRepository<PostageStamp, string> PostageStamps { get; } = new Repository<PostageStamp, string>(
+            new RepositoryOptions<PostageStamp>("postageStamps")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PostageStamp>.IndexKeys
+                            .Ascending(s => s.BatchId)
+                            .Ascending(s => s.ChunkHash),
+                        new CreateIndexOptions<PostageStamp> { Unique = true })
+                ]
+            });
 
         //other properties
         public IEventDispatcher EventDispatcher { get; } = eventDispatcher;

@@ -20,18 +20,18 @@ using Etherna.Beehive.Configs.MongODM;
 using Etherna.Beehive.Configs.Swagger;
 using Etherna.Beehive.Configs.Swagger.OperationFilters;
 using Etherna.Beehive.Configs.Swagger.SchemaFilters;
-using Etherna.Beehive.Converters;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Exceptions;
 using Etherna.Beehive.Extensions;
+using Etherna.Beehive.JsonConverters;
+using Etherna.Beehive.ModelBinders;
 using Etherna.Beehive.Options;
 using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services;
 using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
-using Etherna.Beehive.Tools;
-using Etherna.BeeNet.Models;
+using Etherna.BeeNet.AspNet;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
@@ -50,7 +50,6 @@ using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -143,35 +142,27 @@ namespace Etherna.Beehive
             var config = builder.Configuration;
             var env = builder.Environment;
             var services = builder.Services;
-            
-            // Register global TypeConverters.
-            TypeDescriptor.AddAttributes(typeof(PostageBatchId), new TypeConverterAttribute(typeof(PostageBatchIdTypeConverter)));
-            TypeDescriptor.AddAttributes(typeof(SwarmAddress), new TypeConverterAttribute(typeof(SwarmAddressTypeConverter)));
-            TypeDescriptor.AddAttributes(typeof(SwarmHash), new TypeConverterAttribute(typeof(SwarmHashTypeConverter)));
-            TypeDescriptor.AddAttributes(typeof(SwarmUri), new TypeConverterAttribute(typeof(SwarmUriTypeConverter)));
-            TypeDescriptor.AddAttributes(typeof(TagId), new TypeConverterAttribute(typeof(TagIdTypeConverter)));
 
             // Configure Asp.Net Core framework services.
-            services.AddControllers().AddJsonOptions(options =>
+            services.AddControllers(options =>
             {
+                options.ModelBinderProviders.Insert(0, new BeehiveModelBinderProvider());
+            }).AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new DateTimeOffsetAsUnixSecondsJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                options.JsonSerializerOptions.Converters.Add(new PostageBatchIdJsonConverter());
-                options.JsonSerializerOptions.Converters.Add(new SwarmAddressJsonConverter());
-                options.JsonSerializerOptions.Converters.Add(new SwarmHashJsonConverter());
-                options.JsonSerializerOptions.Converters.Add(new SwarmUriJsonConverter());
-                options.JsonSerializerOptions.Converters.Add(new TagIdJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new TimeSpanAsSecondsJsonConverter());
+                options.AddBeeNetJsonConverters();
             });
             services.AddCors();
             services.AddRazorPages();
             
             // Configure APIs.
             services.AddApiVersioning(options =>
-            {
-                options.AssumeDefaultVersionWhenUnspecified = true;
-                options.DefaultApiVersion = new ApiVersion(1);
-                options.ReportApiVersions = true;
-            });
-            services.AddApiVersioning()
+                {
+                    options.AssumeDefaultVersionWhenUnspecified = true;
+                    options.DefaultApiVersion = new ApiVersion(1);
+                })
                 .AddApiExplorer(options =>
                 {
                     // add the versioned api explorer, which also adds IApiVersionDescriptionProvider service
@@ -182,9 +173,6 @@ namespace Etherna.Beehive
                     // can also be used to control the format of the API version in route templates
                     options.SubstituteApiVersionInUrl = true;
                 });
-            
-            // Configure reverse proxy.
-            services.AddHttpForwarder();
 
             // Configure Hangfire server.
             if (!env.IsStaging()) //don't start server in staging
@@ -201,6 +189,9 @@ namespace Etherna.Beehive
                     ];
                 });
             }
+            
+            // Configure Bee.Net
+            services.AddBeeNet();
 
             // Configure Swagger services.
             services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
@@ -214,11 +205,23 @@ namespace Etherna.Beehive
                 options.OperationFilter<SwaggerDefaultValuesFilter>();
                 
                 //add schema filters
+                options.SchemaFilter<BzzBalanceSchemaFilter>();
+                options.SchemaFilter<DateTimeOffsetSchemaFilter>();
+                options.SchemaFilter<EthAddressSchemaFilter>();
+                options.SchemaFilter<EthTxHashSchemaFilter>();
                 options.SchemaFilter<PostageBatchIdSchemaFilter>();
+                options.SchemaFilter<PostageStampSchemaFilter>();
                 options.SchemaFilter<SwarmAddressSchemaFilter>();
+                options.SchemaFilter<SwarmFeedTopicSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
+                options.SchemaFilter<SwarmOverlayAddressSchemaFilter>();
+                options.SchemaFilter<SwarmSocIdentifierSchemaFilter>();
+                options.SchemaFilter<SwarmSocSignatureSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();
                 options.SchemaFilter<TagIdSchemaFilter>();
+                options.SchemaFilter<TimeSpanSchemaFilter>();
+                options.SchemaFilter<XDaiBalanceSchemaFilter>();
+                options.SchemaFilter<XorEncryptKeySchemaFilter>();
 
                 //integrate xml comments
                 var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";
@@ -253,7 +256,7 @@ namespace Etherna.Beehive
                     return new BeehiveDbContext(
                         eventDispatcher,
                         seedDbSettings.BeeNodes
-                            .Select(n => new BeeNode(n.Scheme, n.GatewayPort, n.Hostname, n.EnableBatchCreation))
+                            .Select(n => new BeeNode(new Uri(n.ConnectionString, UriKind.Absolute), n.EnableBatchCreation))
                             .ToArray());
                 },
                 options =>
@@ -268,9 +271,8 @@ namespace Etherna.Beehive
                 BasePath = CommonConsts.DatabaseAdminPath
             });
 
-            // Configure domain services and tools.
+            // Configure domain services.
             services.AddDomainServices();
-            services.AddSingleton<IDbChunkStore, DbChunkStore>();
         }
 
         private static void ConfigureApplication(WebApplication app)
@@ -303,6 +305,8 @@ namespace Etherna.Beehive
 
             app.UseStaticFiles();
             app.UseRouting();
+            
+            app.UseAuthorization();
 
             // Add Hangfire.
             app.UseHangfireDashboard(
@@ -332,6 +336,11 @@ namespace Etherna.Beehive
                 CashoutAllNodesChequesTask.TaskId,
                 task => task.RunAsync(),
                 Cron.Daily(5));
+            
+            RecurringJob.AddOrUpdate<ICleanupExpiredLocksTask>(
+                CleanupExpiredLocksTask.TaskId,
+                task => task.RunAsync(),
+                Cron.Daily(3));
             
             RecurringJob.AddOrUpdate<ICleanupOldFailedTasksTask>(
                 CleanupOldFailedTasksTask.TaskId,

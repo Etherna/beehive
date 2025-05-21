@@ -15,10 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net.Core" Version="0.4.0-alpha.75" />
-    <PackageReference Include="Etherna.DomainEvents" Version="1.4.0" />
-    <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.6" />
-    <PackageReference Include="Nethereum.Web3" Version="4.26.0" />
+    <PackageReference Include="Bee.Net.Core" Version="0.4.0-alpha.266" />
+    <PackageReference Include="Etherna.DomainEvents" Version="1.5.0" />
+    <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.32" />
+    <PackageReference Include="Nethereum.Web3" Version="4.29.0" />
   </ItemGroup>
 
 </Project>

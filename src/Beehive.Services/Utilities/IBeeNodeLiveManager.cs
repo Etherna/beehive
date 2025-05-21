@@ -30,18 +30,15 @@ namespace Etherna.Beehive.Services.Utilities
         IEnumerable<BeeNodeLiveInstance> HealthyNodes { get; }
 
         // Methods.
-        Task<BeeNodeLiveInstance> AddBeeNodeAsync(BeeNode beeNode);
+        Task<BeeNodeLiveInstance> TryAddBeeNodeAsync(BeeNode beeNode);
         Task<BeeNodeLiveInstance> GetBeeNodeLiveInstanceAsync(string nodeId);
-        IEnumerable<BeeNodeLiveInstance> GetBeeNodeLiveInstancesByPinnedContent(string hash, bool requireAliveNodes);
         Task LoadAllNodesAsync();
-        bool RemoveBeeNode(string nodeId);
-        Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmAddress address);
-        Task<BeeNodeLiveInstance> SelectDownloadNodeAsync(SwarmHash hash);
+        bool TryRemoveBeeNode(string nodeId);
+        BeeNodeLiveInstance SelectNearestHealthyNode(SwarmHash hash);
         Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
             string? selectionContext = null,
             Func<BeeNodeLiveInstance, Task<bool>>? isValidPredicate = null);
-        BeeNodeLiveInstance SelectUploadNode(PostageBatchId batchId);
         void StartHealthHeartbeat();
         void StopHealthHeartbeat();
         Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(

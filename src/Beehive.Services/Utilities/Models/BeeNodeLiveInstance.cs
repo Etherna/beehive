@@ -16,10 +16,9 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -28,100 +27,54 @@ namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class BeeNodeLiveInstance
     {
-        // Fields.
-        private readonly ConcurrentDictionary<SwarmHash, bool> _inProgressPins = new(); //content hash -> (irrelevant). Needed for concurrency
-
         // Constructor.
         internal BeeNodeLiveInstance(
             BeeNode beeNode)
         {
             Id = beeNode.Id;
-            Client = new BeeClient(beeNode.GatewayUrl);
+            Client = new BeeClient(beeNode.ConnectionString);
+            ChunkStore = new BeeClientChunkStore(Client);
             IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }
 
         // Properties.
         public string Id { get; }
+        public BeeClientChunkStore ChunkStore { get; }
         public BeeClient Client { get; }
-        public IEnumerable<SwarmHash> InProgressPins => _inProgressPins.Keys;
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
         // Public methods.
-        public async Task<PostageBatchId> BuyPostageBatchAsync(BzzBalance amount, int depth, string? label, bool immutable)
+        public Task<EthTxHash> DilutePostageBatchAsync(
+            PostageBatchId batchId,
+            int depth,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice) =>
+            Client.DilutePostageBatchAsync(batchId, depth, gasPrice, gasLimit);
+
+        public Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
+            Client.GetPostageBatchAsync(batchId);
+
+        public async Task<(IEnumerable<uint> collisions, int depth)> GetPostageBatchBucketsCollisionsAsync(
+            PostageBatchId batchId)
         {
-            var batchId = await Client.BuyPostageBatchAsync(amount, depth, label, immutable);
-
-            //immediately add the batch to the node status
-            Status.AddPostageBatchId(batchId);
-
-            return batchId;
+            var buckets = await Client.GetPostageBatchBucketsAsync(batchId);
+            return (buckets.Collisions, buckets.Depth);
         }
 
-        public Task<PostageBatchId> DilutePostageBatchAsync(PostageBatchId batchId, int depth) =>
-            Client.DilutePostageBatchAsync(batchId, depth);
-
-        public async Task<bool> IsPinningResourceAsync(SwarmHash hash)
-        {
-            try
-            {
-                await Client.GetPinStatusAsync(hash);
-                return true;
-            }
-            catch (BeeNetApiException e) when (e.StatusCode == 404)
-            {
-                return false;
-            }
-        }
-
-        public void NotifyPinnedResource(SwarmHash hash)
-        {
-            //immediately add the pin to the node status
-            Status.AddPinnedHash(hash);
-        }
-
-        public async Task PinResourceAsync(string hash)
-        {
-            _inProgressPins.TryAdd(hash, false);
-
-            try
-            {
-                await Client.CreatePinAsync(hash);
-                Status.AddPinnedHash(hash);
-            }
-            catch (BeeNetApiException e) when (e.StatusCode == 404)
-            {
-                throw new KeyNotFoundException();
-            }
-            finally
-            {
-                _inProgressPins.TryRemove(hash, out _);
-            }
-        }
-
-        public async Task RemovePinnedResourceAsync(SwarmHash hash)
-        {
-            try
-            {
-                await Client.DeletePinAsync(hash);
-                Status.RemovePinnedHash(hash);
-            }
-            catch (BeeNetApiException e) when(e.StatusCode == 404)
-            {
-                throw new KeyNotFoundException();
-            }
-        }
-
-        public Task<PostageBatchId> TopUpPostageBatchAsync(PostageBatchId batchId, BzzBalance amount) =>
-            Client.TopUpPostageBatchAsync(batchId, amount);
+        public Task<EthTxHash> TopUpPostageBatchAsync(
+            PostageBatchId batchId,
+            BzzBalance amount,
+            ulong? gasLimit,
+            XDaiBalance? gasPrice) =>
+            Client.TopUpPostageBatchAsync(batchId, amount, gasPrice, gasLimit);
 
         /// <summary>
         /// Try to refresh node live status
         /// </summary>
-        /// <param name="forceFullRefresh">True if status have to be full checked</param>
         /// <returns>True if node was alive</returns>
-        public async Task<bool> TryRefreshStatusAsync(bool forceFullRefresh = false)
+        public async Task<bool> TryRefreshStatusAsync()
         {
             var heartbeatTimeStamp = DateTime.UtcNow;
 
@@ -160,19 +113,18 @@ namespace Etherna.Beehive.Services.Utilities.Models
                     heartbeatTimeStamp);
                 return false;
             }
-
-#pragma warning disable CA1031 // Do not catch general exception types
-
+            
             /***
              * If here, node is Alive
              ***/
 
             // Verify addresses initialization.
+#pragma warning disable CA1031 // Do not catch general exception types
             if (Status.Addresses is null)
             {
                 try
                 {
-                    var response = await Client.GetAddressesAsync();
+                    var response = await Client.GetNodeAddressesAsync();
                     Status.InitializeAddresses(new BeeNodeAddresses(
                         response.Ethereum,
                         response.Overlay,
@@ -181,37 +133,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
                 }
                 catch { }
             }
-
-            // Full refresh if is required (or if is forced).
-            var errors = new List<string>();
-            IEnumerable<SwarmHash>? refreshedPinnedHashes = null;
-            IEnumerable<PostageBatchId>? refreshedPostageBatchesId = null;
-
-            if (Status.RequireFullRefresh || forceFullRefresh)
-            {
-                //pinned hashes
-                try
-                {
-                    refreshedPinnedHashes = await Client.GetAllPinsAsync();
-                }
-                catch { errors.Add("Can't read pinned hashes"); }
-
-                //postage batches
-                try
-                {
-                    var batches = await Client.GetOwnedPostageBatchesByNodeAsync();
-                    refreshedPostageBatchesId = batches.Select(b => b.Id);
-                }
-                catch { errors.Add("Can't read postage batches"); }
-            }
-
 #pragma warning restore CA1031 // Do not catch general exception types
 
-            Status.SucceededHeartbeatAttempt(
-                errors,
-                heartbeatTimeStamp,
-                refreshedPinnedHashes,
-                refreshedPostageBatchesId);
+            Status.SucceededHeartbeatAttempt(heartbeatTimeStamp);
 
             return true;
         }

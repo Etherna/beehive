@@ -44,16 +44,21 @@ namespace Etherna.Beehive.Services
             // Register services.
             //domain
             services.AddScoped<IBeeNodeService, BeeNodeService>();
+            services.AddScoped<IDataService, DataService>();
+            services.AddScoped<IPinService, PinService>();
+            services.AddScoped<IPostageBatchService, PostageBatchService>();
+            services.AddScoped<IResourceLockService, ResourceLockService>();
 
             // Utilities.
             services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesChequesTask, CashoutAllNodesChequesTask>();
+            services.AddTransient<ICleanupExpiredLocksTask, CleanupExpiredLocksTask>();
             services.AddTransient<ICleanupOldFailedTasksTask, CleanupOldFailedTasksTask>();
             services.AddTransient<INodesAddressMaintainerTask, NodesAddressMaintainerTask>();
             services.AddTransient<INodesChequebookMaintainerTask, NodesChequebookMaintainerTask>();
-            services.AddTransient<IPinContentInNodeTask, PinContentInNodeTask>();
+            services.AddTransient<IPinChunksTask, PinChunksTask>();
         }
     }
 }

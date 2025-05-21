@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongODM.Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
@@ -46,6 +47,9 @@ namespace Etherna.Beehive.Attributes
                 BeeNetApiException { StatusCode: 404 } _ or
                 KeyNotFoundException _ or
                 MongodmEntityNotFoundException _ => new NotFoundObjectResult(context.Exception.Message),
+                
+                // Error code 423.
+                ResourceLockException _ => new StatusCodeResult(423),
 
                 // Error code 503.
                 BeeNetApiException _ => new StatusCodeResult(503),

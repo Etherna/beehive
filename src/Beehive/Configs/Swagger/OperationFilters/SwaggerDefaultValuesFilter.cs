@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
@@ -39,31 +40,47 @@ namespace Etherna.Beehive.Configs.Swagger.OperationFilters
             ArgumentNullException.ThrowIfNull(operation, nameof(operation));
 
             var apiDescription = context.ApiDescription;
+            
+            // Apply configurations from ConsumesUnrestrictedAttribute, if present.
+            var consumesUnrestrictedAttribute = apiDescription.ActionDescriptor.EndpointMetadata
+                .OfType<ConsumesUnrestrictedAttribute>().FirstOrDefault();
+            if (consumesUnrestrictedAttribute != null)
+            {
+                operation.RequestBody ??= new OpenApiRequestBody();
+                
+                operation.RequestBody.Content.Clear();
+                foreach (var contentType in consumesUnrestrictedAttribute.ContentTypes)
+                    operation.RequestBody.Content.Add(contentType, new OpenApiMediaType
+                    {
+                        Schema = new OpenApiSchema { Type = "string", Format = "binary"}
+                    });
+                operation.RequestBody.Required = !consumesUnrestrictedAttribute.IsOptional;
+            }
 
+            // Fix deprecate operation attribute.
             operation.Deprecated |= apiDescription.IsDeprecated();
 
-            if (operation.Parameters == null)
+            // Fix parameters.
+            if (operation.Parameters != null)
             {
-                return;
-            }
-            
-            // Remove default "api-version" unspecified parameters.
-            operation.Parameters = operation.Parameters.Where(p => p.Name != "api-version").ToList();
+                // Remove default "api-version" unspecified parameters.
+                operation.Parameters = operation.Parameters.Where(p => p.Name != "api-version").ToList();
 
-            // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
-            // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
-            foreach (var parameter in operation.Parameters)
-            {
-                var description = apiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
-
-                parameter.Description ??= description.ModelMetadata?.Description;
-
-                if (parameter.Schema.Default == null && description.DefaultValue != null)
+                // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
+                // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
+                foreach (var parameter in operation.Parameters)
                 {
-                    parameter.Schema.Default = new OpenApiString(description.DefaultValue.ToString());
-                }
+                    var description = apiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
 
-                parameter.Required |= description.IsRequired;
+                    parameter.Description ??= description.ModelMetadata?.Description;
+
+                    if (parameter.Schema.Default == null && description.DefaultValue != null)
+                    {
+                        parameter.Schema.Default = new OpenApiString(description.DefaultValue.ToString());
+                    }
+
+                    parameter.Required |= description.IsRequired;
+                }
             }
         }
     }
