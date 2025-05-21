@@ -12,15 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Results;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.BeeNet.Exceptions;
 using Etherna.MongODM.Core.Exceptions;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Etherna.Beehive.Attributes
 {
@@ -38,30 +38,31 @@ namespace Etherna.Beehive.Attributes
                 // Error code 400.
                 ArgumentException _ or
                     FormatException _ or
+                    InvalidDataException _ or
                     InvalidOperationException _ or
                     MongodmInvalidEntityTypeException _ =>
-                    new JsonResult(new BeeErrorDto(400, context.Exception.Message)) { StatusCode = 400 },
+                    new BeeBadRequestResult(),
 
                 // Error code 401.
                 UnauthorizedAccessException _ =>
-                    new JsonResult(new BeeErrorDto(401, context.Exception.Message)) { StatusCode = 401 },
+                    new BeeUnauthorizedResult(),
 
                 // Error code 404.
                 BeeNetApiException { StatusCode: 404 } _ or
                     KeyNotFoundException _ or
                     MongodmEntityNotFoundException _ =>
-                    new JsonResult(new BeeErrorDto(404, context.Exception.Message)) { StatusCode = 404 },
+                    new BeeNotFoundResult(),
 
                 // Error code 423.
                 ResourceLockException _ =>
-                    new JsonResult(new BeeErrorDto(423, context.Exception.Message)) { StatusCode = 423 },
+                    new BeeLockedResult(),
 
                 // Error code 503.
                 BeeNetApiException _ =>
-                    new JsonResult(new BeeErrorDto(503, context.Exception.Message)) { StatusCode = 503 },
+                    new BeeServiceUnavailableResult(),
 
                 // Error code 500.
-                _ => new JsonResult(new BeeErrorDto(500, context.Exception.Message)) { StatusCode = 500 },
+                _ => new BeeInternalServerErrorResult(),
             };
         }
     }

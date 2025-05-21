@@ -67,13 +67,12 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
                 nodeInstance.Status.Addresses?.PublicKey);
         }
 
-        public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(int page, int take)
+        public async Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync()
         {
             var nodeDtos = new List<BeeNodeDto>();
             
             var nodes = await beehiveDbContext.BeeNodes.QueryElementsAsync(elements =>
-                elements.PaginateDescending(n => n.CreationDateTime, page, take)
-                    .ToListAsync());
+                elements.ToListAsync());
 
             foreach (var node in nodes)
             {
@@ -120,8 +119,8 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Services
             // Update config.
             await beehiveDbContext.SaveChangesAsync();
             
-            beeNodeLiveManager.RemoveBeeNode(id);
-            await beeNodeLiveManager.AddBeeNodeAsync(nodeDb);
+            beeNodeLiveManager.TryRemoveBeeNode(id);
+            await beeNodeLiveManager.TryAddBeeNodeAsync(nodeDb);
 
             logger.NodeConfigurationUpdated(id);
         }

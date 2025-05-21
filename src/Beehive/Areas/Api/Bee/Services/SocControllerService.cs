@@ -20,6 +20,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +34,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public class SocControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IDataService dataService,
-        IBeehiveDbContext dbContext)
+        IBeehiveDbContext dbContext,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : ISocControllerService
     {
         public async Task<IActionResult> ResolveSocAsync(
@@ -45,7 +47,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ArgumentNullException.ThrowIfNull(response, nameof(response));
             
             // Try find soc.
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var chunk = await chunkStore.TryGetAsync(
                 SwarmSoc.BuildHash(identifier, owner, new Hasher())).ConfigureAwait(false);
 
@@ -61,15 +63,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (onlyRootChunk)
                 return new FileContentResult(
                     soc.InnerChunk.Data.ToArray(),
-                    BeehiveHttpConsts.OctetStreamContentType);
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var chunkJoiner = new ChunkJoiner(chunkStore);
-            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(soc.InnerChunk, null, false);
-
+            var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, null, false, chunkStore);
             return new FileStreamResult(
                 dataStream,
-                BeehiveHttpConsts.OctetStreamContentType);
+                BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
 
         public async Task<IActionResult> UploadSocAsync(

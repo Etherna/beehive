@@ -20,6 +20,7 @@ using Etherna.BeeNet.Hashing.Signer;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
 using Etherna.MongoDB.Driver.Linq;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -32,7 +33,8 @@ namespace Etherna.Beehive.Services.Domain
     public sealed class DataService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
-        IPostageBatchService postageBatchService)
+        IPostageBatchService postageBatchService,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IDataService
     {
         public async Task<SwarmChunkReference> UploadAsync(
@@ -49,7 +51,7 @@ namespace Etherna.Beehive.Services.Domain
             await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, useChunkCompaction);
             
             // Verify postage batch, load status and build postage stamper.
-            var postageBatchCache = await postageBatchService.TryGetPostageBatchCacheAsync(batchId);
+            var postageBatchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             if (postageBatchCache is null)
                 throw new KeyNotFoundException();
             var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
@@ -100,6 +102,7 @@ namespace Etherna.Beehive.Services.Domain
                 var dbChunkStore = new BeehiveChunkStore(
                     beeNodeLiveManager,
                     dbContext,
+                    serializerModifierAccessor,
                     onSavingChunk: c =>
                     {
                         if (pin != null)

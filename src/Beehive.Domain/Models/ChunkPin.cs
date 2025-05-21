@@ -25,7 +25,7 @@ namespace Etherna.Beehive.Domain.Models
         private readonly TimeSpan provisionalTtl = TimeSpan.FromHours(24);
         
         // Fields.
-        private List<SwarmHash> missingChunks = [];
+        private HashSet<SwarmHash> missingChunks = [];
         
         // Constructors.
         /// <summary>
@@ -35,11 +35,12 @@ namespace Etherna.Beehive.Domain.Models
         /// The root pinning hash.
         /// Set to null for a provisional pin, when the chunk reference isn't known upfront.
         /// </param>
-        public ChunkPin(SwarmHash? hash)
+        public ChunkPin(SwarmChunkReference? chunkReference)
         {
-            Hash = hash;
+            EncryptionKey = chunkReference?.EncryptionKey;
+            Hash = chunkReference?.Hash;
             IsProcessed = false;
-            IsSucceeded = false;
+            RecursiveEncryption = chunkReference?.UseRecursiveEncryption ?? false;
         }
         protected ChunkPin() { }
 
@@ -50,11 +51,11 @@ namespace Etherna.Beehive.Domain.Models
             !Hash.HasValue &&
             CreationDateTime + provisionalTtl < DateTime.UtcNow;
         public virtual bool IsProcessed { get; protected set; }
-        public virtual bool IsSucceeded { get; protected set; }
+        public virtual bool IsSucceeded => IsProcessed && missingChunks.Count == 0;
         public virtual IEnumerable<SwarmHash> MissingChunks
         {
             get => missingChunks;
-            set => missingChunks = new List<SwarmHash>(value ?? []);
+            protected set => missingChunks = new HashSet<SwarmHash>(value ?? []);
         }
         public virtual bool RecursiveEncryption { get; protected set; }
         public virtual long TotPinnedChunks { get; protected set; }
@@ -63,7 +64,6 @@ namespace Etherna.Beehive.Domain.Models
         [PropertyAlterer(nameof(EncryptionKey))]
         [PropertyAlterer(nameof(Hash))]
         [PropertyAlterer(nameof(IsProcessed))]
-        [PropertyAlterer(nameof(IsSucceeded))]
         [PropertyAlterer(nameof(RecursiveEncryption))]
         [PropertyAlterer(nameof(TotPinnedChunks))]
         public virtual void SucceededProvisional(
@@ -78,8 +78,22 @@ namespace Etherna.Beehive.Domain.Models
             EncryptionKey = rootChunkRef.EncryptionKey;
             Hash = rootChunkRef.Hash;
             IsProcessed = true;
-            IsSucceeded = true;
             RecursiveEncryption = rootChunkRef.UseRecursiveEncryption;
+            TotPinnedChunks = totPinnedChunks;
+        }
+
+        [PropertyAlterer(nameof(IsProcessed))]
+        [PropertyAlterer(nameof(MissingChunks))]
+        [PropertyAlterer(nameof(TotPinnedChunks))]
+        public virtual void UpdateProcessed(
+            IEnumerable<SwarmHash> missingChunks,
+            long totPinnedChunks)
+        {
+            if (!Hash.HasValue)
+                throw new InvalidOperationException("Hash is not set");
+            
+            IsProcessed = true;
+            MissingChunks = missingChunks;
             TotPinnedChunks = totPinnedChunks;
         }
     }

@@ -12,19 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.V0_4.DtoModels;
-using Etherna.Beehive.Areas.Api.V0_4.InputModels;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.V0_4.Services
+namespace Etherna.Beehive.ModelBinders
 {
-    public interface INodesControllerService
+    public class StreamFromHttpRequestBodyModelBinder : IModelBinder
     {
-        Task AddBeeNodeAsync(BeeNodeInput nodeInput);
-        Task<BeeNodeDto> FindByIdAsync(string id);
-        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync();
-        Task RemoveBeeNodeAsync(string id);
-        Task UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
+        public Task BindModelAsync(ModelBindingContext bindingContext)
+        {
+            ArgumentNullException.ThrowIfNull(bindingContext, nameof(bindingContext));
+
+            bindingContext.Result = ModelBindingResult.Success(bindingContext.HttpContext.Request.Body);
+            return Task.CompletedTask;
+        }
     }
 }

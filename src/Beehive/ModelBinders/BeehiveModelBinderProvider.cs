@@ -15,6 +15,7 @@
 using Etherna.Beehive.Domain.Models;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
+using System.IO;
 
 namespace Etherna.Beehive.ModelBinders
 {
@@ -34,6 +35,9 @@ namespace Etherna.Beehive.ModelBinders
             if (context.Metadata.ModelType == typeof(TimeSpan) ||
                 context.Metadata.ModelType == typeof(TimeSpan?))
                 return new TimeSpanFromSecondsModelBinder();
+
+            if (context.Metadata.ModelType == typeof(Stream))
+                return new StreamFromHttpRequestBodyModelBinder();
 
             return null;
         }

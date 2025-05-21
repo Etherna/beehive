@@ -100,7 +100,7 @@ namespace Etherna.Beehive.Services.Domain
             await using var batchLockHandler = await AcquireLockAsync(batchId, true);
             
             // Try get cached postage batch.
-            var postageCache = await TryGetPostageBatchCacheAsync(batchId);
+            var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             if (postageCache is null)
                 throw new KeyNotFoundException();
             
@@ -125,7 +125,7 @@ namespace Etherna.Beehive.Services.Domain
                 "getGlobalPostageBatches");
 
             if (beeNodeInstance is null)
-                throw new InvalidOperationException("No healthy nodes available for batch creation");
+                throw new InvalidOperationException("No healthy nodes available for batch read");
 
             // Get globale batches from node.
             return await beeNodeInstance.Client.GetGlobalValidPostageBatchesAsync();
@@ -220,39 +220,41 @@ namespace Etherna.Beehive.Services.Domain
                 gasPrice);
         }
 
-        public async Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
-            PostageBatchId batchId,
-            bool forceRefreshCache = false)
-        {
-            // Try load existing cache from db.
-            var batchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
-            
-            // Try load status from node.
-            if (batchCache == null || forceRefreshCache)
-            {
-                // Remove cached value from db.
-                if (batchCache != null)
-                    await dbContext.PostageBatchesCache.DeleteAsync(batchCache);
-                
-                // Get fresh value.
-                var nodeLiveInstance = await TryGetPostageBatchOwnerNodeAsync(batchId);
-                if (nodeLiveInstance == null) //postage doesn't exist
-                    return null;
-                var postageInfo = await nodeLiveInstance.GetPostageBatchAsync(batchId);
-                var (bucketsLiveCollisions, depth) = await nodeLiveInstance.GetPostageBatchBucketsCollisionsAsync(batchId);
-                
-                // Cache new value on db.
-                batchCache = new PostageBatchCache(
-                    batchId,
-                    bucketsLiveCollisions.ToArray(),
-                    depth,
-                    postageInfo.IsImmutable,
-                    nodeLiveInstance.Id);
-                await dbContext.PostageBatchesCache.CreateAsync(batchCache);
-            }
-
-            return batchCache;
-        }
+        //*** OLD code to receive postage batch cache from node. See: https://etherna.atlassian.net/browse/BHM-198
+        // public async Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(
+        //     PostageBatchId batchId,
+        //     bool forceRefreshCache = false)
+        // {
+        //     // Try load existing cache from db.
+        //     var batchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
+        //     
+        //     // Try load status from node.
+        //     if (batchCache == null || forceRefreshCache)
+        //     {
+        //         // Remove cached value from db.
+        //         if (batchCache != null)
+        //             await dbContext.PostageBatchesCache.DeleteAsync(batchCache);
+        //         
+        //         // Get fresh value.
+        //         var nodeLiveInstance = await TryGetPostageBatchOwnerNodeAsync(batchId);
+        //         if (nodeLiveInstance == null) //postage doesn't exist
+        //             return null;
+        //         var postageInfo = await nodeLiveInstance.GetPostageBatchAsync(batchId);
+        //         var (bucketsLiveCollisions, depth) = await nodeLiveInstance.GetPostageBatchBucketsCollisionsAsync(batchId);
+        //         
+        //         // Cache new value on db.
+        //         batchCache = new PostageBatchCache(
+        //             batchId,
+        //             bucketsLiveCollisions.ToArray(),
+        //             depth,
+        //             postageInfo.IsImmutable,
+        //             nodeLiveInstance.Id);
+        //         await dbContext.PostageBatchesCache.CreateAsync(batchCache);
+        //     }
+        //
+        //     return batchCache;
+        // }
+        //***
 
         public async Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId)
         {

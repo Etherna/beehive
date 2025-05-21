@@ -12,19 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.V0_4.DtoModels;
-using Etherna.Beehive.Areas.Api.V0_4.InputModels;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Etherna.Beehive.Areas.Api.V0_4.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Results
 {
-    public interface INodesControllerService
+    public class BeeNotFoundResult : JsonResult
     {
-        Task AddBeeNodeAsync(BeeNodeInput nodeInput);
-        Task<BeeNodeDto> FindByIdAsync(string id);
-        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync();
-        Task RemoveBeeNodeAsync(string id);
-        Task UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
+        private const int DefaultStatusCode = 404;
+        public BeeNotFoundResult(string? message = null)
+            : base(new BeeErrorDto(DefaultStatusCode, message ?? "Not Found"))
+        {
+            StatusCode = DefaultStatusCode;
+        }
     }
 }

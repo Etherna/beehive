@@ -12,14 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Hangfire;
-using System.Threading.Tasks;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Areas.Api.Bee.Results
 {
-    public interface IUnpinChunksTask
+    public class BeeInternalServerErrorResult : JsonResult
     {
-        [Queue(Queues.PIN_CONTENTS)]
-        Task RunAsync(string chunkPinId);
+        private const int DefaultStatusCode = 500;
+        public BeeInternalServerErrorResult(string? message = null)
+            : base(new BeeErrorDto(DefaultStatusCode, message ?? "Internal Server Error"))
+        {
+            StatusCode = DefaultStatusCode;
+        }
     }
 }

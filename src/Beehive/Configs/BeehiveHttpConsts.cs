@@ -16,11 +16,12 @@ namespace Etherna.Beehive.Configs
 {
     public static class BeehiveHttpConsts
     {
+        public const string ApplicationOctetStreamContentType = "application/octet-stream";
+        public const string ApplicationTarContentType = "application/x-tar";
+        public const string BinaryOctetStreamContentType = "binary/octet-stream";
         public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string OctetStreamContentType = "application/octet-stream";
-        public const string SwarmCompactLevelHeader = "swarm-compact-level";
+        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
         public const string SwarmEncryptionKeyQuery = "swarmEncKey";
         public const string SwarmRecursiveEncryptionQuery = "swarmRecEnc";
-        public const string TarContentType = "application/x-tar";
     }
 }

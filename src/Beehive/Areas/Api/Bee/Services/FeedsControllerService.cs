@@ -22,6 +22,7 @@ using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +38,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         IBeeNodeLiveManager beeNodeLiveManager,
         IDataService dataService,
         IBeehiveDbContext dbContext,
-        IFeedService feedService)
+        IFeedService feedService,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IFeedsControllerService
     {
         public async Task<IActionResult> CreateFeedRootManifestAsync(
@@ -109,7 +111,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 };
 
             // Find feed chunk at given moment.
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var feedChunk = await feed.TryFindFeedChunkAtAsync(
                 at.Value,
                 afterFeedIndex,
@@ -152,15 +154,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (onlyRootChunk)
                 return new FileContentResult(
                     wrappedChunk.Data.ToArray(),
-                    BeehiveHttpConsts.OctetStreamContentType);
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var chunkJoiner = new ChunkJoiner(chunkStore);
-            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(wrappedChunk, null, false);
-
+            var dataStream = ChunkDataStream.BuildNew(wrappedChunk, null, false, chunkStore);
             return new FileStreamResult(
                 dataStream,
-                BeehiveHttpConsts.OctetStreamContentType);
+                BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
     }
 }

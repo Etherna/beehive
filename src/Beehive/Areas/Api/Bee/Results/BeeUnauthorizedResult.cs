@@ -12,17 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using System.Threading.Tasks;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Etherna.Beehive.Services.Domain
+namespace Etherna.Beehive.Areas.Api.Bee.Results
 {
-    public interface IChunkPinService
+    public class BeeUnauthorizedResult : JsonResult
     {
-        Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
-            string chunkPinId,
-            bool exclusiveAccess);
-
-        Task<bool> IsLockedAsync(string chunkPinId);
+        private const int DefaultStatusCode = 401;
+        public BeeUnauthorizedResult(string? message = null)
+            : base(new BeeErrorDto(DefaultStatusCode, message ?? "Unauthorized"))
+        {
+            StatusCode = DefaultStatusCode;
+        }
     }
 }

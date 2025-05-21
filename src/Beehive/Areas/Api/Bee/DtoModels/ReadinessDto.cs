@@ -12,19 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.V0_4.DtoModels;
-using Etherna.Beehive.Areas.Api.V0_4.InputModels;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace Etherna.Beehive.Areas.Api.V0_4.Services
+namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public interface INodesControllerService
+    public class ReadinessDto(string status, string version, string apiVersion)
     {
-        Task AddBeeNodeAsync(BeeNodeInput nodeInput);
-        Task<BeeNodeDto> FindByIdAsync(string id);
-        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync();
-        Task RemoveBeeNodeAsync(string id);
-        Task UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
+        public string Status { get; } = status;
+        public string Version { get; } = version;
+        public string ApiVersion { get; } = apiVersion;
     }
 }

@@ -15,6 +15,8 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
@@ -34,33 +36,69 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         
         [HttpGet]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<BeePinsDto> GetPinsBeeAsync() =>
+        [ProducesResponseType(typeof(BeePinsDto), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetPinsBeeAsync() =>
             service.GetPinsBeeAsync();
         
         [HttpGet("~/ev1/pins")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<IEnumerable<BeehivePinDto>> GetPinsBeehiveAsync(
+        [ProducesResponseType(typeof(IEnumerable<BeehivePinDto>), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetPinsBeehiveAsync(
             [Range(0, int.MaxValue)] int page,
             [Range(1, 10000)] int take = 500) =>
             service.GetPinsBeehiveAsync(page, take);
+        
+        [HttpGet("{*hash:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetPinStatusBeeAsync(
+            SwarmHash hash) =>
+            service.GetPinStatusBeeAsync(hash);
+        
+        [HttpGet("~/ev1/pins/{*hash:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(BeehivePinDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetPinStatusBeehiveAsync(
+            SwarmHash hash) =>
+            service.GetPinStatusBeehiveAsync(hash);
         
         // Post.
 
         [HttpPost("{hash}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task CreatePinBeeAsync(string hash) =>
-            service.CreatePinBeeAsync(hash);
+        public Task<IActionResult> CreatePinBeeAsync(
+            SwarmHash hash,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
+            service.CreatePinBeeAsync(hash, encryptionKey, recursiveEncryption);
 
         [HttpPost("~/ev1/pins/{hash}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task CreatePinBeehiveAsync(string hash) =>
-            service.CreatePinBeehiveAsync(hash);
+        public Task CreatePinBeehiveAsync(
+            SwarmHash hash,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
+            service.CreatePinBeehiveAsync(hash, encryptionKey, recursiveEncryption);
+        
+        // Delete.
+        
+        [HttpDelete("{hash}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> DeletePinAsync(
+            SwarmHash hash,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
+            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
+            service.DeletePinAsync(hash, encryptionKey, recursiveEncryption);
     }
 }

@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Results;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
@@ -20,6 +21,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Models;
+using Etherna.MongODM.Core.Serialization.Modifiers;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -34,7 +36,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public class BytesControllerService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IDataService dataService,
-        IBeehiveDbContext dbContext)
+        IBeehiveDbContext dbContext,
+        ISerializerModifierAccessor serializerModifierAccessor)
         : IBytesControllerService
     {
         // Methods.
@@ -43,14 +46,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             XorEncryptKey? encryptionKey,
             bool recursiveEncryption)
         {
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
-            var chunkJoiner = new ChunkJoiner(chunkStore);
-            var dataStream = await chunkJoiner.GetJoinedChunkDataAsync(new SwarmChunkReference(
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+            var dataStream = await ChunkDataStream.BuildNewAsync(new SwarmChunkReference(
                 hash,
                 encryptionKey,
-                recursiveEncryption));
+                recursiveEncryption), chunkStore);
 
-            return new FileStreamResult(dataStream, BeehiveHttpConsts.OctetStreamContentType);
+            return new FileStreamResult(dataStream, BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
 
         public async Task<IActionResult> GetBytesHeadersAsync(
@@ -59,10 +61,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         {
             ArgumentNullException.ThrowIfNull(response, nameof(response));
             
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var chunk = await chunkStore.GetAsync(hash);
             if (chunk is not SwarmCac cac) //bytes can only read from cac
-                return new BadRequestResult();
+                return new BeeBadRequestResult();
 
             response.Headers.Append(
                 CorsConstants.AccessControlExposeHeaders, new StringValues(
@@ -71,7 +73,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     HeaderNames.ContentEncoding
                 ]));
             response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
-            response.ContentType = BeehiveHttpConsts.OctetStreamContentType;
+            response.ContentType = BeehiveHttpConsts.ApplicationOctetStreamContentType;
 
             return new OkResult();
         }

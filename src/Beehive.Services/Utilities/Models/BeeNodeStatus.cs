@@ -12,10 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Etherna.Beehive.Services.Utilities.Models
 {

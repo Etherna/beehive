@@ -25,7 +25,6 @@ namespace Etherna.Beehive.Areas.Api
     {
         private readonly string[] servicesSubNamespaces =
         [
-            "Areas.Api.Services",
             "Areas.Api.Bee.Services",
             "Areas.Api.V0_4.Services"
         ];

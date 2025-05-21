@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,14 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Models;
 using Etherna.BeeNet.Models;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Services
+namespace Etherna.Beehive.Services.Domain
 {
-    public interface INodesControllerService_old
+    public interface IPinService
     {
-        Task<bool> CheckResourceAvailabilityFromNodeAsync(string id, SwarmHash hash);
-        Task ReuploadResourceToNetworkFromNodeAsync(string id, SwarmHash hash);
+        Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
+            string chunkPinId,
+            bool exclusiveAccess);
+
+        Task<bool> IsLockedAsync(string chunkPinId);
+        
+        Task<bool> TryDeletePinAsync(SwarmChunkReference pinReference);
     }
 }

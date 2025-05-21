@@ -15,11 +15,13 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
@@ -38,40 +40,61 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IResult> DownloadChunkAsync(SwarmHash hash) =>
+        public Task<IActionResult> DownloadChunkAsync(SwarmHash hash) =>
             service.DownloadChunkAsync(hash);
+        
+        // Head.
+        
+        [HttpHead("{*hash:minlength(1)}")]
+        [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetChunkHeadersAsync(
+            SwarmHash hash) =>
+            service.GetChunkHeadersAsync(hash);
 
         // Post.
 
         [HttpPost]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         [RequireAtLeastOneHeader(
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
-        [RequestSizeLimit(SwarmSoc.MaxSocSize)]
+        [RequestSizeLimit(SwarmCac.SpanDataSize)]
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> UploadChunkAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp) =>
-            service.UploadChunkAsync(batchId, postageStamp, HttpContext);
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
+            [FromBody, Required] Stream dataStream) =>
+            service.UploadChunkAsync(dataStream, batchId, postageStamp);
 
         [Obsolete("Used with BeeTurbo")]
         [HttpPost("~/chunks/bulk-upload")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task BulkUploadChunksBeeTurboAsync(
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.BulkUploadChunksAsync(batchId, HttpContext);
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [RequestSizeLimit(100 * 1024 * 1024)] //100MB
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
+        public Task<IActionResult> BulkUploadChunksBeeTurboAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
+            [FromBody, Required] Stream dataStream) =>
+            service.BulkUploadChunksAsync(dataStream, batchId);
 
         [HttpPost("~/ev1/chunks/bulk-upload")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public Task BulkUploadChunksAsync(
-            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId) =>
-            service.BulkUploadChunksAsync(batchId, HttpContext);
+        [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [RequestSizeLimit(100 * 1024 * 1024)] //100MB
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
+        public Task<IActionResult> BulkUploadChunksAsync(
+            [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
+            [FromBody, Required] Stream dataStream) =>
+            service.BulkUploadChunksAsync(dataStream, batchId);
     }
 }

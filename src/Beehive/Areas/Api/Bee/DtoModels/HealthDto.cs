@@ -12,15 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Threading.Tasks;
-
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public class UnpinChunksTask : IUnpinChunksTask
+    public class HealthDto(string status, string version, string apiVersion)
     {
-        public Task RunAsync(string chunkPinId)
-        {
-            throw new System.NotImplementedException();
-        }
+        public string Status { get; } = status;
+        public string Version { get; } = version;
+        public string ApiVersion { get; } = apiVersion;
     }
 }

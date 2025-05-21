@@ -12,19 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.V0_4.DtoModels;
-using Etherna.Beehive.Areas.Api.V0_4.InputModels;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Etherna.Beehive.Areas.Api.V0_4.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
-    public interface INodesControllerService
+    public class ReadinessControllerService : IReadinessControllerService
     {
-        Task AddBeeNodeAsync(BeeNodeInput nodeInput);
-        Task<BeeNodeDto> FindByIdAsync(string id);
-        Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync();
-        Task RemoveBeeNodeAsync(string id);
-        Task UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
+        public IActionResult GetReadinessStatus() =>
+            new JsonResult(new ReadinessDto(
+                "ready",
+                typeof(ReadinessControllerService).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+                "beehive-0.0.0"));
     }
 }

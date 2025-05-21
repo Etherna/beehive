@@ -17,21 +17,20 @@
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
-    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.0-alpha.227" />
-    <PackageReference Include="EthernaACR" Version="0.4.0-alpha.61" />
-    <PackageReference Include="GitVersion.MsBuild" Version="6.2.0">
+    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.0-alpha.266" />
+    <PackageReference Include="EthernaACR" Version="0.4.0-alpha.62" />
+    <PackageReference Include="GitVersion.MsBuild" Version="6.3.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MongODM" Version="0.25.0-alpha.26" />
-    <PackageReference Include="MongODM.AspNetCore.UI" Version="0.25.0-alpha.26" />
+    <PackageReference Include="MongODM" Version="0.25.0-alpha.32" />
+    <PackageReference Include="MongODM.AspNetCore.UI" Version="0.25.0-alpha.32" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Exceptions" Version="8.4.0" />
     <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
-    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>

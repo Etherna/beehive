@@ -36,16 +36,12 @@ namespace Etherna.Beehive.Areas.Api.V0_4.Controllers
         /// <summary>
         /// Get list of registered bee nodes
         /// </summary>
-        /// <param name="page">Current page of results</param>
-        /// <param name="take">Number of items to retrieve. Max 100</param>
         /// <response code="200">Current page on list</response>
         [HttpGet]
         [SimpleExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync(
-            [Range(0, int.MaxValue)] int page,
-            [Range(1, 10000)] int take = 500) =>
-            service.GetBeeNodesAsync(page, take);
+        public Task<IEnumerable<BeeNodeDto>> GetBeeNodesAsync() =>
+            service.GetBeeNodesAsync();
 
         /// <summary>
         /// Get node info by its id

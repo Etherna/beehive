@@ -15,10 +15,12 @@
 using Etherna.Beehive.Areas.Api.Bee.DtoModels;
 using Etherna.Beehive.Areas.Api.Bee.Services;
 using Etherna.Beehive.Attributes;
+using Etherna.Beehive.Configs;
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.Bee.Controllers
@@ -54,20 +56,22 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             SwarmHttpConsts.SwarmPostageBatchIdHeader,
             SwarmHttpConsts.SwarmPostageStampHeader)]
         [RequestSizeLimit(SwarmCac.SpanDataSize)]
+        [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> UploadSocAsync(
             EthAddress owner,
             SwarmSocIdentifier id,
             [FromQuery(Name = "sig"), Required] string signature,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader)] PostageBatchId? batchId,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp,
-            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent) =>
+            [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
+            [FromBody, Required] Stream dataStream) =>
             service.UploadSocAsync(
                 owner,
                 id,
                 signature,
                 batchId,
                 postageStamp,
-                HttpContext.Request.Body,
+                dataStream,
                 pinContent);
     }
 }

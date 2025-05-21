@@ -12,20 +12,30 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.Bee.Services;
+using Etherna.Beehive.Attributes;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 {
-    public interface IPinsControllerService
+    [ApiController]
+    [ApiExplorerSettings(GroupName = "Bee")]
+    [Route("health")]
+    [Route("v{api-version:apiVersion}/health")]
+    public class HealthController(IHealthControllerService service)
+        : ControllerBase
     {
-        Task<IActionResult> CreatePinBeeAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
-        Task CreatePinBeehiveAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
-        Task<IActionResult> DeletePinAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
-        Task<IActionResult> GetPinsBeeAsync();
-        Task<IActionResult> GetPinsBeehiveAsync(int page, int take);
-        Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash);
-        Task<IActionResult> GetPinStatusBeehiveAsync(SwarmHash hash);
+        // Get.
+        
+        /// <summary>
+        /// Get node overall health Status
+        /// </summary>
+        [HttpGet]
+        [BeeExceptionFilter]
+        [ProducesResponseType(typeof(HealthDto), StatusCodes.Status200OK)]
+        public IActionResult GetHealthStatus() =>
+            service.GetHealthStatus();
     }
 }
