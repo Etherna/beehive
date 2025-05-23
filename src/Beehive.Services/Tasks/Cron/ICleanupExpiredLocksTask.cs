@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,14 +15,11 @@
 using Hangfire;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
-    /// <summary>
-    /// Deposit BZZ and xDai on nodes' addresses when under a min limit.
-    /// </summary>
-    public interface INodesAddressMaintainerTask
+    public interface ICleanupExpiredLocksTask
     {
-        [Queue(Queues.NODE_MAINTENANCE)]
+        [Queue(Queues.DB_MAINTENANCE)]
         Task RunAsync();
     }
 }

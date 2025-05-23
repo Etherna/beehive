@@ -24,7 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Trigger
 {
     public class PinChunksTask(
         IBeeNodeLiveManager beeNodeLiveManager,

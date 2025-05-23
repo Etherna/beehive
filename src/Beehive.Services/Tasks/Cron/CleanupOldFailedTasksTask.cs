@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
     public class CleanupOldFailedTasksTask(ILogger<CleanupOldFailedTasksTask> logger)
         : ICleanupOldFailedTasksTask

@@ -13,7 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Services.Domain;
-using Etherna.Beehive.Services.Tasks;
+using Etherna.Beehive.Services.Tasks.Cron;
+using Etherna.Beehive.Services.Tasks.Trigger;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.DomainEvents;
 using Etherna.DomainEvents.AspNetCore;

@@ -24,7 +24,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
     public class CashoutAllNodesChequesTask(
         IBeeNodeLiveManager liveManager,

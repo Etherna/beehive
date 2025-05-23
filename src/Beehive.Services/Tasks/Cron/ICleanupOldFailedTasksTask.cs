@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,14 +15,14 @@
 using Hangfire;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
     /// <summary>
-    /// Deposit or withdraw funds from chequebooks of maintained nodes, when they pass min or max limits.
+    /// Delete failed tasks older than a month from Hangfire
     /// </summary>
-    public interface INodesChequebookMaintainerTask
+    public interface ICleanupOldFailedTasksTask
     {
-        [Queue(Queues.NODE_MAINTENANCE)]
+        [Queue(Queues.DB_MAINTENANCE)]
         Task RunAsync();
     }
 }

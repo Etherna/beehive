@@ -13,23 +13,26 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using System;
 
 namespace Etherna.Beehive.Domain.Models
 {
-    public class UploadedChunkRef : EntityModelBase<string>
+    public class PushingChunkRef : EntityModelBase<string>
     {
         // Constructors.
-        public UploadedChunkRef(SwarmHash hash, PostageBatchId batchId)
+        public PushingChunkRef(SwarmHash hash, PostageBatchId batchId)
         {
             Hash = hash;
             BatchId = batchId;
         }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected UploadedChunkRef() { }
+        protected PushingChunkRef() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         
         // Properties.
         public virtual PostageBatchId BatchId { get; protected set; }
+        public virtual int FailedAttempts { get; protected set; }
+        public virtual DateTime? HandledDateTime { get; protected set; }
         public virtual SwarmHash Hash { get; protected set; }
     }
 }

@@ -31,6 +31,8 @@ using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services;
 using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
+using Etherna.Beehive.Services.Tasks.Background;
+using Etherna.Beehive.Services.Tasks.Cron;
 using Etherna.BeeNet.AspNet;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
@@ -273,6 +275,9 @@ namespace Etherna.Beehive
 
             // Configure domain services.
             services.AddDomainServices();
+            
+            // Configure background services.
+            services.AddHostedService<PushChunksBackgroundService>();
         }
 
         private static void ConfigureApplication(WebApplication app)

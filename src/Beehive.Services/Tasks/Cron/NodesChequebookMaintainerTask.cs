@@ -22,7 +22,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
     public class NodesChequebookMaintainerTask : INodesChequebookMaintainerTask
     {

@@ -1,4 +1,4 @@
-// Copyright 2021-present Etherna SA
+﻿// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,18 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
+using Hangfire;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Persistence.ModelMaps
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
-    internal sealed class UploadedChunkRefMap : IModelMapsCollector
+    /// <summary>
+    /// Cash out all cheques from other nodes in the Swarm network, when total cheques with it pass over a limit.
+    /// </summary>
+    public interface ICashoutAllNodesChequesTask
     {
-        public void Register(IDbContext dbContext)
-        {
-            dbContext.MapRegistry.AddModelMap<PushingChunkRef>(
-                "30e3473f-5d56-4821-9c66-aa8922b46942"); //v0.4.0
-        }
+        [Queue(Queues.NODE_MAINTENANCE)]
+        Task RunAsync();
     }
 }
