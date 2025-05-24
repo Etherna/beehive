@@ -277,7 +277,11 @@ namespace Etherna.Beehive
             services.AddDomainServices();
             
             // Configure background services.
-            services.AddHostedService<PushChunksBackgroundService>();
+            //push chunks
+            if (!bool.TryParse(config["PushChunks:Enabled"], out var enablePushChunks))
+                enablePushChunks = true;
+            if (enablePushChunks)
+                services.AddHostedService<PushChunksBackgroundService>();
         }
 
         private static void ConfigureApplication(WebApplication app)

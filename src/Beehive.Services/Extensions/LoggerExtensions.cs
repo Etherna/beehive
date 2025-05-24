@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 19
+     * Last event id is: 21
      */
     public static class LoggerExtensions
     {
@@ -32,6 +32,18 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Debug,
                 new EventId(19, nameof(NoChunksToPush)),
                 "No chunks to push");
+        
+        private static readonly Action<ILogger, SwarmHash, Exception> _succededToPushCac =
+            LoggerMessage.Define<SwarmHash>(
+                LogLevel.Debug,
+                new EventId(20, nameof(SucceededToPushCac)),
+                "Succeeded to push Cac with hash {Hash}");
+        
+        private static readonly Action<ILogger, SwarmHash, Exception> _succededToPushSoc =
+            LoggerMessage.Define<SwarmHash>(
+                LogLevel.Debug,
+                new EventId(21, nameof(SucceededToPushSoc)),
+                "Succeeded to push Soc with hash {Hash}");
 
         //*** INFORMATION LOGS ***
         private static readonly Action<ILogger, long, Exception> _cleanupOldFailedTasksTaskCompleted =
@@ -204,6 +216,12 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void SuccededToFundXDaiOnNodeAddress(this ILogger logger, string nodeId, XDaiBalance xDaiFunded, XDaiBalance xDaiTotal, string txHash) =>
             _succededToFundXDaiOnNodeAddress(logger, nodeId, xDaiFunded, xDaiTotal, txHash, null!);
+        
+        public static void SucceededToPushCac(this ILogger logger, SwarmHash hash) =>
+            _succededToPushCac(logger, hash, null!);
+        
+        public static void SucceededToPushSoc(this ILogger logger, SwarmHash hash) =>
+            _succededToPushSoc(logger, hash, null!);
 
         public static void SuccededToWithdrawBzzOnNodeChequeBook(this ILogger logger, string nodeid, BzzBalance bzzWithdraw, string txHash) =>
             _succededToWithdrawBzzOnNodeChequeBook(logger, nodeid, bzzWithdraw, txHash, null!);

@@ -21,6 +21,8 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.MongODM.Core.Utility;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -35,14 +37,17 @@ namespace Etherna.Beehive.Services.Tasks.Background
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         ILogger<PushChunksBackgroundService> logger,
-        IPostageBatchService postageBatchService,
-        ISerializerModifierAccessor serializerModifierAccessor)
+        ISerializerModifierAccessor serializerModifierAccessor,
+        IServiceScopeFactory serviceScopeFactory)
         : BackgroundService
     {
         // Consts.
         private const int MaxFailedAttempts = 100;
-        private readonly TimeSpan ProcessInterval = TimeSpan.FromMilliseconds(1000);
-        private readonly TimeSpan RetryChunkAfter = TimeSpan.FromSeconds(60);
+        
+        // Fields.
+        private IPostageBatchService postageBatchService = null!;
+        private readonly TimeSpan processInterval = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan retryChunkAfter = TimeSpan.FromSeconds(60);
         
         // Protected methods.
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,28 +55,32 @@ namespace Etherna.Beehive.Services.Tasks.Background
             logger.PushChunksBackgroundServiceStarted();
 
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            while (!stoppingToken.IsCancellationRequested)
+            using var scope = serviceScopeFactory.CreateScope();
+            postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
+            using (var _ = new DbExecutionContextHandler(dbContext))
             {
-                try
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    await ProcessWorkAsync(chunkStore, stoppingToken);
-                }
-                catch (OperationCanceledException)
-                { }
-                catch (Exception ex)
-                {
-                    logger.UnhandledExceptionPushingChunksToNode(ex);
-                }
+                    try
+                    {
+                        while (await TryProcessWorkAsync(chunkStore, stoppingToken)) { }
+                    }
+                    catch (OperationCanceledException) { }
+                    catch (Exception ex)
+                    {
+                        logger.UnhandledExceptionPushingChunksToNode(ex);
+                    }
 
-                if (!stoppingToken.IsCancellationRequested)
-                    await Task.Delay(ProcessInterval, stoppingToken);
+                    if (!stoppingToken.IsCancellationRequested)
+                        await Task.Delay(processInterval, stoppingToken);
+                }
             }
-            
+
             logger.PushChunksBackgroundServiceStopped();
         }
 
         // Helpers.
-        private async Task ProcessWorkAsync(
+        private async Task<bool> TryProcessWorkAsync(
             BeehiveChunkStore chunkStore,
             CancellationToken cancellationToken)
         {
@@ -81,7 +90,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
             if (chunkRef is null)
             {
                 logger.NoChunksToPush();
-                return;   
+                return false;   
             }
 
             // Identify the node owner of the postage batch.
@@ -99,21 +108,24 @@ namespace Etherna.Beehive.Services.Tasks.Background
                         Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, DateTime.UtcNow)),
                     cancellationToken: cancellationToken);
 
-                return;
+                return false;
             }
 
             // Try to push chunk.
             if (!await TryPushChunkAsync(chunkStore, chunkRef, ownerNode, cancellationToken))
-                return;
+                return false;
             
             // While pushes succeed, try to process also all other chunks enqueued with the same postage batch.
             // This helps to reduce the postage batch lookup on the owner node.
             while (true)
             {
                 chunkRef = await TryFindNextChunkRefAsync(chunkRef.BatchId, DateTime.UtcNow, cancellationToken);
-                if (chunkRef is null ||
-                    !await TryPushChunkAsync(chunkStore, chunkRef, ownerNode, cancellationToken))
-                    return;
+                
+                if (chunkRef is null)
+                    return true;
+
+                if (!await TryPushChunkAsync(chunkStore, chunkRef, ownerNode, cancellationToken))
+                    return false;
             }
         }
 
@@ -136,15 +148,22 @@ namespace Etherna.Beehive.Services.Tasks.Background
                             cac,
                             chunkRef.BatchId,
                             cancellationToken: cancellationToken);
+                
+                        logger.SucceededToPushCac(chunkRef.Hash);
                         break;
                     case SwarmSoc soc:
                         await ownerNode.Client.UploadSocAsync(
                             soc,
                             chunkRef.BatchId,
                             cancellationToken: cancellationToken);
+                
+                        logger.SucceededToPushSoc(chunkRef.Hash);
                         break;
                     default: throw new InvalidOperationException("Unknown chunk type");
                 }
+                
+                // Dequeue chunk ref.
+                await dbContext.ChunkPushQueue.DeleteAsync(chunkRef, cancellationToken: cancellationToken);
                 
                 return true;
             }
@@ -170,10 +189,10 @@ namespace Etherna.Beehive.Services.Tasks.Background
             var filter = filterOnBatchId.HasValue
                 ? new ExpressionFilterDefinition<PushingChunkRef>(r =>
                     r.BatchId == filterOnBatchId &&
-                    (r.HandledDateTime == null || r.HandledDateTime <= now - RetryChunkAfter) &&
+                    (r.HandledDateTime == null || r.HandledDateTime <= now - retryChunkAfter) &&
                     r.FailedAttempts < MaxFailedAttempts)
                 : new ExpressionFilterDefinition<PushingChunkRef>(r =>
-                    (r.HandledDateTime == null || r.HandledDateTime <= now - RetryChunkAfter) &&
+                    (r.HandledDateTime == null || r.HandledDateTime <= now - retryChunkAfter) &&
                     r.FailedAttempts < MaxFailedAttempts);
             
             return await dbContext.ChunkPushQueue.FindOneAndUpdateAsync(
