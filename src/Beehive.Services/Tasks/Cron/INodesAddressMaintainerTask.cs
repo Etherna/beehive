@@ -15,12 +15,12 @@
 using Hangfire;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
     /// <summary>
-    /// Cash out all cheques from other nodes in the Swarm network, when total cheques with it pass over a limit.
+    /// Deposit BZZ and xDai on nodes' addresses when under a min limit.
     /// </summary>
-    public interface ICashoutAllNodesChequesTask
+    public interface INodesAddressMaintainerTask
     {
         [Queue(Queues.NODE_MAINTENANCE)]
         Task RunAsync();

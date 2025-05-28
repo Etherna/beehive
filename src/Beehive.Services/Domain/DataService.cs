@@ -96,7 +96,7 @@ namespace Etherna.Beehive.Services.Domain
             }
 
             // Upload.
-            ConcurrentBag<UploadedChunkRef> chunkRefs = [];
+            ConcurrentBag<PushingChunkRef> chunkRefs = [];
             SwarmChunkReference hashingResult;
             await using (
                 var dbChunkStore = new BeehiveChunkStore(

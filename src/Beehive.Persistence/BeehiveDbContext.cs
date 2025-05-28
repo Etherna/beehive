@@ -69,8 +69,16 @@ namespace Etherna.Beehive.Persistence
                         new CreateIndexOptions<ChunkPin>())
                 ]
             });
-        public IRepository<UploadedChunkRef, string> ChunkPushQueue { get; } =
-            new Repository<UploadedChunkRef, string>("chunkPushQueue");
+        public IRepository<PushingChunkRef, string> ChunkPushQueue { get; } =
+            new Repository<PushingChunkRef, string>(new RepositoryOptions<PushingChunkRef>("chunkPushQueue")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PushingChunkRef>.IndexKeys.Ascending(r => r.BatchId), new CreateIndexOptions<PushingChunkRef>()),
+                    (Builders<PushingChunkRef>.IndexKeys.Ascending(r => r.FailedAttempts), new CreateIndexOptions<PushingChunkRef>()),
+                    (Builders<PushingChunkRef>.IndexKeys.Ascending(r => r.HandledDateTime), new CreateIndexOptions<PushingChunkRef>())
+                ]
+            });
         public IRepository<Chunk, string> Chunks { get; } =
             new Repository<Chunk, string>(new RepositoryOptions<Chunk>("chunks")
             {

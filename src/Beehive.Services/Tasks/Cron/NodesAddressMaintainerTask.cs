@@ -28,7 +28,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Cron
 {
     public class NodesAddressMaintainerTask : INodesAddressMaintainerTask, IDisposable
     {

@@ -15,7 +15,7 @@
 using Hangfire;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Services.Tasks
+namespace Etherna.Beehive.Services.Tasks.Trigger
 {
     public interface IPinChunksTask
     {

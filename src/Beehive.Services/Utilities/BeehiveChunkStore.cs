@@ -327,7 +327,7 @@ namespace Etherna.Beehive.Services.Utilities
             var chunk = await node.ChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
             
             // Save in local db. Force flush on db now.
-            //flush is required, for example, by pinning, that needs to update chunk's pin reference on db.
+            //flush is required by pinning that needs to update chunk's pin reference on db.
             await SaveChunkAsync(chunk);
             await FlushSaveAsync();
             

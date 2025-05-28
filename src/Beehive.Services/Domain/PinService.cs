@@ -63,7 +63,7 @@ namespace Etherna.Beehive.Services.Domain
             
             // Delete it, and then remove references from chunks.
             await dbContext.ChunkPins.DeleteAsync(pin);
-            await dbContext.Chunks.UpdateMany(
+            await dbContext.Chunks.UpdateManyAsync(
                 c => c.Pins.Any(p => p.Id == pin.Id),
                 Builders<Chunk>.Update.PullFilter(c => c.Pins, p => p.Id == pin.Id));
             
