@@ -18,6 +18,7 @@ using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
+using Etherna.BeeNet.Exceptions;
 using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Serialization.Modifiers;
@@ -57,29 +58,38 @@ namespace Etherna.Beehive.Services.Tasks.Background
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             using var scope = serviceScopeFactory.CreateScope();
             postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
-            using (var _ = new DbExecutionContextHandler(dbContext))
+            using var _ = new DbExecutionContextHandler(dbContext);
+            while (!stoppingToken.IsCancellationRequested)
             {
-                while (!stoppingToken.IsCancellationRequested)
+                try
                 {
-                    try
-                    {
-                        while (await TryProcessWorkAsync(chunkStore, stoppingToken)) { }
-                    }
-                    catch (OperationCanceledException) { }
-                    catch (Exception ex)
-                    {
-                        logger.UnhandledExceptionPushingChunksToNode(ex);
-                    }
-
-                    if (!stoppingToken.IsCancellationRequested)
-                        await Task.Delay(processInterval, stoppingToken);
+                    while (await TryProcessWorkAsync(chunkStore, stoppingToken)) { }
                 }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    logger.UnhandledExceptionPushingChunksToNode(ex);
+                }
+
+                if (!stoppingToken.IsCancellationRequested)
+                    await Task.Delay(processInterval, stoppingToken);
             }
 
             logger.PushChunksBackgroundServiceStopped();
         }
 
         // Helpers.
+        private async Task ReportPostageBatchUploadFailureAsync(
+            PostageBatchId batchId,
+            CancellationToken cancellationToken)
+        {
+            await dbContext.ChunkPushQueue.UpdateManyAsync(r => r.BatchId == batchId,
+                Builders<PushingChunkRef>.Update.Combine(
+                    Builders<PushingChunkRef>.Update.Inc(r => r.FailedAttempts, 1),
+                    Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, DateTime.UtcNow)),
+                cancellationToken: cancellationToken);
+        }
+        
         private async Task<bool> TryProcessWorkAsync(
             BeehiveChunkStore chunkStore,
             CancellationToken cancellationToken)
@@ -102,11 +112,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
 
                 // Because this error involves all the chunks with the same postage batch,
                 // report the error on all of them.
-                await dbContext.ChunkPushQueue.UpdateManyAsync(r => r.BatchId == chunkRef.BatchId,
-                    Builders<PushingChunkRef>.Update.Combine(
-                        Builders<PushingChunkRef>.Update.Inc(r => r.FailedAttempts, 1),
-                        Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, DateTime.UtcNow)),
-                    cancellationToken: cancellationToken);
+                await ReportPostageBatchUploadFailureAsync(chunkRef.BatchId, cancellationToken);
 
                 return false;
             }
@@ -148,7 +154,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
                             cac,
                             chunkRef.BatchId,
                             cancellationToken: cancellationToken);
-                
+
                         logger.SucceededToPushCac(chunkRef.Hash);
                         break;
                     case SwarmSoc soc:
@@ -156,16 +162,25 @@ namespace Etherna.Beehive.Services.Tasks.Background
                             soc,
                             chunkRef.BatchId,
                             cancellationToken: cancellationToken);
-                
+
                         logger.SucceededToPushSoc(chunkRef.Hash);
                         break;
                     default: throw new InvalidOperationException("Unknown chunk type");
                 }
-                
+
                 // Dequeue chunk ref.
                 await dbContext.ChunkPushQueue.DeleteAsync(chunkRef, cancellationToken: cancellationToken);
-                
+
                 return true;
+            }
+            catch (BeeNetApiException e) when (e.StatusCode == 404)
+            {
+                logger.PostageBatchNotFound(chunkRef.BatchId);
+                logger.FailedToPushChunk(chunkRef.Hash, e);
+
+                await ReportPostageBatchUploadFailureAsync(chunkRef.BatchId, cancellationToken);
+
+                return false;
             }
             catch (Exception e)
             {

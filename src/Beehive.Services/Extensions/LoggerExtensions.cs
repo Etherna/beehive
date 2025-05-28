@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 21
+     * Last event id is: 22
      */
     public static class LoggerExtensions
     {
@@ -119,6 +119,12 @@ namespace Etherna.Beehive.Services.Extensions
                 "Node {BeeNodeId} chequebook sent withdraw of {BzzAmount} BZZ with tx hash {TxHash}");
 
         //*** WARNING LOGS ***
+        private static readonly Action<ILogger, PostageBatchId, Exception> _postageBatchNotFound =
+            LoggerMessage.Define<PostageBatchId>(
+                LogLevel.Warning,
+                new EventId(22, nameof(PostageBatchNotFound)),
+                "Postage Batch with Id {PostageBatchId} not found");
+        
         private static readonly Action<ILogger, PostageBatchId, Exception> _postageBatchOwnerNodeNotFound =
             LoggerMessage.Define<PostageBatchId>(
                 LogLevel.Warning,
@@ -198,6 +204,9 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void NodeRemoved(this ILogger logger, string beeNodeId) =>
             _nodeRemoved(logger, beeNodeId, null!);
+
+        public static void PostageBatchNotFound(this ILogger logger, PostageBatchId batchId) =>
+            _postageBatchNotFound(logger, batchId, null!);
 
         public static void PostageBatchOwnerNodeNotFound(this ILogger logger, PostageBatchId batchId) =>
             _postageBatchOwnerNodeNotFound(logger, batchId, null!);
