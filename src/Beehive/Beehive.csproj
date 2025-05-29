@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Etherna.Beehive</RootNamespace>
+    
+    <Authors>Etherna SA</Authors>
+    <Description>An utility for manage a cluster of Bee nodes</Description>
+    
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+    <PackageReference Include="Bee.Net.Core.AspNet" Version="0.4.1" />
+    <PackageReference Include="EthernaACR" Version="0.4.0-alpha.62" />
+    <PackageReference Include="GitVersion.MsBuild" Version="6.3.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="MongODM" Version="0.25.0-alpha.34" />
+    <PackageReference Include="MongODM.AspNetCore.UI" Version="0.25.0-alpha.34" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Exceptions" Version="8.4.0" />
+    <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Beehive.Domain\Beehive.Domain.csproj" />
+    <ProjectReference Include="..\Beehive.Persistence\Beehive.Persistence.csproj" />
+    <ProjectReference Include="..\Beehive.Services\Beehive.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\COPYING" />
+    <None Include="..\..\README.md" />
+  </ItemGroup>
+
+</Project>

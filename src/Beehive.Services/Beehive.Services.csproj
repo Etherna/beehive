@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Etherna.Beehive.Services</RootNamespace>
+
+    <Authors>Etherna SA</Authors>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+
+    <NoWarn>NU1902;NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bee.Net.Client" Version="0.4.1" />
+    <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.5.0" />
+    <PackageReference Include="MongODM.Hangfire" Version="0.25.0-alpha.34" />
+    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="5.0.0" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Beehive.Domain\Beehive.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

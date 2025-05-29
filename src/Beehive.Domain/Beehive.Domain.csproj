@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Etherna.Beehive.Domain</RootNamespace>
+
+    <Authors>Etherna SA</Authors>
+    
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    
+    <NoWarn>NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bee.Net.Core" Version="0.4.1" />
+    <PackageReference Include="Etherna.DomainEvents" Version="1.5.0" />
+    <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.34" />
+    <PackageReference Include="Nethereum.Web3" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>

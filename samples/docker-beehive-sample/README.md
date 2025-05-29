@@ -2,7 +2,7 @@ Execute the sample
 ==================
 
 Environment has been built with `docker-compose`.  
-It created a MongoDB and a Beehive Manager instance with a dedicated shared network.
+It created a MongoDB and a Beehive instance with a dedicated shared network.
 
 Run it with:
 
@@ -19,7 +19,7 @@ Configuration
 
 Application can be configured using environement variables:
 
-* `ConnectionStrings__BeehiveManagerDb`: application's main db connection string
+* `ConnectionStrings__BeehiveDb`: application's main db connection string
 * `ConnectionStrings__HangfireDb`: async engine db connection string
 * `ConnectionStrings__SystemDb`: system configuration db connection string
 
