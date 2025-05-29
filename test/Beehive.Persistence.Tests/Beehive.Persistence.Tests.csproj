@@ -28,4 +28,10 @@
     <ProjectReference Include="..\..\src\Beehive.Persistence\Beehive.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="TxtDocuments\38f60c18-d20c-4d24-a619-2af9d7a5119f">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
