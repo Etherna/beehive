@@ -85,7 +85,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             if (!batchId.HasValue && postageStamp == null)
                 throw new ArgumentNullException(nameof(batchId), "Batch id or postage stamp are required");
-            if (batchId.HasValue && postageStamp != null && batchId.Value != postageStamp.BatchId)
+            if (batchId.HasValue && postageStamp != null && batchId.Value != postageStamp.Value.BatchId)
                 throw new ArgumentException("Postage batch Id doesn't match with postage stamp's batch Id");
             
             // Read data.
@@ -133,7 +133,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     ? null
                     : new Dictionary<SwarmHash, PostageStamp>
                     {
-                        [soc.Hash] = postageStamp
+                        [soc.Hash] = postageStamp.Value
                     });
 
             return new JsonResult(new SimpleChunkReferenceDto(chunkReference.Hash))

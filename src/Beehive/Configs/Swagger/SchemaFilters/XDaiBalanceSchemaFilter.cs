@@ -26,7 +26,7 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(XDaiBalance) || context.Type == typeof(XDaiBalance?))
+            if (context.Type == typeof(XDaiValue) || context.Type == typeof(XDaiValue?))
             {
                 schema.Type = "integer";
                 schema.Format = "int64";

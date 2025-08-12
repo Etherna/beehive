@@ -26,7 +26,7 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(BzzBalance) || context.Type == typeof(BzzBalance?))
+            if (context.Type == typeof(BzzValue) || context.Type == typeof(BzzValue?))
             {
                 schema.Type = "integer";
                 schema.Format = "int64";

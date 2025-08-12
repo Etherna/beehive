@@ -31,12 +31,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         // Methods.
         public async Task<IActionResult> BuyPostageBatchAsync(
-            BzzBalance amount,
+            BzzValue amount,
             int depth,
             string? label,
             bool immutable,
             ulong? gasLimit,
-            XDaiBalance? gasPrice)
+            XDaiValue? gasPrice)
         {
             var (batchId, txHash) = await postageBatchService.BuyPostageBatchAsync(
                 amount, depth, label, immutable, gasLimit, gasPrice);
@@ -51,7 +51,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             PostageBatchId batchId,
             int depth,
             ulong? gasLimit,
-            XDaiBalance? gasPrice)
+            XDaiValue? gasPrice)
         {
             var txHash = await postageBatchService.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
             
@@ -112,9 +112,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
         public async Task<IActionResult> TopUpPostageBatchAsync(
             PostageBatchId batchId,
-            BzzBalance amount,
+            BzzValue amount,
             ulong? gasLimit,
-            XDaiBalance? gasPrice)
+            XDaiValue? gasPrice)
         {
             var txHash = await postageBatchService.TopUpPostageBatchAsync(batchId, amount, gasLimit, gasPrice);
             

@@ -155,7 +155,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Recover batch owner, if required.
             EthAddress? owner = null;
             if (postageStamp != null)
-                owner = postageStamp.RecoverBatchOwner(hash, chunkBmt.Hasher);
+                owner = postageStamp.Value.RecoverBatchOwner(hash, chunkBmt.Hasher);
             
             // Store chunk.
             var hashingResult = await dataService.UploadAsync(
@@ -174,7 +174,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     ? null
                     : new Dictionary<SwarmHash, PostageStamp>
                     {
-                        [hash] = postageStamp
+                        [hash] = postageStamp.Value
                     });
             
             return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
