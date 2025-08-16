@@ -59,6 +59,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ConsumesUnrestricted(
             BeehiveHttpConsts.ApplicationOctetStreamContentType,
             BeehiveHttpConsts.ApplicationTarContentType,
