@@ -12,29 +12,23 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.Configs.Swagger
 {
-    public sealed class PostageStampSchemaFilter : ISchemaFilter
+    public class BeehiveDocumentFilter : IDocumentFilter
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            ArgumentNullException.ThrowIfNull(swaggerDoc, nameof(swaggerDoc));
             
-            if (context.Type == typeof(PostageStamp))
-            {
-                schema.Type = "string";
-                schema.Format = null;
-                schema.MinLength = PostageStamp.StampSize * 2;
-                schema.MaxLength = PostageStamp.StampSize * 2;
-                schema.Pattern = $"^[a-fA-F0-9]{{{PostageStamp.StampSize * 2}}}$";
-                schema.Properties.Clear();
-            }
+            // Remove unrequired schemas.
+            swaggerDoc.Components.Schemas.Remove("ByteReadOnlyMemory");
+            swaggerDoc.Components.Schemas.Remove("ByteReadOnlySpan");
+            swaggerDoc.Components.Schemas.Remove("EncryptionKey256");
+            swaggerDoc.Components.Schemas.Remove("PostageBucketIndex");
         }
     }
 }

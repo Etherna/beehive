@@ -206,6 +206,9 @@ namespace Etherna.Beehive
                 //add a custom operation filter which sets default values
                 options.OperationFilter<SwaggerDefaultValuesFilter>();
                 
+                //add document filters
+                options.DocumentFilter<BeehiveDocumentFilter>();
+                
                 //add schema filters
                 options.SchemaFilter<BzzValueSchemaFilter>();
                 options.SchemaFilter<DateTimeOffsetSchemaFilter>();
