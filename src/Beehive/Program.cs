@@ -207,7 +207,7 @@ namespace Etherna.Beehive
                 options.OperationFilter<SwaggerDefaultValuesFilter>();
                 
                 //add schema filters
-                options.SchemaFilter<BzzBalanceSchemaFilter>();
+                options.SchemaFilter<BzzValueSchemaFilter>();
                 options.SchemaFilter<DateTimeOffsetSchemaFilter>();
                 options.SchemaFilter<EthAddressSchemaFilter>();
                 options.SchemaFilter<EthTxHashSchemaFilter>();
@@ -217,13 +217,13 @@ namespace Etherna.Beehive
                 options.SchemaFilter<SwarmFeedTopicSchemaFilter>();
                 options.SchemaFilter<SwarmHashSchemaFilter>();
                 options.SchemaFilter<SwarmOverlayAddressSchemaFilter>();
+                options.SchemaFilter<SwarmReferenceSchemaFilter>();
                 options.SchemaFilter<SwarmSocIdentifierSchemaFilter>();
                 options.SchemaFilter<SwarmSocSignatureSchemaFilter>();
                 options.SchemaFilter<SwarmUriSchemaFilter>();
                 options.SchemaFilter<TagIdSchemaFilter>();
                 options.SchemaFilter<TimeSpanSchemaFilter>();
-                options.SchemaFilter<XDaiBalanceSchemaFilter>();
-                options.SchemaFilter<XorEncryptKeySchemaFilter>();
+                options.SchemaFilter<XDaiValueSchemaFilter>();
 
                 //integrate xml comments
                 var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";

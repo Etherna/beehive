@@ -37,12 +37,12 @@ namespace Etherna.Beehive.Services.Domain
         ISerializerModifierAccessor serializerModifierAccessor)
         : IDataService
     {
-        public async Task<SwarmChunkReference> UploadAsync(
+        public async Task<SwarmReference> UploadAsync(
             PostageBatchId batchId,
             EthAddress? batchOwner,
             bool useChunkCompaction,
             bool pinContent,
-            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> chunkingFuncAsync,
+            Func<IChunkStore, IPostageStamper, Task<SwarmReference>> chunkingFuncAsync,
             IDictionary<SwarmHash, PostageStamp>? presignedPostageStamps = null)
         {
             ArgumentNullException.ThrowIfNull(chunkingFuncAsync, nameof(chunkingFuncAsync));
@@ -97,7 +97,7 @@ namespace Etherna.Beehive.Services.Domain
 
             // Upload.
             ConcurrentBag<PushingChunkRef> chunkRefs = [];
-            SwarmChunkReference hashingResult;
+            SwarmReference rootReference;
             await using (
                 var dbChunkStore = new BeehiveChunkStore(
                     beeNodeLiveManager,
@@ -111,7 +111,7 @@ namespace Etherna.Beehive.Services.Domain
                     }))
             {
                 //create and store chunks
-                hashingResult = await chunkingFuncAsync(dbChunkStore, postageStamper);
+                rootReference = await chunkingFuncAsync(dbChunkStore, postageStamper);
 
                 await dbChunkStore.FlushSaveAsync();
             }
@@ -128,11 +128,11 @@ namespace Etherna.Beehive.Services.Domain
             // Update pin, if required.
             if (pin != null)
             {
-                pin.SucceededProvisional(hashingResult, chunkRefs.Count);
+                pin.UploadSucceeded(rootReference, chunkRefs.Count);
                 await dbContext.SaveChangesAsync();
             }
 
-            return hashingResult;
+            return rootReference;
         }
     }
 }

@@ -41,28 +41,22 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         : IBytesControllerService
     {
         // Methods.
-        public async Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash,
-            XorEncryptKey? encryptionKey,
-            bool recursiveEncryption)
+        public async Task<IActionResult> DownloadBytesAsync(SwarmReference reference)
         {
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            var dataStream = await ChunkDataStream.BuildNewAsync(new SwarmChunkReference(
-                hash,
-                encryptionKey,
-                recursiveEncryption), chunkStore);
+            var dataStream = await ChunkDataStream.BuildNewAsync(reference, chunkStore);
 
             return new FileStreamResult(dataStream, BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
 
         public async Task<IActionResult> GetBytesHeadersAsync(
-            SwarmHash hash,
+            SwarmReference reference,
             HttpResponse response)
         {
             ArgumentNullException.ThrowIfNull(response, nameof(response));
             
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            var chunk = await chunkStore.GetAsync(hash);
+            var chunk = await chunkStore.GetAsync(reference.Hash);
             if (chunk is not SwarmCac cac) //bytes can only read from cac
                 return new BeeBadRequestResult();
 
@@ -82,9 +76,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             Stream dataStream,
             PostageBatchId batchId,
             ushort compactLevel,
+            bool encrypt,
             bool pinContent)
         {
-            var hashingResult = await dataService.UploadAsync(
+            var reference = await dataService.UploadAsync(
                 batchId,
                 null,
                 compactLevel > 0,
@@ -95,16 +90,13 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         chunkStore,
                         postageStamper,
                         RedundancyLevel.None,
-                        false,
+                        encrypt,
                         compactLevel,
                         null);
                     return await fileHasherPipeline.HashDataAsync(dataStream);
                 });
 
-            return new JsonResult(new ChunkReferenceDto(
-                hashingResult.Hash,
-                hashingResult.EncryptionKey,
-                hashingResult.UseRecursiveEncryption))
+            return new JsonResult(new ChunkReferenceDto(reference))
             {
                 StatusCode = StatusCodes.Status201Created
             };

@@ -38,101 +38,85 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinsControllerService
     {
-        public async Task<IActionResult> CreatePinBeeAsync(
-            SwarmHash hash,
-            XorEncryptKey? encryptionKey,
-            bool recursiveEncryption)
+        public async Task<IActionResult> CreatePinBeeAsync(SwarmReference reference)
         {
             // Try create pin.
-            await CreatePinHelperAsync(new SwarmChunkReference(hash, encryptionKey, recursiveEncryption), false);
+            await CreatePinHelperAsync(reference, false);
             
             // Verify pin result.
-            var pin = await dbContext.ChunkPins.FindOneAsync(p =>
-                p.Hash == hash &&
-                p.EncryptionKey == encryptionKey &&
-                p.RecursiveEncryption == recursiveEncryption);
+            var pin = await dbContext.ChunkPins.FindOneAsync(p => p.Reference == reference);
             
             if (pin.IsSucceeded)
                 return new CreatedResult();
             
             // If not succeeded, reverse partial pin removing it.
-            await DeletePinAsync(hash, encryptionKey, recursiveEncryption);
+            await DeletePinAsync(reference);
             
             return new BeeNotFoundResult("pin collection failed");
         }
 
-        public Task CreatePinBeehiveAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption) =>
-            CreatePinHelperAsync(new SwarmChunkReference(hash, encryptionKey, recursiveEncryption), true);
+        public Task CreatePinBeehiveAsync(SwarmReference reference) =>
+            CreatePinHelperAsync(reference, true);
 
-        public async Task<IActionResult> DeletePinAsync(
-            SwarmHash hash,
-            XorEncryptKey? encryptionKey,
-            bool recursiveEncryption) =>
-            await pinService.TryDeletePinAsync(new SwarmChunkReference(hash, encryptionKey, recursiveEncryption))
+        public async Task<IActionResult> DeletePinAsync(SwarmReference reference) =>
+            await pinService.TryDeletePinAsync(reference)
                 ? new OkResult()
                 : new NotFoundResult();
 
         public async Task<IActionResult> GetPinsBeeAsync()
         {
-            var pinnedHashes = await dbContext.ChunkPins.QueryElementsAsync(elements =>
+            var pinnedReferences = await dbContext.ChunkPins.QueryElementsAsync(elements =>
                 elements.Where(p => p.IsProcessed && !p.MissingChunks.Any())
-                    .Where(p => p.Hash.HasValue)
-                    .Select(p => p.Hash!.Value)
+                    .Where(p => p.Reference.HasValue)
+                    .Select(p => p.Reference!.Value)
                     .Distinct()
                     .ToListAsync());
-            return new JsonResult(new BeePinsDto(pinnedHashes));
+            return new JsonResult(new BeePinsDto(pinnedReferences));
         }
 
         public async Task<IActionResult> GetPinsBeehiveAsync(int page, int take)
         {
             var pins = await dbContext.ChunkPins.QueryElementsAsync(elements =>
-                elements.Where(p => p.Hash.HasValue)
+                elements.Where(p => p.Reference.HasValue)
                     .PaginateDescending(p => p.CreationDateTime, page, take)
                     .ToListAsync());
             return new JsonResult(pins.Select(p => new BeehivePinDto(
-                p.Hash!.Value,
+                p.Reference!.Value,
                 p.CreationDateTime,
-                p.EncryptionKey,
                 p.MissingChunks,
                 p.IsProcessed,
-                p.RecursiveEncryption,
                 p.IsSucceeded,
                 p.TotPinnedChunks)));
         }
 
-        public async Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash)
+        public async Task<IActionResult> GetPinStatusBeeAsync(SwarmReference reference)
         {
             var pin = await dbContext.ChunkPins.TryFindOneAsync(p =>
-                p.Hash == hash && p.IsProcessed && !p.MissingChunks.Any());
+                p.Reference == reference && p.IsProcessed && !p.MissingChunks.Any());
             if (pin is null)
                 return new BeeNotFoundResult();
-            return new JsonResult(new SimpleChunkReferenceDto(hash));
+            return new JsonResult(new ChunkReferenceDto(reference));
         }
 
-        public async Task<IActionResult> GetPinStatusBeehiveAsync(SwarmHash hash)
+        public async Task<IActionResult> GetPinStatusBeehiveAsync(SwarmReference reference)
         {
-            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Hash == hash);
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Reference == reference);
             if (pin is null)
                 return new BeeNotFoundResult();
             return new JsonResult(new BeehivePinDto(
-                pin.Hash!.Value,
+                pin.Reference!.Value,
                 pin.CreationDateTime,
-                pin.EncryptionKey,
                 pin.MissingChunks,
                 pin.IsProcessed,
-                pin.RecursiveEncryption,
                 pin.IsSucceeded,
                 pin.TotPinnedChunks));
         }
 
         // Helpers.
-        private async Task CreatePinHelperAsync(SwarmChunkReference chunkRef, bool runBackgroundTask)
+        private async Task CreatePinHelperAsync(SwarmReference chunkRef, bool runBackgroundTask)
         {
             // Try find pin with this hash.
-            var pin = await dbContext.ChunkPins.TryFindOneAsync(p =>
-                p.Hash == chunkRef.Hash &&
-                p.EncryptionKey == chunkRef.EncryptionKey &&
-                p.RecursiveEncryption == chunkRef.UseRecursiveEncryption);
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Reference == chunkRef);
             
             // If doesn't exist create it.
             if (pin is null)

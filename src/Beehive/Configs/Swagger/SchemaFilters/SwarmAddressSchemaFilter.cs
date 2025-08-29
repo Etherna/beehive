@@ -30,8 +30,8 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
             {
                 schema.Type = "string";
                 schema.Format = null;
-                schema.MinLength = SwarmHash.HashSize * 2;
-                schema.Pattern = $"^[a-fA-F0-9]{{{SwarmHash.HashSize * 2}}}.*$";
+                schema.MinLength = SwarmReference.PlainSize * 2;
+                schema.Pattern = $"^[a-fA-F0-9]{{{SwarmReference.PlainSize * 2}}}.*$";
                 schema.Properties.Clear();
             }
         }

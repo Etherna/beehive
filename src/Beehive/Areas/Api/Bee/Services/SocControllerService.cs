@@ -66,7 +66,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, null, false, chunkStore);
+            var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, chunkStore);
             return new FileStreamResult(
                 dataStream,
                 BeehiveHttpConsts.ApplicationOctetStreamContentType);
@@ -127,7 +127,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     postageStamper.Stamp(soc.Hash);
                     await chunkStore.AddAsync(soc).ConfigureAwait(false);
 
-                    return new SwarmChunkReference(soc.Hash, null, false);
+                    return new SwarmReference(soc.Hash, null);
                 },
                 postageStamp is null
                     ? null
@@ -136,7 +136,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         [soc.Hash] = postageStamp.Value
                     });
 
-            return new JsonResult(new SimpleChunkReferenceDto(chunkReference.Hash))
+            return new JsonResult(new ChunkReferenceDto(chunkReference))
             {
                 StatusCode = StatusCodes.Status201Created
             };

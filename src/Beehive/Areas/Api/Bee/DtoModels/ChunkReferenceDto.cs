@@ -16,13 +16,8 @@ using Etherna.BeeNet.Models;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public sealed class ChunkReferenceDto(
-        SwarmHash hash,
-        XorEncryptKey? encryptionKey,
-        bool recursiveEncryption)
+    public sealed class ChunkReferenceDto(SwarmReference reference)
     {
-        public SwarmHash Reference { get; } = hash;
-        public XorEncryptKey? EncryptionKey { get; } = encryptionKey;
-        public bool RecursiveEncryption { get; } = recursiveEncryption;
+        public SwarmReference Reference { get; } = reference;
     }
 }

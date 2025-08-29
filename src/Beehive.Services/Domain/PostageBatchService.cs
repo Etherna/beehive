@@ -193,7 +193,7 @@ namespace Etherna.Beehive.Services.Domain
                         bucketsIncrement[i]));
 
             if (updates.Count > 0)
-                await dbContext.PostageBatchesCache.FindOneAndUpdateAsync(
+                await dbContext.PostageBatchesCache.TryFindOneAndUpdateAsync(
                     Builders<PostageBatchCache>.Filter.Eq(m => m.BatchId, postageBatchCache.BatchId),
                     Builders<PostageBatchCache>.Update.Combine(updates),
                     new FindOneAndUpdateOptions<PostageBatchCache>());

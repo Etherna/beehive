@@ -64,13 +64,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string? name,
             PostageBatchId batchId,
             ushort compactLevel,
+            bool encrypt,
             bool pinContent,
             string contentType,
             bool isDirectory,
             string? indexDocument,
             string? errorDocument)
         {
-            var hashingResult = await dataService.UploadAsync(
+            var reference = await dataService.UploadAsync(
                 batchId,
                 null,
                 compactLevel > 0,
@@ -136,11 +137,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                                 indexDocument,
                                 errorDocument,
                                 compactLevel,
-                                false,
+                                encrypt,
                                 RedundancyLevel.None,
                                 postageStamper,
                                 null,
-                                chunkStore)).ChunkReference;
+                                chunkStore)).Reference;
                         }
                         finally
                         {
@@ -155,14 +156,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         name,
                         new Hasher(),
                         compactLevel,
-                        false,
+                        encrypt,
                         RedundancyLevel.None,
                         postageStamper,
                         null,
-                        chunkStore)).ChunkReference;
+                        chunkStore)).Reference;
                 });
 
-            return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
+            return new JsonResult(new ChunkReferenceDto(reference))
             {
                 StatusCode = StatusCodes.Status201Created
             };
@@ -187,7 +188,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             // Decode manifest.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            var manifest = new ReferencedMantarayManifest(chunkStore, address.Hash);
+            var manifest = new ReferencedMantarayManifest(chunkStore, address.Reference);
             
             // Try to dereference feed manifest first.
             var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest);
@@ -230,7 +231,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.ContentTypeKey, out var mimeType))
                     mimeType = FileContentTypeProvider.DefaultContentType;
                 if (!resourceInfo.Result.Metadata.TryGetValue(ManifestEntry.FilenameKey, out var filename))
-                    filename = resourceInfo.Result.ChunkReference.Hash.ToString();
+                    filename = resourceInfo.Result.Reference.ToString();
             
                 // Set custom headers.
                 var contentDisposition = new ContentDisposition
@@ -248,7 +249,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     if (resourceInfo.IsFromErrorDoc)
                         return new BeeNotFoundResult();
                     
-                    var chunk = await chunkStore.GetAsync(resourceInfo.Result.ChunkReference.Hash);
+                    var chunk = await chunkStore.GetAsync(resourceInfo.Result.Reference.Hash);
                     if (chunk is not SwarmCac cac) //bzz content can only be read from cac
                         return new BeeBadRequestResult();
 
@@ -258,7 +259,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 }
 
                 //if full content
-                var dataStream = await ChunkDataStream.BuildNewAsync(resourceInfo.Result.ChunkReference, chunkStore);
+                var dataStream = await ChunkDataStream.BuildNewAsync(resourceInfo.Result.Reference, chunkStore);
 
                 httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
                 return new FileStreamResult(dataStream, mimeType)
@@ -269,7 +270,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             catch (ManifestExplicitRedirectException e)
             {
                 // Permanent redirect.
-                var redirectAddress = new SwarmAddress(address.Hash, e.RedirectToPath);
+                var redirectAddress = new SwarmAddress(address.Reference, e.RedirectToPath);
                 return NewPermanentRedirectResult(redirectAddress, httpContext.Request.QueryString);
             }
         }

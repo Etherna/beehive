@@ -154,11 +154,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     var expectedNodeMock = new Mock<ChunkPin>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683834b4fd678b310f161d22");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 19, 32, 774));
-                    expectedNodeMock.Setup(n => n.EncryptionKey).Returns((XorEncryptKey?)null);
-                    expectedNodeMock.Setup(n => n.Hash).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca73c511feb4736aed28");
+                    expectedNodeMock.Setup(n => n.Reference).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca73c511feb4736aed28");
                     expectedNodeMock.Setup(n => n.IsProcessed).Returns(true);
                     expectedNodeMock.Setup(n => n.MissingChunks).Returns([]);
-                    expectedNodeMock.Setup(n => n.RecursiveEncryption).Returns(false);
                     expectedNodeMock.Setup(n => n.TotPinnedChunks).Returns(392);
                     
                     tests.Add(new DeserializationTestElement<ChunkPin>(sourceDocument, expectedNodeMock.Object));
@@ -184,11 +182,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     var expectedNodeMock = new Mock<ChunkPin>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683836940549de109dc450bb");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 27, 32, 106));
-                    expectedNodeMock.Setup(n => n.EncryptionKey).Returns("12345678919ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28");
-                    expectedNodeMock.Setup(n => n.Hash).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28");
+                    expectedNodeMock.Setup(n => n.Reference).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed2812345678919ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28");
                     expectedNodeMock.Setup(n => n.IsProcessed).Returns(true);
                     expectedNodeMock.Setup(n => n.MissingChunks).Returns(["999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28"]);
-                    expectedNodeMock.Setup(n => n.RecursiveEncryption).Returns(true);
                     expectedNodeMock.Setup(n => n.TotPinnedChunks).Returns(0);
                     
                     tests.Add(new DeserializationTestElement<ChunkPin>(sourceDocument, expectedNodeMock.Object));
@@ -429,11 +425,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             // Assert.
             Assert.Equal(testElement.ExpectedModel.Id, result.Id);
             Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
-            Assert.Equal(testElement.ExpectedModel.EncryptionKey, result.EncryptionKey);
-            Assert.Equal(testElement.ExpectedModel.Hash, result.Hash);
+            Assert.Equal(testElement.ExpectedModel.Reference, result.Reference);
             Assert.Equal(testElement.ExpectedModel.IsProcessed, result.IsProcessed);
             Assert.Equal(testElement.ExpectedModel.MissingChunks, result.MissingChunks);
-            Assert.Equal(testElement.ExpectedModel.RecursiveEncryption, result.RecursiveEncryption);
             Assert.Equal(testElement.ExpectedModel.TotPinnedChunks, result.TotPinnedChunks);
             Assert.NotNull(result.Id);
         }

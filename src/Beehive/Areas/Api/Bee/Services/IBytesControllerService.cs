@@ -22,19 +22,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface IBytesControllerService
     {
-        Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash,
-            XorEncryptKey? encryptionKey,
-            bool recursiveEncryption);
+        Task<IActionResult> DownloadBytesAsync(SwarmReference reference);
 
         Task<IActionResult> GetBytesHeadersAsync(
-            SwarmHash hash,
+            SwarmReference reference,
             HttpResponse response);
         
         Task<IActionResult> UploadBytesAsync(
             Stream dataStream,
             PostageBatchId batchId,
             ushort compactLevel,
+            bool encrypt,
             bool pinContent);
     }
 }

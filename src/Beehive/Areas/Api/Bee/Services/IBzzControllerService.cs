@@ -34,6 +34,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string? name,
             PostageBatchId batchId,
             ushort compactLevel,
+            bool encrypt,
             bool pinContent,
             string contentType,
             bool isDirectory,

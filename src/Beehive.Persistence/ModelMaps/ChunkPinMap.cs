@@ -13,11 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Persistence.Serializers;
+using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Serialization;
 using Etherna.MongODM.Core.Serialization.Serializers;
+using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
@@ -25,14 +28,22 @@ namespace Etherna.Beehive.Persistence.ModelMaps
     {
         public void Register(IDbContext dbContext)
         {
-            dbContext.MapRegistry.AddModelMap<ChunkPin>( //v0.4.0
-                "832d06b1-ed82-4f4f-9df9-ad24565df38d",
-                mm =>
-                {
-                    mm.AutoMap();
-                    mm.GetMemberMap(p => p.EncryptionKey).SetElementName("EncKey");
-                    mm.GetMemberMap(p => p.RecursiveEncryption).SetElementName("RecEnc");
-                });
+            dbContext.MapRegistry.AddModelMap<ChunkPin>("63e584f0-2298-4c8f-bbc2-a84b90d836c2") //v0.4.1
+                .AddSecondarySchema("832d06b1-ed82-4f4f-9df9-ad24565df38d", //v0.4.0
+                    fixDeserializedModelFunc: pin =>
+                    {
+                        var hash = (string)pin.ExtraElements!["Hash"];
+                        EncryptionKey256? encKey = null;
+                        if (pin.ExtraElements.TryGetValue("EncKey", out var encKeyObj) &&
+                            encKeyObj != null)
+                            encKey = new EncryptionKey256((string?)encKeyObj!);
+                        
+                        ReflectionHelper.SetValue(
+                            pin,
+                            p => p.Reference,
+                            new SwarmReference(hash, encKey));
+                        return Task.FromResult(pin);
+                    });
         }
 
         /// <summary>
