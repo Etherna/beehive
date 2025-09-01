@@ -19,6 +19,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.BeeNet.Chunks;
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Pipeline;
 using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Serialization.Modifiers;
@@ -60,13 +61,26 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (chunk is not SwarmCac cac) //bytes can only read from cac
                 return new BeeBadRequestResult();
 
+            ulong dataLength;
+            if (reference.IsEncrypted)
+            {
+                ChunkEncrypter.DecryptChunk(
+                    cac,
+                    reference.EncryptionKey!.Value,
+                    new Hasher(),
+                    out var decryptedSpanData);
+                dataLength = SwarmCac.SpanToLength(decryptedSpanData[..SwarmCac.SpanSize].Span);
+            }
+            else
+                dataLength = SwarmCac.SpanToLength(cac.Span.Span);
+
             response.Headers.Append(
                 CorsConstants.AccessControlExposeHeaders, new StringValues(
                 [
                     HeaderNames.AcceptRanges,
                     HeaderNames.ContentEncoding
                 ]));
-            response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
+            response.ContentLength = (long)dataLength;
             response.ContentType = BeehiveHttpConsts.ApplicationOctetStreamContentType;
 
             return new OkResult();
