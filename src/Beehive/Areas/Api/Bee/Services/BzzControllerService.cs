@@ -252,8 +252,21 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     var chunk = await chunkStore.GetAsync(resourceInfo.Result.Reference.Hash);
                     if (chunk is not SwarmCac cac) //bzz content can only be read from cac
                         return new BeeBadRequestResult();
-
-                    httpContext.Response.ContentLength = (long)SwarmCac.SpanToLength(cac.Span.Span);
+                    
+                    ulong dataLength;
+                    if (resourceInfo.Result.Reference.IsEncrypted)
+                    {
+                        ChunkEncrypter.DecryptChunk(
+                            cac,
+                            resourceInfo.Result.Reference.EncryptionKey!.Value,
+                            new Hasher(),
+                            out var decryptedSpanData);
+                        dataLength = SwarmCac.SpanToLength(decryptedSpanData[..SwarmCac.SpanSize].Span);
+                    }
+                    else
+                        dataLength = SwarmCac.SpanToLength(cac.Span.Span);
+                    
+                    httpContext.Response.ContentLength = (long)dataLength;
                     httpContext.Response.ContentType = mimeType;
                     return new OkResult();
                 }
