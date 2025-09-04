@@ -19,20 +19,17 @@ using System;
 
 namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public sealed class XorEncryptKeySchemaFilter : ISchemaFilter
+    public sealed class BzzValueSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(XorEncryptKey) || context.Type == typeof(XorEncryptKey?))
+            if (context.Type == typeof(BzzValue) || context.Type == typeof(BzzValue?))
             {
-                schema.Type = "string";
-                schema.Format = null;
-                schema.MinLength = XorEncryptKey.KeySize * 2;
-                schema.MaxLength = XorEncryptKey.KeySize * 2;
-                schema.Pattern = $"^[a-fA-F0-9]{{{XorEncryptKey.KeySize * 2}}}$";
+                schema.Type = "integer";
+                schema.Format = "int64";
             }
         }
     }

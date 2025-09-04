@@ -26,8 +26,8 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             dbContext.MapRegistry.AddCustomSerializerMap<PostageBatchId>(new PostageBatchIdSerializer()); //v0.4.0
             dbContext.MapRegistry.AddCustomSerializerMap<SwarmAddress>(new SwarmAddressSerializer()); //v0.4.0
             dbContext.MapRegistry.AddCustomSerializerMap<SwarmHash>(new SwarmHashSerializer()); //v0.4.0
+            dbContext.MapRegistry.AddCustomSerializerMap<SwarmReference>(new SwarmReferenceSerializer()); //v0.4.1
             dbContext.MapRegistry.AddCustomSerializerMap<SwarmUri>(new SwarmUriSerializer()); //v0.4.0
-            dbContext.MapRegistry.AddCustomSerializerMap<XorEncryptKey>(new XorEncryptKeySerializer()); //0.4.0
         }
     }
 }

@@ -17,8 +17,8 @@ using System.Collections.Generic;
 
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
-    public sealed class BeePinsDto(IEnumerable<SwarmHash> pinnedHashes)
+    public sealed class BeePinsDto(IEnumerable<SwarmReference> references)
     {
-        public IEnumerable<SwarmHash> References { get; } = pinnedHashes;
+        public IEnumerable<SwarmReference> References { get; } = references;
     }
 }

@@ -49,13 +49,10 @@ namespace Etherna.Beehive.Services.Domain
                 dbContext.ChunkPinLocks,
                 chunkPinId);
 
-        public async Task<bool> TryDeletePinAsync(SwarmChunkReference pinReference)
+        public async Task<bool> TryDeletePinAsync(SwarmReference pinReference)
         {
             // Try find pin and acquire lock on it.
-            var pin = await dbContext.ChunkPins.TryFindOneAsync(p =>
-                p.Hash == pinReference.Hash &&
-                p.EncryptionKey == pinReference.EncryptionKey &&
-                p.RecursiveEncryption == pinReference.UseRecursiveEncryption);
+            var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Reference == pinReference);
             if (pin is null)
                 return false;
             

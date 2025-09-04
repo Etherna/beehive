@@ -13,12 +13,24 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public sealed class SimpleChunkReferenceDto(
-        SwarmHash hash)
+    public sealed class XDaiValueSchemaFilter : ISchemaFilter
     {
-        public SwarmHash Reference { get; } = hash;
+        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        {
+            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
+            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            
+            if (context.Type == typeof(XDaiValue) || context.Type == typeof(XDaiValue?))
+            {
+                schema.Type = "integer";
+                schema.Format = "int64";
+            }
+        }
     }
 }

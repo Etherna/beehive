@@ -186,7 +186,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
             {
                 logger.FailedToPushChunk(chunkRef.Hash, e);
 
-                await dbContext.ChunkPushQueue.FindOneAndUpdateAsync(
+                await dbContext.ChunkPushQueue.TryFindOneAndUpdateAsync(
                     new ExpressionFilterDefinition<PushingChunkRef>(r => r.Id == chunkRef.Id),
                     Builders<PushingChunkRef>.Update.Inc(r => r.FailedAttempts, 1),
                     new FindOneAndUpdateOptions<PushingChunkRef>(),
@@ -210,7 +210,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
                     (r.HandledDateTime == null || r.HandledDateTime <= now - retryChunkAfter) &&
                     r.FailedAttempts < MaxFailedAttempts);
             
-            return await dbContext.ChunkPushQueue.FindOneAndUpdateAsync(
+            return await dbContext.ChunkPushQueue.TryFindOneAndUpdateAsync(
                 filter,
                 Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, now),
                 new FindOneAndUpdateOptions<PushingChunkRef>

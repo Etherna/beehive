@@ -19,17 +19,21 @@ using System;
 
 namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public sealed class XDaiBalanceSchemaFilter : ISchemaFilter
+    public sealed class SwarmReferenceSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(XDaiValue) || context.Type == typeof(XDaiValue?))
+            if (context.Type == typeof(SwarmReference) || context.Type == typeof(SwarmReference?))
             {
-                schema.Type = "integer";
-                schema.Format = "int64";
+                schema.Type = "string";
+                schema.Format = null;
+                schema.MinLength = SwarmReference.PlainSize * 2;
+                schema.MaxLength = SwarmReference.EncryptedSize * 2;
+                schema.Pattern = $"^([a-fA-F0-9]{{{SwarmReference.PlainSize * 2}}}|[a-fA-F0-9]{{{SwarmReference.EncryptedSize * 2}}})$";
+                schema.Properties.Clear();
             }
         }
     }

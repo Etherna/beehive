@@ -58,7 +58,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpPost]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
