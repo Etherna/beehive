@@ -26,7 +26,7 @@ namespace Etherna.Beehive.Persistence.Serializers
         {
             var reference = stringSerializer.Deserialize(context, args);
             return reference is null ?
-                SwarmReference.Zero :
+                SwarmReference.PlainZero :
                 SwarmReference.FromString(reference);
         }
 
