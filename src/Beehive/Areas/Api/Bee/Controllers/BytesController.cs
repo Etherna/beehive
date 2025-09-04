@@ -34,27 +34,23 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
     {
         // Get.
         
-        [HttpGet("{*hash:minlength(1)}")]
+        [HttpGet("{*reference:minlength(1)}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> DownloadBytesAsync(
-            SwarmHash hash,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
-            service.DownloadBytesAsync(hash, encryptionKey, recursiveEncryption);
+        public Task<IActionResult> DownloadBytesAsync(SwarmReference reference) =>
+            service.DownloadBytesAsync(reference);
         
         // Head.
         
-        [HttpHead("{*hash:minlength(1)}")]
+        [HttpHead("{*reference:minlength(1)}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> GetBytesHeadersAsync(
-            SwarmHash hash) =>
-            service.GetBytesHeadersAsync(hash, HttpContext.Response);
+        public Task<IActionResult> GetBytesHeadersAsync(SwarmReference reference) =>
+            service.GetBytesHeadersAsync(reference, HttpContext.Response);
         
         // Post.
 
@@ -63,12 +59,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Consumes(BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         public Task<IActionResult> UploadBytesAsync(
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmEncryptHeader)] bool encrypt,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
             [FromBody, Required] Stream dataStream) =>
-            service.UploadBytesAsync(dataStream, batchId, compactLevel, pinContent);
+            service.UploadBytesAsync(dataStream, batchId, compactLevel, encrypt, pinContent);
     }
 }

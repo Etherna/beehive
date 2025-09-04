@@ -22,6 +22,6 @@ namespace Etherna.Beehive.Services.Options
         public const string ConfigPosition = "CashoutCheques";
 
         // Properties.
-        public BzzBalance BzzMaxTrigger { get; set; } = 1;
+        public BzzValue BzzMaxTrigger { get; set; } = 1;
     }
 }

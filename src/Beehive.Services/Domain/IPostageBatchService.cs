@@ -28,18 +28,18 @@ namespace Etherna.Beehive.Services.Domain
             bool exclusiveAccess);
 
         Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
-            BzzBalance amount,
+            BzzValue amount,
             int depth,
             string? label,
             bool immutable,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
+            XDaiValue? gasPrice);
         
         Task<EthTxHash> DilutePostageBatchAsync(
             PostageBatchId batchId,
             int depth,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
+            XDaiValue? gasPrice);
         
         Task<(PostageBatch PostageBatch, EthAddress Owner)[]> GetGlobalValidPostageBatchesAsync();
         
@@ -54,9 +54,9 @@ namespace Etherna.Beehive.Services.Domain
         
         Task<EthTxHash> TopUpPostageBatchAsync(
             PostageBatchId batchId,
-            BzzBalance amount,
+            BzzValue amount,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
+            XDaiValue? gasPrice);
 
         Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
 

@@ -48,57 +48,47 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [Range(1, 10000)] int take = 500) =>
             service.GetPinsBeehiveAsync(page, take);
         
-        [HttpGet("{*hash:minlength(1)}")]
+        [HttpGet("{*reference:minlength(1)}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> GetPinStatusBeeAsync(
-            SwarmHash hash) =>
-            service.GetPinStatusBeeAsync(hash);
+        public Task<IActionResult> GetPinStatusBeeAsync(SwarmReference reference) =>
+            service.GetPinStatusBeeAsync(reference);
         
-        [HttpGet("~/ev1/pins/{*hash:minlength(1)}")]
+        [HttpGet("~/ev1/pins/{*reference:minlength(1)}")]
         [BeeExceptionFilter]
         [ProducesResponseType(typeof(BeehivePinDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> GetPinStatusBeehiveAsync(
-            SwarmHash hash) =>
-            service.GetPinStatusBeehiveAsync(hash);
+        public Task<IActionResult> GetPinStatusBeehiveAsync(SwarmReference reference) =>
+            service.GetPinStatusBeehiveAsync(reference);
         
         // Post.
 
-        [HttpPost("{hash}")]
+        [HttpPost("{reference}")]
         [BeeExceptionFilter]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> CreatePinBeeAsync(
-            SwarmHash hash,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
-            service.CreatePinBeeAsync(hash, encryptionKey, recursiveEncryption);
+        public Task<IActionResult> CreatePinBeeAsync(SwarmReference reference) =>
+            service.CreatePinBeeAsync(reference);
 
-        [HttpPost("~/ev1/pins/{hash}")]
+        [HttpPost("~/ev1/pins/{reference}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public Task CreatePinBeehiveAsync(
-            SwarmHash hash,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
-            service.CreatePinBeehiveAsync(hash, encryptionKey, recursiveEncryption);
+        public Task CreatePinBeehiveAsync(SwarmReference reference) =>
+            service.CreatePinBeehiveAsync(reference);
         
         // Delete.
         
-        [HttpDelete("{hash}")]
+        [HttpDelete("{reference}")]
         [BeeExceptionFilter]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> DeletePinAsync(
-            SwarmHash hash,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmEncryptionKeyQuery)] XorEncryptKey? encryptionKey,
-            [FromQuery(Name = BeehiveHttpConsts.SwarmRecursiveEncryptionQuery)] bool recursiveEncryption) =>
-            service.DeletePinAsync(hash, encryptionKey, recursiveEncryption);
+        public Task<IActionResult> DeletePinAsync(SwarmReference reference) =>
+            service.DeletePinAsync(reference);
     }
 }

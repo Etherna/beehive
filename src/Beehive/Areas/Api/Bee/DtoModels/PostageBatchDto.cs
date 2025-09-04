@@ -19,7 +19,7 @@ using System.Text.Json.Serialization;
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
     public sealed class PostageBatchDto(
-        BzzBalance amount,
+        BzzValue amount,
         PostageBatchId batchId,
         TimeSpan batchTtl,
         ulong blockNumber,
@@ -37,7 +37,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
         public bool Usable { get; } = usable;
         public string Label { get; } = label;
         public int Depth { get; } = depth;
-        public BzzBalance Amount { get; } = amount;
+        public BzzValue Amount { get; } = amount;
         public int BucketDepth { get; } = bucketDepth;
         public ulong BlockNumber { get; } = blockNumber;
         public bool ImmutableFlag { get; } = immutableFlag;

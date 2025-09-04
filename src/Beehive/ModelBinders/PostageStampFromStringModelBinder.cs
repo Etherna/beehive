@@ -36,7 +36,7 @@ namespace Etherna.Beehive.ModelBinders
             var value = valueProviderResult.FirstValue;
             if (value != null && value.IsHex() && value.Length == PostageStamp.StampSize * 2)
             {
-                var postageStamp = PostageStamp.BuildFromByteArray(value.HexToByteArray());
+                var postageStamp = PostageStamp.FromByteArray(value.HexToByteArray());
                 bindingContext.Result = ModelBindingResult.Success(postageStamp);
                 return Task.CompletedTask;
             }

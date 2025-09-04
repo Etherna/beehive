@@ -66,7 +66,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, null, false, chunkStore);
+            var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, chunkStore);
             return new FileStreamResult(
                 dataStream,
                 BeehiveHttpConsts.ApplicationOctetStreamContentType);
@@ -85,7 +85,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             if (!batchId.HasValue && postageStamp == null)
                 throw new ArgumentNullException(nameof(batchId), "Batch id or postage stamp are required");
-            if (batchId.HasValue && postageStamp != null && batchId.Value != postageStamp.BatchId)
+            if (batchId.HasValue && postageStamp != null && batchId.Value != postageStamp.Value.BatchId)
                 throw new ArgumentException("Postage batch Id doesn't match with postage stamp's batch Id");
             
             // Read data.
@@ -127,16 +127,16 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     postageStamper.Stamp(soc.Hash);
                     await chunkStore.AddAsync(soc).ConfigureAwait(false);
 
-                    return new SwarmChunkReference(soc.Hash, null, false);
+                    return new SwarmReference(soc.Hash, null);
                 },
                 postageStamp is null
                     ? null
                     : new Dictionary<SwarmHash, PostageStamp>
                     {
-                        [soc.Hash] = postageStamp
+                        [soc.Hash] = postageStamp.Value
                     });
 
-            return new JsonResult(new SimpleChunkReferenceDto(chunkReference.Hash))
+            return new JsonResult(new ChunkReferenceDto(chunkReference))
             {
                 StatusCode = StatusCodes.Status201Created
             };

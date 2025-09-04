@@ -19,19 +19,15 @@ using System.Collections.Generic;
 namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
     public sealed class BeehivePinDto(
-        SwarmHash hash,
+        SwarmReference reference,
         DateTimeOffset creationTime,
-        XorEncryptKey? encryptionKey,
         IEnumerable<SwarmHash> missingChunks,
         bool processed,
-        bool recursiveEncryption,
         bool succeeded,
         long pinnedChunks)
     {
-        public SwarmHash Hash { get; } = hash;
+        public SwarmReference Reference { get; } = reference;
         public DateTimeOffset CreationTime { get; } = creationTime;
-        public XorEncryptKey? EncryptionKey { get; } = encryptionKey;
-        public bool RecursiveEncryption { get; } = recursiveEncryption;
         public bool Processed { get; } = processed;
         public bool Succeeded { get; } = succeeded;
         public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;

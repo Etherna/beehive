@@ -50,7 +50,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ushort compactLevel,
             bool pinContent)
         {
-            var hashingResult = await dataService.UploadAsync(
+            var reference = await dataService.UploadAsync(
                 batchId,
                 null,
                 compactLevel > 0,
@@ -72,7 +72,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         chunkStore);
                 });
 
-            return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
+            return new JsonResult(new ChunkReferenceDto(reference))
             {
                 StatusCode = StatusCodes.Status201Created
             };
@@ -157,7 +157,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var dataStream = ChunkDataStream.BuildNew(wrappedChunk, null, false, chunkStore);
+            var dataStream = ChunkDataStream.BuildNew(wrappedChunk, chunkStore);
             return new FileStreamResult(
                 dataStream,
                 BeehiveHttpConsts.ApplicationOctetStreamContentType);

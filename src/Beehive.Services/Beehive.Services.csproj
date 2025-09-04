@@ -15,11 +15,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net.Client" Version="0.4.1" />
+    <PackageReference Include="Bee.Net.Client" Version="0.5.0-alpha.63" />
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.5.0" />
-    <PackageReference Include="MongODM.Hangfire" Version="0.25.0-alpha.34" />
+    <PackageReference Include="MongODM.Hangfire" Version="0.25.0-alpha.39" />
     <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="5.0.0" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
   </ItemGroup>
 
   <ItemGroup>

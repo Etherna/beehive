@@ -21,18 +21,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     public interface IStampsControllerService
     {
         Task<IActionResult> BuyPostageBatchAsync(
-            BzzBalance amount,
+            BzzValue amount,
             int depth,
             string? label,
             bool immutable,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
+            XDaiValue? gasPrice);
         
         Task<IActionResult> DilutePostageBatchAsync(
             PostageBatchId batchId,
             int depth,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
+            XDaiValue? gasPrice);
 
         Task<IActionResult> GetOwnedPostageBatchesAsync();
 
@@ -42,8 +42,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         
         Task<IActionResult> TopUpPostageBatchAsync(
             PostageBatchId batchId,
-            BzzBalance amount,
+            BzzValue amount,
             ulong? gasLimit,
-            XDaiBalance? gasPrice);
+            XDaiValue? gasPrice);
     }
 }

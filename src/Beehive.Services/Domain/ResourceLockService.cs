@@ -129,7 +129,7 @@ namespace Etherna.Beehive.Services.Domain
                     l => l.ResourceId == resourceId && l.ExclusiveAccess) :
                 
                 //not exclusive access
-                await repository.FindOneAndUpdateAsync(
+                await repository.TryFindOneAndUpdateAsync(
                     Builders<TModel>.Filter.And(
                         Builders<TModel>.Filter.Eq(l => l.ResourceId, resourceId),
                         Builders<TModel>.Filter.Eq(l => l.ExclusiveAccess, false),

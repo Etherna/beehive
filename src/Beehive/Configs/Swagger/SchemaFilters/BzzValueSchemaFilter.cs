@@ -19,14 +19,14 @@ using System;
 
 namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public sealed class BzzBalanceSchemaFilter : ISchemaFilter
+    public sealed class BzzValueSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
             ArgumentNullException.ThrowIfNull(schema, nameof(schema));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            if (context.Type == typeof(BzzBalance) || context.Type == typeof(BzzBalance?))
+            if (context.Type == typeof(BzzValue) || context.Type == typeof(BzzValue?))
             {
                 schema.Type = "integer";
                 schema.Format = "int64";

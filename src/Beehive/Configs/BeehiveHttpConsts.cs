@@ -21,7 +21,5 @@ namespace Etherna.Beehive.Configs
         public const string BinaryOctetStreamContentType = "binary/octet-stream";
         public const string MultiPartFormDataContentType = "multipart/form-data";
         public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
-        public const string SwarmEncryptionKeyQuery = "swarmEncKey";
-        public const string SwarmRecursiveEncryptionQuery = "swarmRecEnc";
     }
 }

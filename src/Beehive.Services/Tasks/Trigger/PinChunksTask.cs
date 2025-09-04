@@ -40,7 +40,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             await using var pinLockHandler = await pinService.AcquireLockAsync(chunkPinId, true);
 
             var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
-            if (!pin.Hash.HasValue)
+            if (!pin.Reference.HasValue)
                 throw new InvalidOperationException($"Pin doesn't have an hash");
             if (pin.IsSucceeded)
                 return;
@@ -53,12 +53,12 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             HashSet<SwarmHash> missingChunksHash = [];
             HashSet<SwarmHash> pinnedChunksHash = [];
             await chunkTraverser.TraverseAsync(
-                new SwarmChunkReference(pin.Hash.Value, pin.EncryptionKey, pin.RecursiveEncryption),
+                pin.Reference.Value,
                 async foundChunk =>
                 {
                     if (!pinnedChunksHash.Add(foundChunk.Hash))
                         return;
-                    await dbContext.Chunks.FindOneAndAddToSetAsync(
+                    await dbContext.Chunks.TryFindOneAndAddToSetAsync(
                         new ExpressionFilterDefinition<Chunk>(c => c.Hash == foundChunk.Hash),
                         c => c.Pins,
                         pin,
@@ -68,7 +68,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 {
                     if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
                         return;
-                    await dbContext.Chunks.FindOneAndAddToSetAsync(
+                    await dbContext.Chunks.TryFindOneAndAddToSetAsync(
                         new ExpressionFilterDefinition<Chunk>(c => c.Hash == invalidFoundChunk.Hash),
                         c => c.Pins,
                         pin,

@@ -43,7 +43,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
         {
             foreach (var node in liveManager.AllNodes)
             {
-                BzzBalance totalBzzCashedOut = 0;
+                BzzValue totalBzzCashedOut = 0;
                 var txs = new List<string>();
                 try
                 {
@@ -51,7 +51,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                     var cheques = await node.Client.GetAllChequebookChequesAsync();
                     foreach (var peer in cheques.Select(c => c.Peer))
                     {
-                        BzzBalance? uncashedBzzAmount = null;
+                        BzzValue? uncashedBzzAmount = null;
                         try
                         {
                             var cashoutResponse = await node.Client.GetChequebookCashoutForPeerAsync(peer);

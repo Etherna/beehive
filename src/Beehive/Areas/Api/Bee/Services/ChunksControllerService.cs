@@ -95,7 +95,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         await chunkStore.AddAsync(chunk);
                     }
 
-                    return new SwarmChunkReference(SwarmHash.Zero, null, false);
+                    return new SwarmReference(SwarmHash.Zero, null);
                 });
 
             // Reply.
@@ -155,10 +155,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             // Recover batch owner, if required.
             EthAddress? owner = null;
             if (postageStamp != null)
-                owner = postageStamp.RecoverBatchOwner(hash, chunkBmt.Hasher);
+                owner = postageStamp.Value.RecoverBatchOwner(hash, chunkBmt.Hasher);
             
             // Store chunk.
-            var hashingResult = await dataService.UploadAsync(
+            var reference = await dataService.UploadAsync(
                 batchId ?? postageStamp?.BatchId ?? throw new InvalidOperationException(),
                 owner,
                 false,
@@ -168,16 +168,16 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     postageStamper.Stamp(hash);
                     await chunkStore.AddAsync(chunk);
 
-                    return new SwarmChunkReference(hash, null, false);
+                    return new SwarmReference(hash, null);
                 },
                 postageStamp is null
                     ? null
                     : new Dictionary<SwarmHash, PostageStamp>
                     {
-                        [hash] = postageStamp
+                        [hash] = postageStamp.Value
                     });
             
-            return new JsonResult(new SimpleChunkReferenceDto(hashingResult.Hash))
+            return new JsonResult(new ChunkReferenceDto(reference))
             {
                 StatusCode = StatusCodes.Status201Created
             };

@@ -20,14 +20,14 @@ namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
     public sealed class ChainStateDto(
         long chainTip,
         long block,
-        BzzBalance totalAmount,
-        BzzBalance currentPrice,
+        BzzValue totalAmount,
+        BzzValue currentPrice,
         DateTimeOffset timeStamp)
     {
         public long ChainTip { get; } = chainTip;
         public long Block { get; } = block;
-        public BzzBalance TotalAmount { get; } = totalAmount;
-        public BzzBalance CurrentPrice { get; } = currentPrice;
+        public BzzValue TotalAmount { get; } = totalAmount;
+        public BzzValue CurrentPrice { get; } = currentPrice;
         public DateTimeOffset TimeStamp { get; } = timeStamp;
     }
 }

@@ -59,7 +59,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
 
             foreach (var node in liveManager.AllNodes)
             {
-                BzzBalance? availableBzzBalance = null;
+                BzzValue? availableBzzBalance = null;
                 try
                 {
                     var chequebookBalanceDto = await node.Client.GetChequebookBalanceAsync();
