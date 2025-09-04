@@ -59,13 +59,15 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "6b94df32-034f-46f9-a5c1-239905ad5d07" - v0.4.0
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""62d9e1ab5b300b294022c2c6""),
-                            ""_m"" : ""6b94df32-034f-46f9-a5c1-239905ad5d07"",
-                            ""CreationDateTime"" : ISODate(""2022-07-21T23:47:54.036+0000""),
-                            ""ConnectionString"" : ""http://127.0.0.1:1633"",
-                            ""IsBatchCreationEnabled"" : true
-                        }";
+                        """
+                        {
+                            "_id" : ObjectId("62d9e1ab5b300b294022c2c6"),
+                            "_m" : "6b94df32-034f-46f9-a5c1-239905ad5d07",
+                            "CreationDateTime" : ISODate("2022-07-21T23:47:54.036+0000"),
+                            "ConnectionString" : "http://127.0.0.1:1633",
+                            "IsBatchCreationEnabled" : true
+                        }
+                        """;
 
                     var expectedNodeMock = new Mock<BeeNode>();
                     expectedNodeMock.Setup(n => n.Id).Returns("62d9e1ab5b300b294022c2c6");
@@ -89,20 +91,22 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "06aaf593-07af-4fca-99a9-bdc3718547d8" - v0.4.0
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683834b4fd678b310f161d23""),
-                            ""_m"" : ""06aaf593-07af-4fca-99a9-bdc3718547d8"",
-                            ""CreationDateTime"" : ISODate(""2025-05-29T10:19:32.890+0000""),
-                            ""Hash"" : ""fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d"",
-                            ""IsSoc"" : true,
-                            ""Payload"" : BinData(0, ""ABAAAAAAAABcnoa45zctbM5JJJklV1unLHANcvM2dNtAqyLpyOhrW7Rm20FRG7kB""),
-                            ""Pins"" : [
+                        """
+                        {
+                            "_id" : ObjectId("683834b4fd678b310f161d23"),
+                            "_m" : "06aaf593-07af-4fca-99a9-bdc3718547d8",
+                            "CreationDateTime" : ISODate("2025-05-29T10:19:32.890+0000"),
+                            "Hash" : "fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d",
+                            "IsSoc" : true,
+                            "Payload" : BinData(0, "ABAAAAAAAABcnoa45zctbM5JJJklV1unLHANcvM2dNtAqyLpyOhrW7Rm20FRG7kB"),
+                            "Pins" : [
                                 {
-                                    ""_m"" : ""d04090e8-1246-4ab8-bd6b-a37d9339c638"",
-                                    ""_id"" : ObjectId(""683834b4fd678b310f161d22"")
+                                    "_m" : "d04090e8-1246-4ab8-bd6b-a37d9339c638",
+                                    "_id" : ObjectId("683834b4fd678b310f161d22")
                                 }
                             ]
-                        }";
+                        }
+                        """;
                     
                     var expectedNodeMock = new Mock<Chunk>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683834b4fd678b310f161d23");
@@ -133,32 +137,60 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             get
             {
                 var tests = new List<DeserializationTestElement<ChunkPin>>();
+                
+                // "63e584f0-2298-4c8f-bbc2-a84b90d836c2" - v0.4.1
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("68b1d83ee745e3c427e2ff1b"),
+                            "_m" : "63e584f0-2298-4c8f-bbc2-a84b90d836c2",
+                            "CreationDateTime" : ISODate("2025-08-29T16:41:34.971+0000"),
+                            "Reference" : "fec916246ac6f124c9d9ae2488e05311cda2e25e7e5cac2fdbe4f14914b29b9128ee51c12f9b4934756b5608d01451777788eea5df2770f36e6bc780e5f44f58",
+                            "IsProcessed" : true,
+                            "MissingChunks" : [
+
+                            ],
+                            "TotPinnedChunks" : NumberLong(392)
+                        }
+                        """;
+                
+                    var expectedNodeMock = new Mock<ChunkPin>();
+                    expectedNodeMock.Setup(n => n.Id).Returns("68b1d83ee745e3c427e2ff1b");
+                    expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 08, 29, 16, 41, 34, 971));
+                    expectedNodeMock.Setup(n => n.Reference).Returns("fec916246ac6f124c9d9ae2488e05311cda2e25e7e5cac2fdbe4f14914b29b9128ee51c12f9b4934756b5608d01451777788eea5df2770f36e6bc780e5f44f58");
+                    expectedNodeMock.Setup(n => n.IsProcessed).Returns(true);
+                    expectedNodeMock.Setup(n => n.MissingChunks).Returns([]);
+                    expectedNodeMock.Setup(n => n.TotPinnedChunks).Returns(392);
+                    
+                    tests.Add(new DeserializationTestElement<ChunkPin>(sourceDocument, expectedNodeMock.Object));
+                }
 
                 // "832d06b1-ed82-4f4f-9df9-ad24565df38d" - v0.4.0 - succeeded
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683834b4fd678b310f161d22""),
-                            ""_m"" : ""832d06b1-ed82-4f4f-9df9-ad24565df38d"",
-                            ""CreationDateTime"" : ISODate(""2025-05-29T10:19:32.774+0000""),
-                            ""EncKey"" : null,
-                            ""Hash"" : ""999ed1f9419ed5f5a410172e1a437fa83bd480942361ca73c511feb4736aed28"",
-                            ""IsProcessed"" : true,
-                            ""MissingChunks"" : [
+                        """
+                        {
+                            "_id" : ObjectId("683834b4fd678b310f161d22"),
+                            "_m" : "832d06b1-ed82-4f4f-9df9-ad24565df38d",
+                            "CreationDateTime" : ISODate("2025-05-29T10:19:32.774+0000"),
+                            "EncKey" : null,
+                            "Hash" : "999ed1f9419ed5f5a410172e1a437fa83bd480942361ca73c511feb4736aed28",
+                            "IsProcessed" : true,
+                            "MissingChunks" : [
 
                             ],
-                            ""RecEnc"" : false,
-                            ""TotPinnedChunks"" : NumberLong(392)
-                        }";
+                            "RecEnc" : false,
+                            "TotPinnedChunks" : NumberLong(392)
+                        }
+                        """;
                 
                     var expectedNodeMock = new Mock<ChunkPin>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683834b4fd678b310f161d22");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 19, 32, 774));
-                    expectedNodeMock.Setup(n => n.EncryptionKey).Returns((XorEncryptKey?)null);
-                    expectedNodeMock.Setup(n => n.Hash).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca73c511feb4736aed28");
+                    expectedNodeMock.Setup(n => n.Reference).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca73c511feb4736aed28");
                     expectedNodeMock.Setup(n => n.IsProcessed).Returns(true);
                     expectedNodeMock.Setup(n => n.MissingChunks).Returns([]);
-                    expectedNodeMock.Setup(n => n.RecursiveEncryption).Returns(false);
                     expectedNodeMock.Setup(n => n.TotPinnedChunks).Returns(392);
                     
                     tests.Add(new DeserializationTestElement<ChunkPin>(sourceDocument, expectedNodeMock.Object));
@@ -167,28 +199,28 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "832d06b1-ed82-4f4f-9df9-ad24565df38d" - v0.4.0 - missing chunks
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683836940549de109dc450bb""),
-                            ""_m"" : ""832d06b1-ed82-4f4f-9df9-ad24565df38d"",
-                            ""CreationDateTime"" : ISODate(""2025-05-29T10:27:32.106+0000""),
-                            ""EncKey"" : ""12345678919ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28"",
-                            ""Hash"" : ""999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28"",
-                            ""IsProcessed"" : true,
-                            ""MissingChunks"" : [
-                                ""999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28""
+                        """
+                        {
+                            "_id" : ObjectId("683836940549de109dc450bb"),
+                            "_m" : "832d06b1-ed82-4f4f-9df9-ad24565df38d",
+                            "CreationDateTime" : ISODate("2025-05-29T10:27:32.106+0000"),
+                            "EncKey" : "12345678919ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28",
+                            "Hash" : "999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28",
+                            "IsProcessed" : true,
+                            "MissingChunks" : [
+                                "999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28"
                             ],
-                            ""RecEnc"" : true,
-                            ""TotPinnedChunks"" : NumberLong(0)
-                        }";
+                            "RecEnc" : true,
+                            "TotPinnedChunks" : NumberLong(0)
+                        }
+                        """;
                 
                     var expectedNodeMock = new Mock<ChunkPin>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683836940549de109dc450bb");
                     expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 27, 32, 106));
-                    expectedNodeMock.Setup(n => n.EncryptionKey).Returns("12345678919ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28");
-                    expectedNodeMock.Setup(n => n.Hash).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28");
+                    expectedNodeMock.Setup(n => n.Reference).Returns("999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed2812345678919ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28");
                     expectedNodeMock.Setup(n => n.IsProcessed).Returns(true);
                     expectedNodeMock.Setup(n => n.MissingChunks).Returns(["999ed1f9419ed5f5a410172e1a437fa83bd480942361ca72c511feb4736aed28"]);
-                    expectedNodeMock.Setup(n => n.RecursiveEncryption).Returns(true);
                     expectedNodeMock.Setup(n => n.TotPinnedChunks).Returns(0);
                     
                     tests.Add(new DeserializationTestElement<ChunkPin>(sourceDocument, expectedNodeMock.Object));
@@ -207,15 +239,17 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "a73d46c1-b548-4461-b4d3-b947de2f97e9" - v0.4.0
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683868e863614b9c605374f1""),
-                            ""_m"" : ""a73d46c1-b548-4461-b4d3-b947de2f97e9"",
-                            ""CreationDateTime"" : ISODate(""2025-05-29T14:02:16.555+0000""),
-                            ""ExclusiveAccess"" : true,
-                            ""ExpirationTime"" : ISODate(""2025-05-29T15:02:16.555+0000""),
-                            ""LockedAt"" : ISODate(""2025-05-29T14:02:16.555+0000""),
-                            ""ResourceId"" : ""683834b4fd678b310f161d22""
-                        }";
+                        """
+                        {
+                            "_id" : ObjectId("683868e863614b9c605374f1"),
+                            "_m" : "a73d46c1-b548-4461-b4d3-b947de2f97e9",
+                            "CreationDateTime" : ISODate("2025-05-29T14:02:16.555+0000"),
+                            "ExclusiveAccess" : true,
+                            "ExpirationTime" : ISODate("2025-05-29T15:02:16.555+0000"),
+                            "LockedAt" : ISODate("2025-05-29T14:02:16.555+0000"),
+                            "ResourceId" : "683834b4fd678b310f161d22"
+                        }
+                        """;
                 
                     var expectedNodeMock = new Mock<ChunkPinLock>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683868e863614b9c605374f1");
@@ -266,16 +300,18 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "e26fdf55-0245-4ead-b20a-13296e69d61d" - v0.4.0
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683835b9cacad22df40bdff7""),
-                            ""ExclusiveAccess"" : false,
-                            ""ResourceId"" : ""c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f"",
-                            ""Counter"" : NumberInt(1),
-                            ""CreationDateTime"" : ISODate(""2025-05-29T10:23:53.887+0000""),
-                            ""ExpirationTime"" : ISODate(""2025-05-29T11:23:53.838+0000""),
-                            ""LockedAt"" : ISODate(""2025-05-29T10:23:53.887+0000""),
-                            ""_m"" : ""e26fdf55-0245-4ead-b20a-13296e69d61d""
-                        }";
+                        """
+                        {
+                            "_id" : ObjectId("683835b9cacad22df40bdff7"),
+                            "ExclusiveAccess" : false,
+                            "ResourceId" : "c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f",
+                            "Counter" : NumberInt(1),
+                            "CreationDateTime" : ISODate("2025-05-29T10:23:53.887+0000"),
+                            "ExpirationTime" : ISODate("2025-05-29T11:23:53.838+0000"),
+                            "LockedAt" : ISODate("2025-05-29T10:23:53.887+0000"),
+                            "_m" : "e26fdf55-0245-4ead-b20a-13296e69d61d"
+                        }
+                        """;
                 
                     var expectedNodeMock = new Mock<PostageBatchLock>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683835b9cacad22df40bdff7");
@@ -302,15 +338,17 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "a7a3075b-ab81-4bd0-8a5e-a35a5a576a71" - v0.4.0
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683834b4fd678b310f161eaa""),
-                            ""_m"" : ""a7a3075b-ab81-4bd0-8a5e-a35a5a576a71"",
-                            ""CreationDateTime"" : ISODate(""2025-05-29T10:19:32.975+0000""),
-                            ""BatchId"" : ""c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f"",
-                            ""ChunkHash"" : ""eeb4cd7212fc58ab4362a322c25a5fb71278cba959e9c1f8f88d24bc9c2919c4"",
-                            ""BucketId"" : NumberInt(61108),
-                            ""BucketCounter"" : NumberInt(1)
-                        }";
+                        """
+                        {
+                            "_id" : ObjectId("683834b4fd678b310f161eaa"),
+                            "_m" : "a7a3075b-ab81-4bd0-8a5e-a35a5a576a71",
+                            "CreationDateTime" : ISODate("2025-05-29T10:19:32.975+0000"),
+                            "BatchId" : "c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f",
+                            "ChunkHash" : "eeb4cd7212fc58ab4362a322c25a5fb71278cba959e9c1f8f88d24bc9c2919c4",
+                            "BucketId" : NumberInt(61108),
+                            "BucketCounter" : NumberInt(1)
+                        }
+                        """;
                 
                     var expectedNodeMock = new Mock<PostageStamp>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683834b4fd678b310f161eaa");
@@ -336,15 +374,17 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // "30e3473f-5d56-4821-9c66-aa8922b46942" - v0.4.0
                 {
                     var sourceDocument =
-                        @"{
-                            ""_id"" : ObjectId(""683834b5fd678b310f16202f""),
-                            ""_m"" : ""30e3473f-5d56-4821-9c66-aa8922b46942"",
-                            ""CreationDateTime"" : ISODate(""2025-05-29T10:19:32.890+0000""),
-                            ""BatchId"" : ""c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f"",
-                            ""FailedAttempts"" : NumberInt(10),
-                            ""HandledDateTime"" : ISODate(""2025-05-29T10:22:33.892+0000""),
-                            ""Hash"" : ""038f0b1c228f83058bf0fb5cc4b572a01d67c2eb0fd81a197b944970b48d8428""
-                        }";
+                        """
+                        {
+                            "_id" : ObjectId("683834b5fd678b310f16202f"),
+                            "_m" : "30e3473f-5d56-4821-9c66-aa8922b46942",
+                            "CreationDateTime" : ISODate("2025-05-29T10:19:32.890+0000"),
+                            "BatchId" : "c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f",
+                            "FailedAttempts" : NumberInt(10),
+                            "HandledDateTime" : ISODate("2025-05-29T10:22:33.892+0000"),
+                            "Hash" : "038f0b1c228f83058bf0fb5cc4b572a01d67c2eb0fd81a197b944970b48d8428"
+                        }
+                        """;
                 
                     var expectedNodeMock = new Mock<PushingChunkRef>();
                     expectedNodeMock.Setup(n => n.Id).Returns("683834b5fd678b310f16202f");
@@ -429,11 +469,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             // Assert.
             Assert.Equal(testElement.ExpectedModel.Id, result.Id);
             Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
-            Assert.Equal(testElement.ExpectedModel.EncryptionKey, result.EncryptionKey);
-            Assert.Equal(testElement.ExpectedModel.Hash, result.Hash);
+            Assert.Equal(testElement.ExpectedModel.Reference, result.Reference);
             Assert.Equal(testElement.ExpectedModel.IsProcessed, result.IsProcessed);
             Assert.Equal(testElement.ExpectedModel.MissingChunks, result.MissingChunks);
-            Assert.Equal(testElement.ExpectedModel.RecursiveEncryption, result.RecursiveEncryption);
             Assert.Equal(testElement.ExpectedModel.TotPinnedChunks, result.TotPinnedChunks);
             Assert.NotNull(result.Id);
         }

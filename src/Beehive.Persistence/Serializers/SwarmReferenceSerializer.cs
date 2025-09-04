@@ -18,19 +18,21 @@ using Etherna.MongoDB.Bson.Serialization.Serializers;
 
 namespace Etherna.Beehive.Persistence.Serializers
 {
-    public class XorEncryptKeySerializer : SerializerBase<XorEncryptKey>
+    public class SwarmReferenceSerializer : SerializerBase<SwarmReference>
     {
-        private readonly ByteArraySerializer byteArraySerializer = new();
-
-        public override XorEncryptKey Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+        private readonly StringSerializer stringSerializer = new();
+        
+        public override SwarmReference Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
         {
-            var key = byteArraySerializer.Deserialize(context, args);
-            return new XorEncryptKey(key);
+            var reference = stringSerializer.Deserialize(context, args);
+            return reference is null ?
+                SwarmReference.PlainZero :
+                SwarmReference.FromString(reference);
         }
 
-        public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, XorEncryptKey value)
+        public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, SwarmReference value)
         {
-            byteArraySerializer.Serialize(context, args, value.ToByteArray());
+            stringSerializer.Serialize(context, args, value.ToString());
         }
     }
 }

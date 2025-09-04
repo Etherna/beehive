@@ -20,12 +20,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface IPinsControllerService
     {
-        Task<IActionResult> CreatePinBeeAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
-        Task CreatePinBeehiveAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
-        Task<IActionResult> DeletePinAsync(SwarmHash hash, XorEncryptKey? encryptionKey, bool recursiveEncryption);
+        Task<IActionResult> CreatePinBeeAsync(SwarmReference reference);
+        Task CreatePinBeehiveAsync(SwarmReference reference);
+        Task<IActionResult> DeletePinAsync(SwarmReference reference);
         Task<IActionResult> GetPinsBeeAsync();
         Task<IActionResult> GetPinsBeehiveAsync(int page, int take);
-        Task<IActionResult> GetPinStatusBeeAsync(SwarmHash hash);
-        Task<IActionResult> GetPinStatusBeehiveAsync(SwarmHash hash);
+        Task<IActionResult> GetPinStatusBeeAsync(SwarmReference reference);
+        Task<IActionResult> GetPinStatusBeehiveAsync(SwarmReference reference);
     }
 }

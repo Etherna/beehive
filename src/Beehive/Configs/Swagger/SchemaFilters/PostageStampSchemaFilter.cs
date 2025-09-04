@@ -33,6 +33,7 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
                 schema.MinLength = PostageStamp.StampSize * 2;
                 schema.MaxLength = PostageStamp.StampSize * 2;
                 schema.Pattern = $"^[a-fA-F0-9]{{{PostageStamp.StampSize * 2}}}$";
+                schema.Properties.Clear();
             }
         }
     }

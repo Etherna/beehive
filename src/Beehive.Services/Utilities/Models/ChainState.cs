@@ -33,9 +33,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
 
         public long Block { get; }
         public int ChainTip { get; }
-        public BzzBalance CurrentPrice { get; }
+        public BzzValue CurrentPrice { get; }
         public string SourceNodeId { get; }
         public DateTimeOffset TimeStamp { get; }
-        public BzzBalance TotalAmount { get; }
+        public BzzValue TotalAmount { get; }
     }
 }

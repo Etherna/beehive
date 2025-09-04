@@ -33,12 +33,12 @@ namespace Etherna.Beehive.Services.Domain
         /// <param name="chunkingFuncAsync"></param>
         /// <param name="presignedPostageStamps"></param>
         /// <returns></returns>
-        Task<SwarmChunkReference> UploadAsync(
+        Task<SwarmReference> UploadAsync(
             PostageBatchId batchId,
             EthAddress? batchOwner,
             bool useChunkCompaction,
             bool pinContent,
-            Func<IChunkStore, IPostageStamper, Task<SwarmChunkReference>> chunkingFuncAsync,
+            Func<IChunkStore, IPostageStamper, Task<SwarmReference>> chunkingFuncAsync,
             IDictionary<SwarmHash, PostageStamp>? presignedPostageStamps = null);
     }
 }

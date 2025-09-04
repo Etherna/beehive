@@ -53,12 +53,12 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         public async Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
-            BzzBalance amount,
+            BzzValue amount,
             int depth,
             string? label,
             bool immutable,
             ulong? gasLimit,
-            XDaiBalance? gasPrice)
+            XDaiValue? gasPrice)
         {
             // Select node.
             var beeNodeInstance = await beeNodeLiveManager.TrySelectHealthyNodeAsync(
@@ -94,7 +94,7 @@ namespace Etherna.Beehive.Services.Domain
             PostageBatchId batchId,
             int depth,
             ulong? gasLimit,
-            XDaiBalance? gasPrice)
+            XDaiValue? gasPrice)
         {
             // Acquire lock on postage batch.
             await using var batchLockHandler = await AcquireLockAsync(batchId, true);
@@ -193,7 +193,7 @@ namespace Etherna.Beehive.Services.Domain
                         bucketsIncrement[i]));
 
             if (updates.Count > 0)
-                await dbContext.PostageBatchesCache.FindOneAndUpdateAsync(
+                await dbContext.PostageBatchesCache.TryFindOneAndUpdateAsync(
                     Builders<PostageBatchCache>.Filter.Eq(m => m.BatchId, postageBatchCache.BatchId),
                     Builders<PostageBatchCache>.Update.Combine(updates),
                     new FindOneAndUpdateOptions<PostageBatchCache>());
@@ -201,9 +201,9 @@ namespace Etherna.Beehive.Services.Domain
 
         public async Task<EthTxHash> TopUpPostageBatchAsync(
             PostageBatchId batchId,
-            BzzBalance amount,
+            BzzValue amount,
             ulong? gasLimit,
-            XDaiBalance? gasPrice)
+            XDaiValue? gasPrice)
         {
             // Acquire lock on postage batch.
             await using var batchLockHandler = await AcquireLockAsync(batchId, true);

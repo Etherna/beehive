@@ -26,6 +26,6 @@ namespace Etherna.Beehive.Services.Domain
 
         Task<bool> IsLockedAsync(string chunkPinId);
         
-        Task<bool> TryDeletePinAsync(SwarmChunkReference pinReference);
+        Task<bool> TryDeletePinAsync(SwarmReference pinReference);
     }
 }

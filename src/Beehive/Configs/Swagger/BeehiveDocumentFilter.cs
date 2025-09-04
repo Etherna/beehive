@@ -12,25 +12,23 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.Configs.Swagger
 {
-    public sealed class XDaiBalanceSchemaFilter : ISchemaFilter
+    public class BeehiveDocumentFilter : IDocumentFilter
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            ArgumentNullException.ThrowIfNull(swaggerDoc, nameof(swaggerDoc));
             
-            if (context.Type == typeof(XDaiBalance) || context.Type == typeof(XDaiBalance?))
-            {
-                schema.Type = "integer";
-                schema.Format = "int64";
-            }
+            // Remove unrequired schemas.
+            swaggerDoc.Components.Schemas.Remove("ByteReadOnlyMemory");
+            swaggerDoc.Components.Schemas.Remove("ByteReadOnlySpan");
+            swaggerDoc.Components.Schemas.Remove("EncryptionKey256");
+            swaggerDoc.Components.Schemas.Remove("PostageBucketIndex");
         }
     }
 }

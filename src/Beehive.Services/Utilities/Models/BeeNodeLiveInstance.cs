@@ -50,7 +50,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
             PostageBatchId batchId,
             int depth,
             ulong? gasLimit,
-            XDaiBalance? gasPrice) =>
+            XDaiValue? gasPrice) =>
             Client.DilutePostageBatchAsync(batchId, depth, gasPrice, gasLimit);
 
         public Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
@@ -65,9 +65,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
 
         public Task<EthTxHash> TopUpPostageBatchAsync(
             PostageBatchId batchId,
-            BzzBalance amount,
+            BzzValue amount,
             ulong? gasLimit,
-            XDaiBalance? gasPrice) =>
+            XDaiValue? gasPrice) =>
             Client.TopUpPostageBatchAsync(batchId, amount, gasPrice, gasLimit);
 
         /// <summary>

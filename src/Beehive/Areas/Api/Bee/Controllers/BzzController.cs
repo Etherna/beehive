@@ -56,9 +56,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         
         [HttpPost]
         [BeeExceptionFilter]
-        [ProducesResponseType(typeof(SimpleChunkReferenceDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status402PaymentRequired)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ConsumesUnrestricted(
             BeehiveHttpConsts.ApplicationOctetStreamContentType,
             BeehiveHttpConsts.ApplicationTarContentType,
@@ -67,6 +68,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromQuery] string? name,
             [FromHeader(Name = SwarmHttpConsts.SwarmPostageBatchIdHeader), Required] PostageBatchId batchId,
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmEncryptHeader)] bool encrypt,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
             [FromHeader(Name = SwarmHttpConsts.ContentTypeHeader), Required] string contentType,
             [FromHeader(Name = SwarmHttpConsts.SwarmCollectionHeader)] bool isDirectory,
@@ -77,6 +79,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
                 name,
                 batchId,
                 compactLevel,
+                encrypt,
                 pinContent,
                 contentType,
                 isDirectory,

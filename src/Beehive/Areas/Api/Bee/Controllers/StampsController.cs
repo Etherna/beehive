@@ -74,7 +74,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             PostageBatchId batchId,
             int depth,
             [FromHeader(Name = SwarmHttpConsts.GasLimitHeader)] ulong? gasLimit = null,
-            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiBalance? gasPrice = null) =>
+            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiValue? gasPrice = null) =>
             service.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
 
         [HttpPatch("topup/{batchId}/{amount}")]
@@ -86,9 +86,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public Task<IActionResult> TopUpPostageBatchAsync(
             PostageBatchId batchId,
-            BzzBalance amount,
+            BzzValue amount,
             [FromHeader(Name = SwarmHttpConsts.GasLimitHeader)] ulong? gasLimit = null,
-            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiBalance? gasPrice = null) =>
+            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiValue? gasPrice = null) =>
             service.TopUpPostageBatchAsync(batchId, amount, gasLimit, gasPrice);
         
         // Post.
@@ -108,12 +108,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public Task<IActionResult> BuyPostageBatchAsync(
-            BzzBalance amount,
+            BzzValue amount,
             int depth,
             [FromQuery] string? label = null,
             [FromHeader(Name = SwarmHttpConsts.ImmutableHeader)] bool immutable = false,
             [FromHeader(Name = SwarmHttpConsts.GasLimitHeader)] ulong? gasLimit = null,
-            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiBalance? gasPrice = null) =>
+            [FromHeader(Name = SwarmHttpConsts.GasPriceHeader)] XDaiValue? gasPrice = null) =>
             service.BuyPostageBatchAsync(amount, depth, label, immutable, gasLimit, gasPrice);
     }
 }

@@ -65,7 +65,7 @@ namespace Etherna.Beehive.Persistence
             {
                 IndexBuilders =
                 [
-                    (Builders<ChunkPin>.IndexKeys.Ascending(p => p.Hash),
+                    (Builders<ChunkPin>.IndexKeys.Ascending(p => p.Reference),
                         new CreateIndexOptions<ChunkPin>())
                 ]
             });
