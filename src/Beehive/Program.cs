@@ -323,7 +323,11 @@ namespace Etherna.Beehive
             // Add Hangfire.
             app.UseHangfireDashboard(
                 CommonConsts.HangfireAdminPath,
-                new Hangfire.DashboardOptions { Authorization = [new Configs.Hangfire.AllowAllFilter()] });
+                new Hangfire.DashboardOptions
+                {
+                    Authorization = [new Configs.Hangfire.AllowAllFilter()],
+                    IgnoreAntiforgeryToken = true
+                });
 
             // Add Swagger and SwaggerUI.
             var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
