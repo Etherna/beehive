@@ -57,7 +57,8 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                             var cashoutResponse = await node.Client.GetChequebookCashoutForPeerAsync(peer);
                             uncashedBzzAmount = cashoutResponse.UncashedAmount;
                         }
-                        catch (BeeNetApiException) { }
+                        catch (BeeNetApiException e) when (e.StatusCode == 404)
+                        { }
 
                         // Cashout.
                         if (uncashedBzzAmount >= options.BzzMaxTrigger)
