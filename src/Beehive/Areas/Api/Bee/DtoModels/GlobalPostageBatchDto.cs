@@ -20,9 +20,9 @@ namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
 {
     public class GlobalPostageBatchDto(
         PostageBatchId batchId,
-        BzzValue amount,
+        BzzValue? amount,
         ulong blockNumber,
-        int depth,
+        int? depth,
         int bucketDepth,
         bool isImmutable,
         TimeSpan ttl,
@@ -30,10 +30,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
     {
         [JsonPropertyName("batchID")]
         public PostageBatchId BatchId { get; } = batchId;
-        public BzzValue Value { get; } = amount;
+        public BzzValue? Value { get; } = amount;
         public ulong Start { get; } = blockNumber;
         public string Owner { get; } = owner.ToString(false);
-        public int Depth { get; } = depth;
+        public int? Depth { get; } = depth;
         public int BucketDepth { get; } = bucketDepth;
         public bool Immutable { get; } = isImmutable;
         [JsonPropertyName("batchTTL")]
