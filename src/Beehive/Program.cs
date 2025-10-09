@@ -33,7 +33,8 @@ using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Tasks.Background;
 using Etherna.Beehive.Services.Tasks.Cron;
-using Etherna.BeeNet.AspNet;
+using Etherna.BeeNet.JsonConverters;
+using Etherna.BeeNet.Services;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
@@ -154,7 +155,22 @@ namespace Etherna.Beehive
                 options.JsonSerializerOptions.Converters.Add(new DateTimeOffsetAsUnixSecondsJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 options.JsonSerializerOptions.Converters.Add(new TimeSpanAsSecondsJsonConverter());
-                options.AddBeeNetJsonConverters();
+                options.JsonSerializerOptions.Converters.Add(new BzzValueJsonConverter(true));
+                options.JsonSerializerOptions.Converters.Add(new EncryptionKey256JsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new EthAddressJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new EthTxHashJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new PostageBatchIdJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new PostageStampJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmAddressJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmFeedTopicJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmHashJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmOverlayAddressJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmReferenceJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmSocIdentifierJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmSocSignatureJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new SwarmUriJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new TagIdJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new XDaiValueJsonConverter(true));
             });
             services.AddCors();
             services.AddRazorPages();
@@ -193,7 +209,8 @@ namespace Etherna.Beehive
             }
             
             // Configure Bee.Net
-            services.AddBeeNet();
+            services.AddScoped<IChunkService, ChunkService>();
+            services.AddScoped<IFeedService, FeedService>();
 
             // Configure Swagger services.
             services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
