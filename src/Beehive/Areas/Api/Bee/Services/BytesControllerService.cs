@@ -42,10 +42,19 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         : IBytesControllerService
     {
         // Methods.
-        public async Task<IActionResult> DownloadBytesAsync(SwarmReference reference)
+        public async Task<IActionResult> DownloadBytesAsync(
+            SwarmReference reference,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback)
         {
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            var dataStream = await ChunkDataStream.BuildNewAsync(reference, chunkStore);
+            var dataStream = await ChunkDataStream.BuildNewAsync(
+                reference,
+                chunkStore,
+                redundancyLevel,
+                redundancyStrategy,
+                redundancyStrategyFallback);
 
             return new FileStreamResult(dataStream, BeehiveHttpConsts.ApplicationOctetStreamContentType);
         }
@@ -54,7 +63,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             SwarmReference reference,
             HttpResponse response)
         {
-            ArgumentNullException.ThrowIfNull(response, nameof(response));
+            ArgumentNullException.ThrowIfNull(response);
             
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var chunk = await chunkStore.GetAsync(reference.Hash);
@@ -91,7 +100,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             PostageBatchId batchId,
             ushort compactLevel,
             bool encrypt,
-            bool pinContent)
+            bool pinContent,
+            RedundancyLevel redundancyLevel)
         {
             var reference = await dataService.UploadAsync(
                 batchId,
@@ -103,7 +113,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     using var fileHasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
                         chunkStore,
                         postageStamper,
-                        RedundancyLevel.None,
+                        redundancyLevel,
                         encrypt,
                         compactLevel,
                         null);

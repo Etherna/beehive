@@ -86,6 +86,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             byte? afterLevel,
             SwarmFeedType type,
             bool onlyRootChunk,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback,
             bool resolveLegacyPayload,
             HttpResponse response)
         {
@@ -157,7 +159,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var dataStream = ChunkDataStream.BuildNew(wrappedChunk, chunkStore);
+            var dataStream = ChunkDataStream.BuildNew(
+                wrappedChunk,
+                chunkStore,
+                redundancyStrategy,
+                redundancyStrategyFallback);
             return new FileStreamResult(
                 dataStream,
                 BeehiveHttpConsts.ApplicationOctetStreamContentType);

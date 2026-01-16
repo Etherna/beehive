@@ -35,7 +35,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpGet("{owner}/{topic}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IActionResult> FindFeedUpdateAsync(
@@ -45,9 +45,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromQuery] ulong? after,
             [FromQuery] byte? afterLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyStrategyHeader)] RedundancyStrategy redundancyStrategy, 
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback,
             [FromHeader(Name = SwarmHttpConsts.SwarmFeedLegacyResolveHeader)] bool resolveLegacyPayload,
             [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence) =>
-            service.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk, resolveLegacyPayload, Response);
+            service.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk, redundancyStrategy, redundancyStrategyFallback, resolveLegacyPayload, Response);
 
         // Post.
 

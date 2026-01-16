@@ -27,8 +27,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             if (chainstate is null)
                 throw new KeyNotFoundException();
             return new ChainStateDto(
-                chainstate.ChainTip,
                 chainstate.Block,
+                chainstate.ChainTip,
                 chainstate.TotalAmount,
                 chainstate.CurrentPrice,
                 chainstate.TimeStamp);

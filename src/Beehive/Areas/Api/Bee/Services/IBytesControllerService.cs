@@ -22,7 +22,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 {
     public interface IBytesControllerService
     {
-        Task<IActionResult> DownloadBytesAsync(SwarmReference reference);
+        Task<IActionResult> DownloadBytesAsync(
+            SwarmReference reference,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback);
 
         Task<IActionResult> GetBytesHeadersAsync(
             SwarmReference reference,
@@ -33,6 +37,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             PostageBatchId batchId,
             ushort compactLevel,
             bool encrypt,
-            bool pinContent);
+            bool pinContent,
+            RedundancyLevel redundancyLevel);
     }
 }

@@ -12,22 +12,24 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
-    public sealed class ChainStateDto(
-        ulong block,
-        ulong chainTip,
-        BzzValue totalAmount,
-        BzzValue currentPrice,
-        DateTimeOffset timeStamp)
+    public sealed class UlongSchemaFilter : ISchemaFilter
     {
-        public ulong Block { get; } = block;
-        public ulong ChainTip { get; } = chainTip;
-        public BzzValue TotalAmount { get; } = totalAmount;
-        public BzzValue CurrentPrice { get; } = currentPrice;
-        public DateTimeOffset TimeStamp { get; } = timeStamp;
+        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        {
+            ArgumentNullException.ThrowIfNull(schema);
+            ArgumentNullException.ThrowIfNull(context);
+
+            if (context.Type == typeof(ulong) || context.Type == typeof(ulong?))
+            {
+                schema.Type = "integer";
+                schema.Format = "uint64";
+            }
+        }
     }
 }

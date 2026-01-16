@@ -53,11 +53,33 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         : IBzzControllerService
     {
         // Methods.
-        public Task<IActionResult> DownloadBzzAsync(string strAddress, HttpContext httpContext) =>
-            ReplyToBzzReadAsync(strAddress, httpContext, false);
+        public Task<IActionResult> DownloadBzzAsync(
+            string strAddress,
+            HttpContext httpContext,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback) =>
+            ReplyToBzzReadAsync(
+                strAddress,
+                httpContext,
+                false,
+                redundancyLevel,
+                redundancyStrategy,
+                redundancyStrategyFallback);
 
-        public Task<IActionResult> GetBzzHeadersAsync(string strAddress, HttpContext httpContext) =>
-            ReplyToBzzReadAsync(strAddress, httpContext, true);
+        public Task<IActionResult> GetBzzHeadersAsync(
+            string strAddress,
+            HttpContext httpContext,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback) =>
+            ReplyToBzzReadAsync(
+                strAddress,
+                httpContext,
+                true,
+                redundancyLevel,
+                redundancyStrategy,
+                redundancyStrategyFallback);
 
         public async Task<IActionResult> UploadBzzAsync(
             HttpRequest request,
@@ -66,6 +88,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ushort compactLevel,
             bool encrypt,
             bool pinContent,
+            RedundancyLevel redundancyLevel,
             string contentType,
             bool isDirectory,
             string? indexDocument,
@@ -138,7 +161,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                                 errorDocument,
                                 compactLevel,
                                 encrypt,
-                                RedundancyLevel.None,
+                                redundancyLevel,
                                 postageStamper,
                                 null,
                                 chunkStore)).Reference;
@@ -157,7 +180,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                         new Hasher(),
                         compactLevel,
                         encrypt,
-                        RedundancyLevel.None,
+                        redundancyLevel,
                         postageStamper,
                         null,
                         chunkStore)).Reference;
@@ -176,7 +199,10 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
         private async Task<IActionResult> ReplyToBzzReadAsync(
             string strAddress,
             HttpContext httpContext,
-            bool onlyHeaders)
+            bool onlyHeaders,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback)
         {
             ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
             
@@ -188,7 +214,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             
             // Decode manifest.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            var manifest = new ReferencedMantarayManifest(chunkStore, address.Reference);
+            var manifest = ReferencedMantarayManifest.BuildNew(address.Reference, chunkStore);
             
             // Try to dereference feed manifest first.
             var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest);
@@ -205,7 +231,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
 
                 var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(false, new SwarmChunkBmt());
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
-                manifest = new ReferencedMantarayManifest(chunkStore, wrappedChunk);
+                manifest = ReferencedMantarayManifest.BuildNew(wrappedChunk, wrappedChunk.Hash, chunkStore);
                 
                 //report feed index header
                 var feedIndex = feedChunk.Index;
@@ -272,7 +298,12 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 }
 
                 //if full content
-                var dataStream = await ChunkDataStream.BuildNewAsync(resourceInfo.Result.Reference, chunkStore);
+                var dataStream = await ChunkDataStream.BuildNewAsync(
+                    resourceInfo.Result.Reference,
+                    chunkStore,
+                    redundancyLevel,
+                    redundancyStrategy,
+                    redundancyStrategyFallback);
 
                 httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
                 return new FileStreamResult(dataStream, mimeType)

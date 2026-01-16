@@ -32,16 +32,16 @@ namespace Etherna.Beehive.Services.Utilities.Models
             BeeNode beeNode)
         {
             Id = beeNode.Id;
-            Client = new BeeClient(beeNode.ConnectionString);
-            ChunkStore = new BeeClientChunkStore(Client);
+            Client = new SwarmClient(beeNode.ConnectionString);
+            ChunkStore = new SwarmClientChunkStore(Client);
             IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }
 
         // Properties.
         public string Id { get; }
-        public BeeClientChunkStore ChunkStore { get; }
-        public BeeClient Client { get; }
+        public SwarmClientChunkStore ChunkStore { get; }
+        public SwarmClient Client { get; }
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
