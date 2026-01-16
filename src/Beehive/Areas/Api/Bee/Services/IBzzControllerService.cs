@@ -23,11 +23,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
     {
         Task<IActionResult> DownloadBzzAsync(
             string strAddress,
-            HttpContext httpContext);
+            HttpContext httpContext,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback);
         
         Task<IActionResult> GetBzzHeadersAsync(
             string strAddress,
-            HttpContext httpContext);
+            HttpContext httpContext,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback);
 
         Task<IActionResult> UploadBzzAsync(
             HttpRequest request,
@@ -36,6 +42,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ushort compactLevel,
             bool encrypt,
             bool pinContent,
+            RedundancyLevel redundancyLevel,
             string contentType,
             bool isDirectory,
             string? indexDocument,

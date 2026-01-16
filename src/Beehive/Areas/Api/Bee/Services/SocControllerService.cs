@@ -42,9 +42,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             EthAddress owner,
             SwarmSocIdentifier identifier,
             bool onlyRootChunk,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback,
             HttpResponse response)
         {
-            ArgumentNullException.ThrowIfNull(response, nameof(response));
+            ArgumentNullException.ThrowIfNull(response);
             
             // Try find soc.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
@@ -66,7 +68,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
             //else return joined data
-            var dataStream = ChunkDataStream.BuildNew(soc.InnerChunk, chunkStore);
+            var dataStream = ChunkDataStream.BuildNew(
+                soc.InnerChunk,
+                chunkStore,
+                redundancyStrategy,
+                redundancyStrategyFallback);
             return new FileStreamResult(
                 dataStream,
                 BeehiveHttpConsts.ApplicationOctetStreamContentType);
@@ -81,7 +87,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             Stream dataStream,
             bool pinContent)
         {
-            ArgumentNullException.ThrowIfNull(dataStream, nameof(dataStream));
+            ArgumentNullException.ThrowIfNull(dataStream);
             
             if (!batchId.HasValue && postageStamp == null)
                 throw new ArgumentNullException(nameof(batchId), "Batch id or postage stamp are required");

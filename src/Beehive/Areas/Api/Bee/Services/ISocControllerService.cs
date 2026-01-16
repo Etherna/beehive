@@ -26,6 +26,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             EthAddress owner,
             SwarmSocIdentifier identifier,
             bool onlyRootChunk,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback,
             HttpResponse response);
         
         Task<IActionResult> UploadSocAsync(

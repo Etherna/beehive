@@ -35,17 +35,18 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         // Get.
         [HttpGet("{owner}/{id}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IActionResult> ResolveSocAsync(
             EthAddress owner,
             SwarmSocIdentifier id,
-            [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk) =>
-            service.ResolveSocAsync(owner, id, onlyRootChunk, HttpContext.Response);
+            [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyStrategyHeader)] RedundancyStrategy redundancyStrategy, 
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback) =>
+            service.ResolveSocAsync(owner, id, onlyRootChunk, redundancyStrategy, redundancyStrategyFallback, HttpContext.Response);
         
         // Post.
-        
         [HttpPost("{owner}/{id}")]
         [BeeExceptionFilter]
         [ProducesResponseType(typeof(ChunkReferenceDto), StatusCodes.Status201Created)]

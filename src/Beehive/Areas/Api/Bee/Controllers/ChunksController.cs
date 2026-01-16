@@ -37,7 +37,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpGet("{*hash:minlength(1)}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, BeehiveHttpConsts.BinaryOctetStreamContentType)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public Task<IActionResult> DownloadChunkAsync(SwarmHash hash) =>

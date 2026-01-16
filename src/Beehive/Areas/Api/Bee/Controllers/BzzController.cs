@@ -35,12 +35,20 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
 
         [HttpGet("{*address:minlength(1)}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> DownloadBzzAsync(string address) =>
-            //receive address as a raw string, we need to redirect in case it is only an <hash> without final '/'
-            service.DownloadBzzAsync(address, HttpContext);
+        public Task<IActionResult> DownloadBzzAsync(
+            string address, //receive address as a raw string: we need to redirect in case it is only an <hash> without final '/'
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyLevelHeader)] RedundancyLevel redundancyLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyStrategyHeader)] RedundancyStrategy redundancyStrategy, 
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback) =>
+            service.DownloadBzzAsync(
+                address,
+                HttpContext,
+                redundancyLevel,
+                redundancyStrategy,
+                redundancyStrategyFallback);
         
         // Head.
         
@@ -49,8 +57,17 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> GetBzzHeadersAsync(string address) =>
-            service.GetBzzHeadersAsync(address, HttpContext);
+        public Task<IActionResult> GetBzzHeadersAsync(
+            string address,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyLevelHeader)] RedundancyLevel redundancyLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyStrategyHeader)] RedundancyStrategy redundancyStrategy, 
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback) =>
+            service.GetBzzHeadersAsync(
+                address,
+                HttpContext,
+                redundancyLevel,
+                redundancyStrategy,
+                redundancyStrategyFallback);
         
         // Post.
         
@@ -70,6 +87,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmEncryptHeader)] bool encrypt,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyLevelHeader)] RedundancyLevel redundancyLevel,
             [FromHeader(Name = SwarmHttpConsts.ContentTypeHeader), Required] string contentType,
             [FromHeader(Name = SwarmHttpConsts.SwarmCollectionHeader)] bool isDirectory,
             [FromHeader(Name = SwarmHttpConsts.SwarmIndexDocumentHeader)] string? indexDocument,
@@ -81,6 +99,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
                 compactLevel,
                 encrypt,
                 pinContent,
+                redundancyLevel,
                 contentType,
                 isDirectory,
                 indexDocument,

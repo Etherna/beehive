@@ -36,11 +36,15 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
         
         [HttpGet("{*reference:minlength(1)}")]
         [BeeExceptionFilter]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK, BeehiveHttpConsts.ApplicationOctetStreamContentType)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public Task<IActionResult> DownloadBytesAsync(SwarmReference reference) =>
-            service.DownloadBytesAsync(reference);
+        public Task<IActionResult> DownloadBytesAsync(
+            SwarmReference reference,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyLevelHeader)] RedundancyLevel redundancyLevel,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyStrategyHeader)] RedundancyStrategy redundancyStrategy, 
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback) =>
+            service.DownloadBytesAsync(reference, redundancyLevel, redundancyStrategy, redundancyStrategyFallback);
         
         // Head.
         
@@ -66,7 +70,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Controllers
             [FromHeader(Name = BeehiveHttpConsts.SwarmCompactLevelHeader)] ushort compactLevel,
             [FromHeader(Name = SwarmHttpConsts.SwarmEncryptHeader)] bool encrypt,
             [FromHeader(Name = SwarmHttpConsts.SwarmPinningHeader)] bool pinContent,
+            [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyLevelHeader)] RedundancyLevel redundancyLevel,
             [FromBody, Required] Stream dataStream) =>
-            service.UploadBytesAsync(dataStream, batchId, compactLevel, encrypt, pinContent);
+            service.UploadBytesAsync(dataStream, batchId, compactLevel, encrypt, pinContent, redundancyLevel);
     }
 }

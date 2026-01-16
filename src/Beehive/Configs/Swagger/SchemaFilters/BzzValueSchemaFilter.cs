@@ -23,8 +23,8 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            ArgumentNullException.ThrowIfNull(schema);
+            ArgumentNullException.ThrowIfNull(context);
             
             if (context.Type == typeof(BzzValue) || context.Type == typeof(BzzValue?))
             {

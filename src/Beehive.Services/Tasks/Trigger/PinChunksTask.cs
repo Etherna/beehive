@@ -54,7 +54,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             HashSet<SwarmHash> pinnedChunksHash = [];
             await chunkTraverser.TraverseAsync(
                 pin.Reference.Value,
-                async foundChunk =>
+                async (foundChunk, _) =>
                 {
                     if (!pinnedChunksHash.Add(foundChunk.Hash))
                         return;
@@ -64,7 +64,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                         pin,
                         new FindOneAndUpdateOptions<Chunk>());
                 },
-                async invalidFoundChunk =>
+                async (invalidFoundChunk, _) =>
                 {
                     if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
                         return;
@@ -74,9 +74,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                         pin,
                         new FindOneAndUpdateOptions<Chunk>());
                 },
-                notFoundHash =>
+                notFoundReference =>
                 {
-                    missingChunksHash.Add(notFoundHash);
+                    missingChunksHash.Add(notFoundReference.Reference.Hash);
                     return Task.CompletedTask;
                 });
             

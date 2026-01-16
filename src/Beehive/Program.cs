@@ -243,6 +243,8 @@ namespace Etherna.Beehive
                 options.SchemaFilter<SwarmUriSchemaFilter>();
                 options.SchemaFilter<TagIdSchemaFilter>();
                 options.SchemaFilter<TimeSpanSchemaFilter>();
+                options.SchemaFilter<UintSchemaFilter>();
+                options.SchemaFilter<UlongSchemaFilter>();
                 options.SchemaFilter<XDaiValueSchemaFilter>();
 
                 //integrate xml comments
