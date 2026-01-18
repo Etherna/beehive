@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
@@ -22,7 +22,8 @@ namespace Etherna.Beehive.Configs.Swagger
     {
         public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(swaggerDoc, nameof(swaggerDoc));
+            ArgumentNullException.ThrowIfNull(swaggerDoc);
+            ArgumentNullException.ThrowIfNull(swaggerDoc.Components?.Schemas);
             
             // Remove unrequired schemas.
             swaggerDoc.Components.Schemas.Remove("ByteReadOnlyMemory");

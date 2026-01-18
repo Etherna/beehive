@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
@@ -21,18 +21,21 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
     public sealed class SwarmHashSchemaFilter : ISchemaFilter
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            ArgumentNullException.ThrowIfNull(schema);
+            ArgumentNullException.ThrowIfNull(context);
+            
+            if (schema is not OpenApiSchema openApiSchema)
+                return;
             
             if (context.Type == typeof(SwarmHash) || context.Type == typeof(SwarmHash?))
             {
-                schema.Type = "string";
-                schema.Format = null;
-                schema.MinLength = SwarmHash.HashSize * 2;
-                schema.MaxLength = SwarmHash.HashSize * 2;
-                schema.Pattern = $"^[a-fA-F0-9]{{{SwarmHash.HashSize * 2}}}$";
+                openApiSchema.Type = JsonSchemaType.String;
+                openApiSchema.Format = null;
+                openApiSchema.MinLength = SwarmHash.HashSize * 2;
+                openApiSchema.MaxLength = SwarmHash.HashSize * 2;
+                openApiSchema.Pattern = $"^[a-fA-F0-9]{{{SwarmHash.HashSize * 2}}}$";
             }
         }
     }

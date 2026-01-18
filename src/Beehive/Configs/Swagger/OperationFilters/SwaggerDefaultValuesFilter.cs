@@ -14,8 +14,7 @@
 
 using Etherna.Beehive.Attributes;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Linq;
@@ -36,8 +35,8 @@ namespace Etherna.Beehive.Configs.Swagger.OperationFilters
         /// <param name="context">The current operation filter context.</param>
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
-            ArgumentNullException.ThrowIfNull(operation, nameof(operation));
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(operation);
 
             var apiDescription = context.ApiDescription;
             
@@ -46,15 +45,20 @@ namespace Etherna.Beehive.Configs.Swagger.OperationFilters
                 .OfType<ConsumesUnrestrictedAttribute>().FirstOrDefault();
             if (consumesUnrestrictedAttribute != null)
             {
-                operation.RequestBody ??= new OpenApiRequestBody();
-                
-                operation.RequestBody.Content.Clear();
-                foreach (var contentType in consumesUnrestrictedAttribute.ContentTypes)
-                    operation.RequestBody.Content.Add(contentType, new OpenApiMediaType
-                    {
-                        Schema = new OpenApiSchema { Type = "string", Format = "binary"}
-                    });
-                operation.RequestBody.Required = !consumesUnrestrictedAttribute.IsOptional;
+                operation.RequestBody ??= new OpenApiRequestBody
+                {
+                    Content = consumesUnrestrictedAttribute.ContentTypes.ToDictionary(
+                        contentType => contentType,
+                        _ => new OpenApiMediaType
+                        {
+                            Schema = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String,
+                                Format = "binary"
+                            }
+                        }),
+                    Required = !consumesUnrestrictedAttribute.IsOptional
+                };
             }
 
             // Fix deprecate operation attribute.
@@ -68,16 +72,14 @@ namespace Etherna.Beehive.Configs.Swagger.OperationFilters
 
                 // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
                 // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
-                foreach (var parameter in operation.Parameters)
+                foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>())
                 {
                     var description = apiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
+                    
+                    parameter.Description ??= description.ModelMetadata.Description;
 
-                    parameter.Description ??= description.ModelMetadata?.Description;
-
-                    if (parameter.Schema.Default == null && description.DefaultValue != null)
-                    {
-                        parameter.Schema.Default = new OpenApiString(description.DefaultValue.ToString());
-                    }
+                    if (parameter.Schema?.Default == null && description.DefaultValue != null)
+                        parameter.Schema = new OpenApiSchema { Default = description.DefaultValue.ToString() };
 
                     parameter.Required |= description.IsRequired;
                 }

@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 
@@ -21,18 +21,21 @@ namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
 {
     public sealed class SwarmSocSignatureSchemaFilter : ISchemaFilter
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
         {
-            ArgumentNullException.ThrowIfNull(schema, nameof(schema));
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            ArgumentNullException.ThrowIfNull(schema);
+            ArgumentNullException.ThrowIfNull(context);
+            
+            if (schema is not OpenApiSchema openApiSchema)
+                return;
             
             if (context.Type == typeof(SwarmSocSignature) || context.Type == typeof(SwarmSocSignature?))
             {
-                schema.Type = "string";
-                schema.Format = null;
-                schema.MinLength = SwarmSocSignature.SignatureSize * 2;
-                schema.MaxLength = SwarmSocSignature.SignatureSize * 2;
-                schema.Pattern = $"^[a-fA-F0-9]{{{SwarmSocSignature.SignatureSize * 2}}}$";
+                openApiSchema.Type = JsonSchemaType.String;
+                openApiSchema.Format = null;
+                openApiSchema.MinLength = SwarmSocSignature.SignatureSize * 2;
+                openApiSchema.MaxLength = SwarmSocSignature.SignatureSize * 2;
+                openApiSchema.Pattern = $"^[a-fA-F0-9]{{{SwarmSocSignature.SignatureSize * 2}}}$";
             }
         }
     }

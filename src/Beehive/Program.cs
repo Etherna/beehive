@@ -48,6 +48,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
@@ -350,7 +351,10 @@ namespace Etherna.Beehive
 
             // Add Swagger and SwaggerUI.
             var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-            app.UseSwagger();
+            app.UseSwagger(options =>
+            {
+                options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            });
             app.UseSwaggerUI(options =>
             {
                 options.DocumentTitle = "Beehive API";
