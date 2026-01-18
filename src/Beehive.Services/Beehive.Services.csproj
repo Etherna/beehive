@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Etherna.Beehive.Services</RootNamespace>
 
     <Authors>Etherna SA</Authors>
@@ -18,8 +18,7 @@
     <PackageReference Include="Bee.Net.Client" Version="0.5.0" />
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.5.0" />
     <PackageReference Include="MongODM.Hangfire" Version="0.25.0-alpha.48" />
-    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="5.0.0" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
+    <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="5.8.0" />
   </ItemGroup>
 
   <ItemGroup>
