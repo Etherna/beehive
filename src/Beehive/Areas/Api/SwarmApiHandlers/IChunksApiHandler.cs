@@ -12,13 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.AspNetCore.Mvc;
+using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IBatchesControllerService
+    public interface IChunksApiHandler
     {
-        Task<IActionResult> GetGlobalValidPostageBatchesAsync();
+        Task<IResult> DownloadChunkAsync(SwarmHash hash);
+        Task<IResult> GetChunkHeadersAsync(SwarmHash hash);
+        Task<IResult> BulkUploadChunksAsync(Stream dataStream, PostageBatchId batchId);
+        Task<IResult> UploadChunkAsync(Stream dataStream, PostageBatchId? batchId, PostageStamp? postageStamp);
     }
 }

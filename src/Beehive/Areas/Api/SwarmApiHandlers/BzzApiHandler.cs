@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using Etherna.Beehive.Areas.Api.Bee.Results;
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Extensions;
@@ -29,7 +28,6 @@ using Etherna.MongODM.Core.Serialization.Modifiers;
 using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
@@ -41,48 +39,45 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public class BzzControllerService(
+    public sealed class BzzApiHandler(
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunkService beeNetChunkService,
         IDataService dataService,
         IBeehiveDbContext dbContext,
         IFeedService feedService,
+        IHttpContextAccessor httpContextAccessor,
         ISerializerModifierAccessor serializerModifierAccessor)
-        : IBzzControllerService
+        : IBzzApiHandler
     {
-        // Methods.
-        public Task<IActionResult> DownloadBzzAsync(
-            string strAddress,
-            HttpContext httpContext,
+        public Task<IResult> DownloadBzzAsync(
+            string address,
             RedundancyLevel redundancyLevel,
-            RedundancyStrategy redundancyStrategy, 
+            RedundancyStrategy redundancyStrategy,
             bool redundancyStrategyFallback) =>
-            ReplyToBzzReadAsync(
-                strAddress,
-                httpContext,
-                false,
-                redundancyLevel,
-                redundancyStrategy,
-                redundancyStrategyFallback);
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
+                ReplyToBzzReadAsync(
+                    address,
+                    false,
+                    redundancyLevel,
+                    redundancyStrategy,
+                    redundancyStrategyFallback));
 
-        public Task<IActionResult> GetBzzHeadersAsync(
-            string strAddress,
-            HttpContext httpContext,
+        public Task<IResult> GetBzzHeadersAsync(
+            string address,
             RedundancyLevel redundancyLevel,
-            RedundancyStrategy redundancyStrategy, 
+            RedundancyStrategy redundancyStrategy,
             bool redundancyStrategyFallback) =>
-            ReplyToBzzReadAsync(
-                strAddress,
-                httpContext,
-                true,
-                redundancyLevel,
-                redundancyStrategy,
-                redundancyStrategyFallback);
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
+                ReplyToBzzReadAsync(
+                    address,
+                    true,
+                    redundancyLevel,
+                    redundancyStrategy,
+                    redundancyStrategyFallback));
 
-        public async Task<IActionResult> UploadBzzAsync(
-            HttpRequest request,
+        public Task<IResult> UploadBzzAsync(
             string? name,
             PostageBatchId batchId,
             ushort compactLevel,
@@ -92,119 +87,123 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             string contentType,
             bool isDirectory,
             string? indexDocument,
-            string? errorDocument)
-        {
-            var reference = await dataService.UploadAsync(
-                batchId,
-                null,
-                compactLevel > 0,
-                pinContent,
-                async (chunkStore, postageStamper) =>
-                {
-                    //upload directory
-                    if (isDirectory || contentType == BeehiveHttpConsts.MultiPartFormDataContentType)
+            string? errorDocument) =>
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
+            {
+                var request = httpContextAccessor.HttpContext!.Request;
+                
+                var reference = await dataService.UploadAsync(
+                    batchId,
+                    null,
+                    compactLevel > 0,
+                    pinContent,
+                    async (chunkStore, postageStamper) =>
                     {
-                        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                        try
+                        //upload directory
+                        if (isDirectory || contentType == BeehiveHttpConsts.MultiPartFormDataContentType)
                         {
-                            // Extract files in temp directory.
-                            Directory.CreateDirectory(tempDirectory);
-                            switch (contentType)
+                            var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                            try
                             {
-                                case BeehiveHttpConsts.MultiPartFormDataContentType:
-                                    foreach (var file in request.Form.Files)
-                                    {
-                                        // Combine tempDirectory with file path to respect directory structure.
-                                        var filePath = Path.Combine(tempDirectory, file.FileName);
-
-                                        // Ensure directory structure exists.
-                                        var parentDirPath = Path.GetDirectoryName(filePath);
-                                        if (!string.IsNullOrEmpty(parentDirPath))
-                                            Directory.CreateDirectory(parentDirPath);
-
-                                        // Save file content to the determined path.
-                                        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                                        await file.CopyToAsync(fileStream);
-                                    }
-                                    break;
-                            
-                                case BeehiveHttpConsts.ApplicationTarContentType:
-                                    await using (var tarInput = new TarInputStream(request.Body, Encoding.UTF8))
-                                    {
-                                        while (await tarInput.GetNextEntryAsync(CancellationToken.None) is { } entry)
+                                // Extract files in temp directory.
+                                Directory.CreateDirectory(tempDirectory);
+                                switch (contentType)
+                                {
+                                    case BeehiveHttpConsts.MultiPartFormDataContentType:
+                                        foreach (var file in request.Form.Files)
                                         {
-                                            var outputPath = Path.Combine(tempDirectory, entry.Name);
-                                            var parentDir = Path.GetDirectoryName(outputPath);
-                                            if (parentDir != null && !Directory.Exists(parentDir))
-                                                Directory.CreateDirectory(parentDir);
+                                            // Combine tempDirectory with file path to respect directory structure.
+                                            var filePath = Path.Combine(tempDirectory, file.FileName);
 
-                                            if (!entry.IsDirectory)
+                                            // Ensure directory structure exists.
+                                            var parentDirPath = Path.GetDirectoryName(filePath);
+                                            if (!string.IsNullOrEmpty(parentDirPath))
+                                                Directory.CreateDirectory(parentDirPath);
+
+                                            // Save file content to the determined path.
+                                            await using var fileStream = new FileStream(filePath, FileMode.Create,
+                                                FileAccess.Write);
+                                            await file.CopyToAsync(fileStream);
+                                        }
+
+                                        break;
+
+                                    case BeehiveHttpConsts.ApplicationTarContentType:
+                                        await using (var tarInput = new TarInputStream(request.Body, Encoding.UTF8))
+                                        {
+                                            while (await tarInput.GetNextEntryAsync(CancellationToken.None) is
+                                                   { } entry)
                                             {
-                                                await using var outputStream = File.Create(outputPath);
-                                                await tarInput.CopyEntryContentsAsync(outputStream, CancellationToken.None);
+                                                var outputPath = Path.Combine(tempDirectory, entry.Name);
+                                                var parentDir = Path.GetDirectoryName(outputPath);
+                                                if (parentDir != null && !Directory.Exists(parentDir))
+                                                    Directory.CreateDirectory(parentDir);
+
+                                                if (!entry.IsDirectory)
+                                                {
+                                                    await using var outputStream = File.Create(outputPath);
+                                                    await tarInput.CopyEntryContentsAsync(outputStream,
+                                                        CancellationToken.None);
+                                                }
                                             }
                                         }
-                                    }
-                                    break;
 
-                                default:
-                                    throw new ArgumentException(
-                                        "Invalid content-type for directory upload",
-                                        nameof(contentType));
+                                        break;
+
+                                    default:
+                                        throw new ArgumentException(
+                                            "Invalid content-type for directory upload",
+                                            nameof(contentType));
+                                }
+
+                                // Upload directory.
+                                return (await beeNetChunkService.UploadDirectoryAsync(
+                                    tempDirectory,
+                                    new Hasher(),
+                                    indexDocument,
+                                    errorDocument,
+                                    compactLevel,
+                                    encrypt,
+                                    redundancyLevel,
+                                    postageStamper,
+                                    null,
+                                    chunkStore)).Reference;
                             }
-                            
-                            // Upload directory.
-                            return (await beeNetChunkService.UploadDirectoryAsync(
-                                tempDirectory,
-                                new Hasher(),
-                                indexDocument,
-                                errorDocument,
-                                compactLevel,
-                                encrypt,
-                                redundancyLevel,
-                                postageStamper,
-                                null,
-                                chunkStore)).Reference;
+                            finally
+                            {
+                                Directory.Delete(tempDirectory, true);
+                            }
                         }
-                        finally
-                        {
-                            Directory.Delete(tempDirectory, true);
-                        }
-                    }
 
-                    //upload file
-                    return (await beeNetChunkService.UploadSingleFileAsync(
-                        request.Body,
-                        contentType,
-                        name,
-                        new Hasher(),
-                        compactLevel,
-                        encrypt,
-                        redundancyLevel,
-                        postageStamper,
-                        null,
-                        chunkStore)).Reference;
-                });
+                        //upload file
+                        return (await beeNetChunkService.UploadSingleFileAsync(
+                            request.Body,
+                            contentType,
+                            name,
+                            new Hasher(),
+                            compactLevel,
+                            encrypt,
+                            redundancyLevel,
+                            postageStamper,
+                            null,
+                            chunkStore)).Reference;
+                    });
 
-            return new JsonResult(new ChunkReferenceDto(reference))
-            {
-                StatusCode = StatusCodes.Status201Created
-            };
-        }
+                return Results.Json(new ChunkReferenceDto(reference), statusCode: StatusCodes.Status201Created);
+            });
 
         // Helpers.
-        private static RedirectResult NewPermanentRedirectResult(SwarmAddress address, QueryString queryString) =>
-            new("/bzz/" + address + queryString, true, true);
+        private static IResult NewPermanentRedirectResult(SwarmAddress address, QueryString queryString) =>
+            Results.Redirect("/bzz/" + address + queryString, permanent: true, preserveMethod: true);
         
-        private async Task<IActionResult> ReplyToBzzReadAsync(
+        private async Task<IResult> ReplyToBzzReadAsync(
             string strAddress,
-            HttpContext httpContext,
             bool onlyHeaders,
             RedundancyLevel redundancyLevel,
             RedundancyStrategy redundancyStrategy, 
             bool redundancyStrategyFallback)
         {
-            ArgumentNullException.ThrowIfNull(httpContext, nameof(httpContext));
+            var httpContext = httpContextAccessor.HttpContext!;
             
             // Normalize address and redirect to it:
             // - append '/' if strAddress is only a hash, and a final slash is missing
@@ -273,11 +272,11 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                 if (onlyHeaders)
                 {
                     if (resourceInfo.IsFromErrorDoc)
-                        return new BeeNotFoundResult();
+                        throw new KeyNotFoundException();// return new BeeNotFoundResult();
                     
                     var chunk = await chunkStore.GetAsync(resourceInfo.Result.Reference.Hash);
                     if (chunk is not SwarmCac cac) //bzz content can only be read from cac
-                        return new BeeBadRequestResult();
+                        throw new KeyNotFoundException();// return new BeeBadRequestResult();
                     
                     ulong dataLength;
                     if (resourceInfo.Result.Reference.IsEncrypted)
@@ -294,7 +293,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     
                     httpContext.Response.ContentLength = (long)dataLength;
                     httpContext.Response.ContentType = mimeType;
-                    return new OkResult();
+                    return Results.Ok();
                 }
 
                 //if full content
@@ -306,10 +305,7 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
                     redundancyStrategyFallback);
 
                 httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
-                return new FileStreamResult(dataStream, mimeType)
-                {
-                    EnableRangeProcessing = true
-                };
+                return Results.File(dataStream, contentType: mimeType, enableRangeProcessing: true);
             }
             catch (ManifestExplicitRedirectException e)
             {

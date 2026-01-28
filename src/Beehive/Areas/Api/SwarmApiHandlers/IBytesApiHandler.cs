@@ -14,38 +14,27 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using System.IO;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IBzzControllerService
+    public interface IBytesApiHandler
     {
-        Task<IActionResult> DownloadBzzAsync(
-            string strAddress,
-            HttpContext httpContext,
-            RedundancyLevel redundancyLevel,
-            RedundancyStrategy redundancyStrategy, 
-            bool redundancyStrategyFallback);
-        
-        Task<IActionResult> GetBzzHeadersAsync(
-            string strAddress,
-            HttpContext httpContext,
+        Task<IResult> DownloadBytesAsync(
+            SwarmReference reference,
             RedundancyLevel redundancyLevel,
             RedundancyStrategy redundancyStrategy, 
             bool redundancyStrategyFallback);
 
-        Task<IActionResult> UploadBzzAsync(
-            HttpRequest request,
-            string? name,
+        Task<IResult> GetBytesHeadersAsync(SwarmReference reference);
+        
+        Task<IResult> UploadBytesAsync(
+            Stream dataStream,
             PostageBatchId batchId,
             ushort compactLevel,
             bool encrypt,
             bool pinContent,
-            RedundancyLevel redundancyLevel,
-            string contentType,
-            bool isDirectory,
-            string? indexDocument,
-            string? errorDocument);
+            RedundancyLevel redundancyLevel);
     }
 }

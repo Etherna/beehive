@@ -14,29 +14,18 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.IO;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface ISocControllerService
+    public interface IPinsApiHandler
     {
-        Task<IActionResult> ResolveSocAsync(
-            EthAddress owner,
-            SwarmSocIdentifier identifier,
-            bool onlyRootChunk,
-            RedundancyStrategy redundancyStrategy, 
-            bool redundancyStrategyFallback,
-            HttpResponse response);
-        
-        Task<IActionResult> UploadSocAsync(
-            EthAddress owner,
-            SwarmSocIdentifier identifier,
-            SwarmSocSignature signature,
-            PostageBatchId? batchId,
-            PostageStamp? postageStamp,
-            Stream dataStream,
-            bool pinContent);
+        Task<IResult> CreatePinBeeAsync(SwarmReference reference);
+        Task<IResult> CreatePinBeehiveAsync(SwarmReference reference);
+        Task<IResult> DeletePinAsync(SwarmReference reference);
+        Task<IResult> GetPinsBeeAsync();
+        Task<IResult> GetPinsBeehiveAsync(int page, int take);
+        Task<IResult> GetPinStatusBeeAsync(SwarmReference reference);
+        Task<IResult> GetPinStatusBeehiveAsync(SwarmReference reference);
     }
 }

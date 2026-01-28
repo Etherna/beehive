@@ -12,12 +12,29 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.AspNetCore.Mvc;
+using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IHealthControllerService
+    public interface ISocApiHandler
     {
-        IActionResult GetHealthStatus();
+        Task<IResult> ResolveSocAsync(
+            EthAddress owner,
+            SwarmSocIdentifier id,
+            bool onlyRootChunk,
+            RedundancyStrategy redundancyStrategy,
+            bool redundancyStrategyFallback);
+
+        Task<IResult> UploadSocAsync(
+            EthAddress owner,
+            SwarmSocIdentifier id,
+            string signature,
+            PostageBatchId? batchId,
+            PostageStamp? postageStamp,
+            Stream dataStream,
+            bool pinContent);
     }
 }

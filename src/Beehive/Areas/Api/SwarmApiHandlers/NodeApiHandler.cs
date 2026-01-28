@@ -12,12 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
+using Etherna.Beehive.Areas.Api.DtoModels;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IChainstateControllerService
+    public sealed class NodeApiHandler : INodeApiHandler
     {
-        ChainStateDto GetChainstate();
+        public Task<IResult> GetNodeStatus() =>
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
+                Task.FromResult(Results.Json(new NodeDto(
+                    "full",
+                    true,
+                    true))));
     }
 }

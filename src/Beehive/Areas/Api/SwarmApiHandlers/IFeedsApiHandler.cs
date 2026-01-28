@@ -14,22 +14,21 @@
 
 using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IFeedsControllerService
+    public interface IFeedsApiHandler
     {
-        Task<IActionResult> CreateFeedRootManifestAsync(
+        Task<IResult> CreateFeedRootManifestAsync(
             EthAddress owner,
             SwarmFeedTopic topic,
             SwarmFeedType type,
             PostageBatchId batchId,
             ushort compactLevel,
             bool pinContent);
-
-        Task<IActionResult> FindFeedUpdateAsync(
+        
+        Task<IResult> FindFeedUpdateAsync(
             EthAddress owner,
             SwarmFeedTopic topic,
             long? at,
@@ -37,9 +36,8 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             byte? afterLevel,
             SwarmFeedType type,
             bool onlyRootChunk,
-            RedundancyStrategy redundancyStrategy, 
+            RedundancyStrategy redundancyStrategy,
             bool redundancyStrategyFallback,
-            bool resolveLegacyPayload,
-            HttpResponse response);
+            bool resolveLegacyPayload);
     }
 }

@@ -13,14 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IStampsControllerService
+    public interface IStampsApiHandler
     {
-        Task<IActionResult> BuyPostageBatchAsync(
+        Task<IResult> BuyPostageBatchAsync(
             BzzValue amount,
             int depth,
             string? label,
@@ -28,19 +28,19 @@ namespace Etherna.Beehive.Areas.Api.Bee.Services
             ulong? gasLimit,
             XDaiValue? gasPrice);
         
-        Task<IActionResult> DilutePostageBatchAsync(
+        Task<IResult> DilutePostageBatchAsync(
             PostageBatchId batchId,
             int depth,
             ulong? gasLimit,
             XDaiValue? gasPrice);
-
-        Task<IActionResult> GetOwnedPostageBatchesAsync();
-
-        Task<IActionResult> GetPostageBatchAsync(PostageBatchId batchId);
         
-        Task<IActionResult> GetPostageBatchBucketsAsync(PostageBatchId batchId);
+        Task<IResult> GetOwnedPostageBatchesAsync();
         
-        Task<IActionResult> TopUpPostageBatchAsync(
+        Task<IResult> GetPostageBatchAsync(PostageBatchId batchId);
+        
+        Task<IResult> GetPostageBatchBucketsAsync(PostageBatchId batchId);
+        
+        Task<IResult> TopUpPostageBatchAsync(
             PostageBatchId batchId,
             BzzValue amount,
             ulong? gasLimit,

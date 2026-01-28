@@ -12,26 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using Etherna.Beehive.Services.Utilities;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public class ChainstateControllerService(IBeeNodeLiveManager beeNodeLiveManager)
-        : IChainstateControllerService
+    public interface INodeApiHandler
     {
-        public ChainStateDto GetChainstate()
-        {
-            var chainstate = beeNodeLiveManager.ChainState;
-            if (chainstate is null)
-                throw new KeyNotFoundException();
-            return new ChainStateDto(
-                chainstate.Block,
-                chainstate.ChainTip,
-                chainstate.TotalAmount,
-                chainstate.CurrentPrice,
-                chainstate.TimeStamp);
-        }
+        Task<IResult> GetNodeStatus();
     }
 }

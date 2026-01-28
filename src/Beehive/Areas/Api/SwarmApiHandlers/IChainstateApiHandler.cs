@@ -12,12 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface INodeControllerService
+    public interface IChainstateApiHandler
     {
-        IActionResult GetNodeStatus();
+        Task<IResult> GetChainstate();
     }
 }

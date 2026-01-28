@@ -12,20 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface IPinsControllerService
+    public interface IReadinessApiHandler
     {
-        Task<IActionResult> CreatePinBeeAsync(SwarmReference reference);
-        Task CreatePinBeehiveAsync(SwarmReference reference);
-        Task<IActionResult> DeletePinAsync(SwarmReference reference);
-        Task<IActionResult> GetPinsBeeAsync();
-        Task<IActionResult> GetPinsBeehiveAsync(int page, int take);
-        Task<IActionResult> GetPinStatusBeeAsync(SwarmReference reference);
-        Task<IActionResult> GetPinStatusBeehiveAsync(SwarmReference reference);
+        Task<IResult> GetReadinessStatus();
     }
 }

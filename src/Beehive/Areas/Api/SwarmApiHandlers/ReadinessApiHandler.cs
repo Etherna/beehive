@@ -12,17 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using Microsoft.AspNetCore.Mvc;
+using Etherna.Beehive.Areas.Api.DtoModels;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public class HealthControllerService : IHealthControllerService
+    public sealed class ReadinessApiHandler : IReadinessApiHandler
     {
-        public IActionResult GetHealthStatus() =>
-            new JsonResult(new HealthDto(
-                "ok",
-                typeof(HealthControllerService).Assembly.GetName().Version?.ToString() ?? "0.0.0",
-                "beehive-0.0.0"));
+        public Task<IResult> GetReadinessStatus() =>
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
+                Task.FromResult(Results.Json(new ReadinessDto(
+                    "ready",
+                    typeof(ReadinessApiHandler).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+                    "beehive-0.0.0"))));
     }
 }

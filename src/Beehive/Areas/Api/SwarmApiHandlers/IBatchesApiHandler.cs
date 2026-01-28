@@ -12,31 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Services
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public interface ITagsControllerService
+    public interface IBatchesApiHandler
     {
-        Task<IResult> CreateTagAsync(
-            PostageBatchId batchId,
-            HttpContext httpContext);
-        
-        Task<IResult> DeleteTagAsync(
-            TagId tagId,
-            PostageBatchId batchId,
-            HttpContext httpContext);
-
-        Task<IResult> GetTagAsync(
-            TagId tagId,
-            PostageBatchId batchId,
-            HttpContext httpContext);
-
-        Task<IResult> UpdateTagAsync(
-            TagId tagId,
-            PostageBatchId batchId,
-            HttpContext httpContext);
+        Task<IResult> GetGlobalValidPostageBatchesAsync();
     }
 }
