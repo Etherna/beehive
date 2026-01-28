@@ -12,30 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Areas.Api.Bee.DtoModels;
-using Etherna.Beehive.Areas.Api.Bee.Services;
-using Etherna.Beehive.Attributes;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Etherna.Beehive.Areas.Api.Bee.Controllers
+namespace Etherna.Beehive.Extensions
 {
-    [ApiController]
-    [ApiExplorerSettings(GroupName = "Bee")]
-    [Route("node")]
-    [Route("v{api-version:apiVersion}/node")]
-    public class NodeController(INodeControllerService service)
-        : ControllerBase
+    public static class EndpointRouteBuilderExtensions
     {
-        // Get.
-        
-        /// <summary>
-        /// Get information about the node
-        /// </summary>
-        [HttpGet]
-        [BeeExceptionFilter]
-        [ProducesResponseType(typeof(NodeDto), StatusCodes.Status200OK)]
-        public IActionResult GetNodeStatus() =>
-            service.GetNodeStatus();
+        public static RouteHandlerBuilder MapHead(
+            this IEndpointRouteBuilder builder,
+            [StringSyntax("Route")] string pattern,
+            Delegate handler) =>
+            builder.MapMethods(pattern, [HttpMethods.Head], handler);
     }
 }

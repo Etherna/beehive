@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Extensions
     {
         public static void SetNoCache(this IHeaderDictionary headers)
         {
-            ArgumentNullException.ThrowIfNull(headers, nameof(headers));
+            ArgumentNullException.ThrowIfNull(headers);
             
             headers.CacheControl = new[]
             {
