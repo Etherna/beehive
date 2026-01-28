@@ -12,15 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using System;
+using System.Collections.Generic;
+
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public static class BeehiveHttpConsts
+    public sealed class AcceptsUnrestrictedMetadata(
+        string[] contentTypes,
+        Type? type = null,
+        bool isOptional = false)
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public IReadOnlyList<string> ContentTypes { get; } = contentTypes;
+        public Type? RequestType { get; } = type;
+        public bool IsOptional { get; } = isOptional;
     }
 }

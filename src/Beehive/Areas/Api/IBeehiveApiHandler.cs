@@ -12,15 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Etherna.Beehive.Areas.Api.InputModels;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
+
+namespace Etherna.Beehive.Areas.Api
 {
-    public static class BeehiveHttpConsts
+    public interface IBeehiveApiHandler
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        Task<IResult> AddBeeNodeAsync(BeeNodeInput nodeInput);
+        Task<IResult> FindByIdAsync(string id);
+        Task<IResult> GetBeeNodesAsync();
+        Task<IResult> RemoveBeeNodeAsync(string id);
+        Task<IResult> UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
     }
 }

@@ -12,15 +12,20 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using System;
+using System.Diagnostics.CodeAnalysis;
+
+namespace Etherna.Beehive.Extensions
 {
-    public static class BeehiveHttpConsts
+    public static class EndpointRouteBuilderExtensions
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public static RouteHandlerBuilder MapHead(
+            this IEndpointRouteBuilder builder,
+            [StringSyntax("Route")] string pattern,
+            Delegate handler) =>
+            builder.MapMethods(pattern, [HttpMethods.Head], handler);
     }
 }

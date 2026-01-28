@@ -12,25 +12,29 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using Microsoft.AspNetCore.Http;
-using System;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Extensions
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public static class HeaderDictionaryExtensions
+    public interface IBytesApiHandler
     {
-        public static void SetNoCache(this IHeaderDictionary headers)
-        {
-            ArgumentNullException.ThrowIfNull(headers);
-            
-            headers.CacheControl = new[]
-            {
-                "no-store",
-                "no-cache",
-                "must-revalidate",
-                "proxy-revalidate"
-            };
-            headers.Expires = "0";
-        }
+        Task<IResult> DownloadBytesAsync(
+            SwarmReference reference,
+            RedundancyLevel redundancyLevel,
+            RedundancyStrategy redundancyStrategy, 
+            bool redundancyStrategyFallback);
+
+        Task<IResult> GetBytesHeadersAsync(SwarmReference reference);
+        
+        Task<IResult> UploadBytesAsync(
+            Stream dataStream,
+            PostageBatchId batchId,
+            ushort compactLevel,
+            bool encrypt,
+            bool pinContent,
+            RedundancyLevel redundancyLevel);
     }
 }

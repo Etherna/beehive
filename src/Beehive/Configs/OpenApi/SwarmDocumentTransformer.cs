@@ -12,15 +12,29 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public static class BeehiveHttpConsts
+    public sealed class SwarmDocumentTransformer : IOpenApiDocumentTransformer
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public Task TransformAsync(
+            OpenApiDocument document,
+            OpenApiDocumentTransformerContext context,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+
+            // Set info.
+            document.Info.Title = "Swarm API";
+            document.Servers?.Clear();
+            document.Tags?.Clear();
+
+            return Task.CompletedTask;
+        }
     }
 }

@@ -12,15 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using System.Collections.Generic;
+
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public static class BeehiveHttpConsts
+    public sealed class PostageBatchBucketsDto(
+        int depth,
+        int bucketDepth,
+        IEnumerable<PostageBatchBucketDto> buckets)
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public int Depth { get; } = depth;
+        public int BucketDepth { get; } = bucketDepth;
+        public uint BucketUpperBound { get; } = (uint)1 << (depth - bucketDepth);
+        public IEnumerable<PostageBatchBucketDto> Buckets { get; } = buckets;
     }
 }

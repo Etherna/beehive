@@ -12,25 +12,30 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Extensions
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public static class HeaderDictionaryExtensions
+    public sealed class BeehiveDocumentTransformer : IOpenApiDocumentTransformer
     {
-        public static void SetNoCache(this IHeaderDictionary headers)
+        public Task TransformAsync(
+            OpenApiDocument document,
+            OpenApiDocumentTransformerContext context,
+            CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(headers);
-            
-            headers.CacheControl = new[]
-            {
-                "no-store",
-                "no-cache",
-                "must-revalidate",
-                "proxy-revalidate"
-            };
-            headers.Expires = "0";
+            ArgumentNullException.ThrowIfNull(document);
+
+            // Set info.
+            document.Info.Title = "Beehive API";
+            document.Info.Version = "0.4";
+            document.Servers?.Clear();
+            document.Tags?.Clear();
+
+            return Task.CompletedTask;
         }
     }
 }

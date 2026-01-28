@@ -12,15 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Etherna.BeeNet.Models;
+using System.Text.Json.Serialization;
+
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public static class BeehiveHttpConsts
+    public sealed class PostageBatchIdWithTxHashDto(PostageBatchId batchId, EthTxHash txHash)
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        [JsonPropertyName("batchID")]
+        public PostageBatchId BatchId { get; } = batchId;
+        public EthTxHash TxHash { get; } = txHash;
     }
 }

@@ -12,15 +12,22 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Etherna.BeeNet.Models;
+using System;
+
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public static class BeehiveHttpConsts
+    public sealed class ChainStateDto(
+        ulong block,
+        ulong chainTip,
+        BzzValue totalAmount,
+        BzzValue currentPrice,
+        DateTimeOffset timeStamp)
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public ulong Block { get; } = block;
+        public ulong ChainTip { get; } = chainTip;
+        public BzzValue TotalAmount { get; } = totalAmount;
+        public BzzValue CurrentPrice { get; } = currentPrice;
+        public DateTimeOffset TimeStamp { get; } = timeStamp;
     }
 }

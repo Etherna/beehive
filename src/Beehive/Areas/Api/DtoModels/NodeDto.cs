@@ -12,15 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public static class BeehiveHttpConsts
+    public sealed class NodeDto(string beeMode, bool chequebookEnabled, bool swapEnabled)
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public string BeeMode { get; } = beeMode;
+        public bool ChequebookEnabled { get; } = chequebookEnabled;
+        public bool SwapEnabled { get; } = swapEnabled;
     }
 }

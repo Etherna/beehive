@@ -12,15 +12,25 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Etherna.BeeNet.Models;
+using System;
+using System.Collections.Generic;
+
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public static class BeehiveHttpConsts
+    public sealed class BeehivePinDto(
+        SwarmReference reference,
+        DateTimeOffset creationTime,
+        IEnumerable<SwarmHash> missingChunks,
+        bool processed,
+        bool succeeded,
+        long pinnedChunks)
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public SwarmReference Reference { get; } = reference;
+        public DateTimeOffset CreationTime { get; } = creationTime;
+        public bool Processed { get; } = processed;
+        public bool Succeeded { get; } = succeeded;
+        public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
+        public long PinnedChunks { get; } = pinnedChunks;
     }
 }

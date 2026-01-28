@@ -12,15 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Configs
+using Etherna.Beehive.Areas.Api.DtoModels;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
+
+namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
-    public static class BeehiveHttpConsts
+    public sealed class HealthApiHandler : IHealthApiHandler
     {
-        public const string AnyContentType = "*/*";
-        public const string ApplicationOctetStreamContentType = "application/octet-stream";
-        public const string ApplicationTarContentType = "application/x-tar";
-        public const string BinaryOctetStreamContentType = "binary/octet-stream";
-        public const string MultiPartFormDataContentType = "multipart/form-data";
-        public const string SwarmCompactLevelHeader = "Swarm-Compact-Level";
+        public Task<IResult> GetHealthStatus() =>
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
+                Task.FromResult(Results.Json(new HealthDto(
+                    "ok",
+                    typeof(HealthApiHandler).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+                    "beehive-0.0.0"))));
     }
 }
