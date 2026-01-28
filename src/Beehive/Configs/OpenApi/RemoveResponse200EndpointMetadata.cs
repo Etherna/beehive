@@ -12,20 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using System;
-using System.Threading.Tasks;
-
-namespace Etherna.Beehive.ModelBinders
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public class StreamFromHttpRequestBodyModelBinder : IModelBinder
+    /// <summary>
+    /// Required because of https://github.com/dotnet/aspnetcore/issues/43330
+    /// </summary>
+    public sealed class RemoveResponse200EndpointMetadata
     {
-        public Task BindModelAsync(ModelBindingContext bindingContext)
-        {
-            ArgumentNullException.ThrowIfNull(bindingContext, nameof(bindingContext));
-
-            bindingContext.Result = ModelBindingResult.Success(bindingContext.HttpContext.Request.Body);
-            return Task.CompletedTask;
-        }
+        
     }
 }

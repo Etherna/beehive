@@ -12,28 +12,32 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public sealed class TagIdSchemaFilter : ISchemaFilter
+    /// <summary>
+    /// Required because of https://github.com/dotnet/aspnetcore/issues/43330
+    /// </summary>
+    public sealed class RemoveDefaultResponse200OperationTransformer : IOpenApiOperationTransformer
     {
-        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
+        public Task TransformAsync(
+            OpenApiOperation operation,
+            OpenApiOperationTransformerContext context,
+            CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(schema);
+            ArgumentNullException.ThrowIfNull(operation);
             ArgumentNullException.ThrowIfNull(context);
-            
-            if (schema is not OpenApiSchema openApiSchema)
-                return;
-            
-            if (context.Type == typeof(TagId) || context.Type == typeof(TagId?))
-            {
-                openApiSchema.Type = JsonSchemaType.Integer;
-                openApiSchema.Format = "int64";
-            }
+
+            if (context.Description.ActionDescriptor.EndpointMetadata.OfType<RemoveResponse200EndpointMetadata>().Any())
+                operation.Responses?.Remove("200");
+
+            return Task.CompletedTask;
         }
     }
 }

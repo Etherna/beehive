@@ -12,27 +12,10 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using System;
-
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public sealed class UintSchemaFilter : ISchemaFilter
+    public sealed class DeprecatedEndpointMetadata(string? message = null)
     {
-        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
-        {
-            ArgumentNullException.ThrowIfNull(schema);
-            ArgumentNullException.ThrowIfNull(context);
-            
-            if (schema is not OpenApiSchema openApiSchema)
-                return;
-
-            if (context.Type == typeof(uint) || context.Type == typeof(uint?))
-            {
-                openApiSchema.Type = JsonSchemaType.Integer;
-                openApiSchema.Format = "uint32";
-            }
-        }
+        public string? Message { get; } = message;
     }
 }

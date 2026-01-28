@@ -12,27 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
+using System.Collections.Generic;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public sealed class UlongSchemaFilter : ISchemaFilter
+    public sealed class AcceptsUnrestrictedMetadata(
+        string[] contentTypes,
+        Type? type = null,
+        bool isOptional = false)
     {
-        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
-        {
-            ArgumentNullException.ThrowIfNull(schema);
-            ArgumentNullException.ThrowIfNull(context);
-            
-            if (schema is not OpenApiSchema openApiSchema)
-                return;
-
-            if (context.Type == typeof(ulong) || context.Type == typeof(ulong?))
-            {
-                openApiSchema.Type = JsonSchemaType.Integer;
-                openApiSchema.Format = "uint64";
-            }
-        }
+        public IReadOnlyList<string> ContentTypes { get; } = contentTypes;
+        public Type? RequestType { get; } = type;
+        public bool IsOptional { get; } = isOptional;
     }
 }

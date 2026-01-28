@@ -12,28 +12,30 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Configs.Swagger.SchemaFilters
+namespace Etherna.Beehive.Configs.OpenApi
 {
-    public sealed class BzzValueSchemaFilter : ISchemaFilter
+    public sealed class BeehiveDocumentTransformer : IOpenApiDocumentTransformer
     {
-        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
+        public Task TransformAsync(
+            OpenApiDocument document,
+            OpenApiDocumentTransformerContext context,
+            CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(schema);
-            ArgumentNullException.ThrowIfNull(context);
-            
-            if (schema is not OpenApiSchema openApiSchema)
-                return;
-            
-            if (context.Type == typeof(BzzValue) || context.Type == typeof(BzzValue?))
-            {
-                openApiSchema.Type = JsonSchemaType.Integer;
-                openApiSchema.Format = "int64";
-            }
+            ArgumentNullException.ThrowIfNull(document);
+
+            // Set info.
+            document.Info.Title = "Beehive API";
+            document.Info.Version = "0.4";
+            document.Servers?.Clear();
+            document.Tags?.Clear();
+
+            return Task.CompletedTask;
         }
     }
 }
