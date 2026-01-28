@@ -14,9 +14,9 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace Etherna.Beehive.Areas.Api.V0_4.InputModels
+namespace Etherna.Beehive.Areas.Api.InputModels
 {
-    public class BeeNodeInput
+    public sealed class BeeNodeInput
     {
         [Required]
         public required string ConnectionString { get; set; }

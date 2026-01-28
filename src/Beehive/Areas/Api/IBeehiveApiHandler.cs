@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -13,19 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.InputModels;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Options
+namespace Etherna.Beehive.Areas.Api
 {
-#pragma warning disable CA1034 // Nested types should not be visible
-#pragma warning disable CA1819 // Properties should not return arrays
-    internal sealed class SeedDbOptions
+    public interface IBeehiveApiHandler
     {
-        // Consts.
-        public const string ConfigPosition = "SeedDb";
-
-        // Properties.
-        public BeeNodeInput[] BeeNodes { get; set; } = [];
+        Task<IResult> AddBeeNodeAsync(BeeNodeInput nodeInput);
+        Task<IResult> FindByIdAsync(string id);
+        Task<IResult> GetBeeNodesAsync();
+        Task<IResult> RemoveBeeNodeAsync(string id);
+        Task<IResult> UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
     }
-#pragma warning restore CA1819 // Properties should not return arrays
-#pragma warning restore CA1034 // Nested types should not be visible
 }

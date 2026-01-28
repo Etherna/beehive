@@ -309,6 +309,7 @@ namespace Etherna.Beehive
             app.MapOpenApi();
             app.MapRazorPages();
             
+            app.MapBeehiveApi();
             app.MapSwarmApi();
 
             // Add Hangfire.

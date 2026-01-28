@@ -16,9 +16,9 @@ using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.V0_4.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public class BeeNodeDto(
+    public sealed class BeeNodeDto(
         string id,
         Uri connectionString,
         IEnumerable<string> errors,
