@@ -12,12 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public class HealthDto(string status, string version, string apiVersion)
+    public sealed class BeeErrorDto(int code, string? message)
     {
-        public string Status { get; } = status;
-        public string Version { get; } = version;
-        public string ApiVersion { get; } = apiVersion;
+        public int Code { get; } = code;
+        public string Message { get; } = message ?? "";
     }
 }

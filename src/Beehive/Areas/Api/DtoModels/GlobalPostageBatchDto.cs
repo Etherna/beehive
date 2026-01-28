@@ -16,9 +16,9 @@ using Etherna.BeeNet.Models;
 using System;
 using System.Text.Json.Serialization;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public class GlobalPostageBatchDto(
+    public sealed class GlobalPostageBatchDto(
         PostageBatchId batchId,
         BzzValue? amount,
         ulong blockNumber,

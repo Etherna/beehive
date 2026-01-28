@@ -12,22 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using System;
-
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class ChainStateDto(
-        ulong block,
-        ulong chainTip,
-        BzzValue totalAmount,
-        BzzValue currentPrice,
-        DateTimeOffset timeStamp)
+    public sealed class HealthDto(string status, string version, string apiVersion)
     {
-        public ulong Block { get; } = block;
-        public ulong ChainTip { get; } = chainTip;
-        public BzzValue TotalAmount { get; } = totalAmount;
-        public BzzValue CurrentPrice { get; } = currentPrice;
-        public DateTimeOffset TimeStamp { get; } = timeStamp;
+        public string Status { get; } = status;
+        public string Version { get; } = version;
+        public string ApiVersion { get; } = apiVersion;
     }
 }

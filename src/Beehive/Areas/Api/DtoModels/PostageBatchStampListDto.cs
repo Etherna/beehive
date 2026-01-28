@@ -12,14 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public class PostageBatchBucketDto(int bucketId, uint collisions)
+    public sealed class PostageBatchStampListDto(IEnumerable<PostageBatchDto> postageBatches)
     {
-        [JsonPropertyName("bucketID")]
-        public int BucketId { get; } = bucketId;
-        public uint Collisions { get; } = collisions;
+        public IEnumerable<PostageBatchDto> Stamps { get; } = postageBatches;
     }
 }

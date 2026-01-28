@@ -12,13 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class BeePinsDto(IEnumerable<SwarmReference> references)
+    public sealed class GlobalPostageBatchesDto(IEnumerable<GlobalPostageBatchDto> postageBatches)
     {
-        public IEnumerable<SwarmReference> References { get; } = references;
+        public IEnumerable<GlobalPostageBatchDto> Batches { get; } = postageBatches;
     }
 }

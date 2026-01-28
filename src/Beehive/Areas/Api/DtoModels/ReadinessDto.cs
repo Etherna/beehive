@@ -12,12 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Collections.Generic;
-
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class PostageBatchStampListDto(IEnumerable<PostageBatchDto> postageBatches)
+    public sealed class ReadinessDto(string status, string version, string apiVersion)
     {
-        public IEnumerable<PostageBatchDto> Stamps { get; } = postageBatches;
+        public string Status { get; } = status;
+        public string Version { get; } = version;
+        public string ApiVersion { get; } = apiVersion;
     }
 }

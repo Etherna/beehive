@@ -12,11 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+using Etherna.BeeNet.Models;
+using System.Text.Json.Serialization;
+
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class BeeErrorDto(int code, string? message)
+    public sealed class PostageBatchIdWithTxHashDto(PostageBatchId batchId, EthTxHash txHash)
     {
-        public int Code { get; } = code;
-        public string Message { get; } = message ?? "";
+        [JsonPropertyName("batchID")]
+        public PostageBatchId BatchId { get; } = batchId;
+        public EthTxHash TxHash { get; } = txHash;
     }
 }

@@ -13,14 +13,12 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class PostageBatchIdWithTxHashDto(PostageBatchId batchId, EthTxHash txHash)
+    public sealed class BeePinsDto(IEnumerable<SwarmReference> references)
     {
-        [JsonPropertyName("batchID")]
-        public PostageBatchId BatchId { get; } = batchId;
-        public EthTxHash TxHash { get; } = txHash;
+        public IEnumerable<SwarmReference> References { get; } = references;
     }
 }

@@ -12,12 +12,18 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+using System.Collections.Generic;
+
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public class ReadinessDto(string status, string version, string apiVersion)
+    public sealed class PostageBatchBucketsDto(
+        int depth,
+        int bucketDepth,
+        IEnumerable<PostageBatchBucketDto> buckets)
     {
-        public string Status { get; } = status;
-        public string Version { get; } = version;
-        public string ApiVersion { get; } = apiVersion;
+        public int Depth { get; } = depth;
+        public int BucketDepth { get; } = bucketDepth;
+        public uint BucketUpperBound { get; } = (uint)1 << (depth - bucketDepth);
+        public IEnumerable<PostageBatchBucketDto> Buckets { get; } = buckets;
     }
 }

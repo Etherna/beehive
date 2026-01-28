@@ -16,7 +16,7 @@ using Etherna.BeeNet.Models;
 using System;
 using System.Text.Json.Serialization;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
     public sealed class PostageBatchDto(
         BzzValue? amount,

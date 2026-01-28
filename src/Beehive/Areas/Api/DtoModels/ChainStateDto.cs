@@ -12,18 +12,22 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Collections.Generic;
+using Etherna.BeeNet.Models;
+using System;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class PostageBatchBucketsDto(
-        int depth,
-        int bucketDepth,
-        IEnumerable<PostageBatchBucketDto> buckets)
+    public sealed class ChainStateDto(
+        ulong block,
+        ulong chainTip,
+        BzzValue totalAmount,
+        BzzValue currentPrice,
+        DateTimeOffset timeStamp)
     {
-        public int Depth { get; } = depth;
-        public int BucketDepth { get; } = bucketDepth;
-        public uint BucketUpperBound { get; } = (uint)1 << (depth - bucketDepth);
-        public IEnumerable<PostageBatchBucketDto> Buckets { get; } = buckets;
+        public ulong Block { get; } = block;
+        public ulong ChainTip { get; } = chainTip;
+        public BzzValue TotalAmount { get; } = totalAmount;
+        public BzzValue CurrentPrice { get; } = currentPrice;
+        public DateTimeOffset TimeStamp { get; } = timeStamp;
     }
 }

@@ -13,24 +13,11 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using System;
-using System.Collections.Generic;
 
-namespace Etherna.Beehive.Areas.Api.Bee.DtoModels
+namespace Etherna.Beehive.Areas.Api.DtoModels
 {
-    public sealed class BeehivePinDto(
-        SwarmReference reference,
-        DateTimeOffset creationTime,
-        IEnumerable<SwarmHash> missingChunks,
-        bool processed,
-        bool succeeded,
-        long pinnedChunks)
+    public sealed class ChunkReferenceDto(SwarmReference reference)
     {
         public SwarmReference Reference { get; } = reference;
-        public DateTimeOffset CreationTime { get; } = creationTime;
-        public bool Processed { get; } = processed;
-        public bool Succeeded { get; } = succeeded;
-        public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
-        public long PinnedChunks { get; } = pinnedChunks;
     }
 }
