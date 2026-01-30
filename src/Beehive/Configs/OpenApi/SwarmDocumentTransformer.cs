@@ -12,9 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,19 +24,26 @@ namespace Etherna.Beehive.Configs.OpenApi
 {
     public sealed class SwarmDocumentTransformer : IOpenApiDocumentTransformer
     {
-        public Task TransformAsync(
+        public async Task TransformAsync(
             OpenApiDocument document,
             OpenApiDocumentTransformerContext context,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(context);
 
             // Set info.
             document.Info.Title = "Swarm API";
             document.Servers?.Clear();
             document.Tags?.Clear();
-
-            return Task.CompletedTask;
+            
+            // Try add error schema.
+            document.Components ??= new OpenApiComponents();
+            document.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
+            var beeErrorSchema = await context.GetOrCreateSchemaAsync(
+                typeof(BeeErrorDto),
+                cancellationToken: cancellationToken);
+            document.Components.Schemas.TryAdd(nameof(BeeErrorDto), beeErrorSchema);
         }
     }
 }

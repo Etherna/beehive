@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Areas.Api.DtoModels;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using System;
@@ -32,6 +33,21 @@ namespace Etherna.Beehive.Configs.OpenApi
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(operation);
             
+            // Set default response errors schema.
+            foreach (var response in (operation.Responses ?? [])
+                     .Where(r => int.TryParse(r.Key, out var statusCode) && statusCode is < 200 or > 299)
+                     .Select(r => r.Value)
+                     .OfType<OpenApiResponse>())
+            {
+                response.Content ??= new Dictionary<string, OpenApiMediaType>();
+                if (!response.Content.ContainsKey("application/json"))
+                    response.Content.Add("application/json", new OpenApiMediaType
+                    {
+                        Schema = new OpenApiSchemaReference(nameof(BeeErrorDto))
+                    });
+            }
+            
+            // Set tags.
             operation.Tags = new HashSet<OpenApiTagReference>();
             operation.Tags.Add(new OpenApiTagReference((context.Description.RelativePath ?? "")
                 .Split('/').Where(s => !string.IsNullOrWhiteSpace(s) && s != "v1" && s != "ev1")
