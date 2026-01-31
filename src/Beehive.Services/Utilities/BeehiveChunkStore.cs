@@ -244,16 +244,10 @@ namespace Etherna.Beehive.Services.Utilities
                 }
             }
             
-            // If it's not found, search on a healthy bee node.
-            foreach (var hash in missingHashes)
-            {
-                try
-                {
-                    var chunk = await GetFromBeeNodeAsync(hash, cancellationToken);
-                    results.TryAdd(hash, chunk);
-                }
-                catch (BeeNetApiException) { }
-            }
+            // If it's not found, search on healthy bee nodes.
+            var fromBeeNodes = await GetFromBeeNodesAsync(missingHashes, cancellationToken);
+            foreach (var (hash, chunk) in fromBeeNodes)
+                results.TryAdd(hash, chunk);
             
             return results;
         }
@@ -333,6 +327,65 @@ namespace Etherna.Beehive.Services.Utilities
             await FlushSaveAsync();
             
             return chunk;
+        }
+
+        private async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk>> GetFromBeeNodesAsync(
+            HashSet<SwarmHash> hashes,
+            CancellationToken cancellationToken)
+        {
+            /*
+             * Algorithm:
+             * Scope is try to balance requests to nodes as much as possible.
+             * We need an efficient way to select healthy nodes for each hash, keeping distance between hashes and
+             * selected nodes as minimal as possible. Nodes are not equally distributed, and because of this we can't
+             * simply select the nearest node, this would create systematic unbalances on loads.
+             * Instead, hashes are not equally distributed too, but any unbalance would be random and not systematic.
+             *
+             * With these considerations, we will retrieve the list of healthy nodes, order them by overlay addresses,
+             * and will create equal address partitions to assign hashes to each node. The hash will be assigned to
+             * a single partition, and each partition will be searched with its node.
+             *
+             * In this way load balancing is guaranteed with a high number of hashes, and nodes tend to receive nearest
+             * hashes to search. Everything has linear complexity on the number of hashes, that is optimal.
+             *
+             * Partitioning is made reading first two bytes, and casting to uint16. The hash.ToBucketId() is a ready
+             * and perfect implementation of this.
+             */
+
+            if (hashes.Count == 0)
+                return new Dictionary<SwarmHash, SwarmChunk>();
+            
+            var healthyNodes = beeNodeLiveManager.HealthyNodes
+                .Where(n => n.Status.Addresses != null)
+                .OrderBy(n => n.Status.Addresses!.Overlay).ToArray();
+
+            if (healthyNodes.Length == 0)
+                return new Dictionary<SwarmHash, SwarmChunk>();
+            
+            var hashesByNode = new List<SwarmHash>[healthyNodes.Length];
+            for (int i = 0; i < hashesByNode.Length; i++)
+                hashesByNode[i] = new List<SwarmHash>();
+
+            foreach (var hash in hashes)
+            {
+                var hashBucketId = hash.ToBucketId();
+                var nodeIndex = (int)((hashBucketId * (uint)healthyNodes.Length) >> 16);
+                hashesByNode[nodeIndex].Add(hash);
+            }
+
+            var getTasks = new List<Task<IReadOnlyDictionary<SwarmHash, SwarmChunk?>>>();
+            for (int i = 0; i < healthyNodes.Length; i++)
+            {
+                if (hashesByNode[i].Count == 0)
+                    continue;
+                getTasks.Add(healthyNodes[i].ChunkStore.GetAsync(hashesByNode[i], cancellationToken: cancellationToken));
+            }
+
+            await Task.WhenAll(getTasks);
+            
+            return getTasks.SelectMany(t => t.Result)
+                .Where(p => p.Value != null)
+                .ToDictionary(p => p.Key, p => p.Value!);
         }
     }
 }
