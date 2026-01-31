@@ -44,7 +44,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
             foreach (var node in liveManager.AllNodes)
             {
                 BzzValue totalBzzCashedOut = 0;
-                var txs = new List<string>();
+                var txs = new List<EthTxHash>();
                 try
                 {
                     // Enumerate peers.

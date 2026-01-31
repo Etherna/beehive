@@ -12,6 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.JsonConverters;
+using Etherna.BeeNet.JsonConverters;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Etherna.Beehive.Configs
 {
     internal static class CommonConsts
@@ -19,5 +24,48 @@ namespace Etherna.Beehive.Configs
         public const string DatabaseAdminPath = "/admin/db";
         public const string HangfireAdminPath = "/admin/hangfire";
         public const string SwaggerPath = "/swagger";
+        
+        public static readonly JsonSerializerOptions BeehiveV04JsonSerializerOptions = new()
+        {
+            Converters =
+            {
+                new BzzValueJsonConverter(false),
+                new EncryptionKey256JsonConverter(),
+                new EthAddressJsonConverter(),
+                new JsonStringEnumConverter(),
+                new PostageBatchIdJsonConverter(),
+                new SwarmHashJsonConverter(),
+                new SwarmReferenceJsonConverter(),
+                new TimeSpanAsSecondsJsonConverter(),
+                new XDaiValueJsonConverter(false)
+            },
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        public static readonly JsonSerializerOptions SwarmJsonSerializerOptions = new()
+        {
+            Converters =
+            {
+                new BzzValueJsonConverter(false),
+                new DateTimeOffsetAsUnixSecondsJsonConverter(),
+                new EncryptionKey256JsonConverter(),
+                new EthAddressJsonConverter(),
+                new EthTxHashJsonConverter(),
+                new JsonStringEnumConverter(),
+                new PostageBatchIdJsonConverter(),
+                new PostageStampJsonConverter(),
+                new SwarmAddressJsonConverter(),
+                new SwarmFeedTopicJsonConverter(),
+                new SwarmHashJsonConverter(),
+                new SwarmOverlayAddressJsonConverter(),
+                new SwarmReferenceJsonConverter(),
+                new SwarmSocIdentifierJsonConverter(),
+                new SwarmSocSignatureJsonConverter(),
+                new SwarmUriJsonConverter(),
+                new TagIdJsonConverter(),
+                new TimeSpanAsSecondsJsonConverter(),
+                new XDaiValueJsonConverter(false)
+            },
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
     }
 }

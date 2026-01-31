@@ -38,7 +38,7 @@ namespace Etherna.Beehive.Services.Utilities
         ISerializerModifierAccessor serializerModifierAccessor,
         int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
         Action<Chunk>? onSavingChunk = null)
-        : ChunkStoreBase, IAsyncDisposable, IDisposable
+        : ReadOnlyChunkStoreBase, IAsyncDisposable, IChunkStore, IDisposable
     {
         // Consts.
         public const int DefaultSavingBufferLength = 26000; //~100MB of data + intermediate chunks
@@ -89,6 +89,35 @@ namespace Etherna.Beehive.Services.Utilities
         }
         
         // Methods.
+        public async Task<bool> AddAsync(SwarmChunk chunk, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(chunk);
+            
+            try
+            {
+                var domainChunk = new Chunk(chunk.Hash, chunk.GetFullPayload(), chunk is SwarmSoc);
+
+                onSavingChunk?.Invoke(domainChunk);
+
+                if (savingBufferLength > 0)
+                {
+                    chunkSavingBuffer.TryAdd(chunk.Hash, domainChunk);
+                    if (chunkSavingBuffer.Count >= savingBufferLength)
+                        await FlushSaveAsync();
+                }
+                else
+                {
+                    await dbContext.Chunks.CreateAsync(domainChunk, cancellationToken);
+                }
+                
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
         public async Task FlushSaveAsync()
         {
             /*
@@ -120,70 +149,7 @@ namespace Etherna.Beehive.Services.Utilities
             }
         }
 
-        public override async Task<bool> HasChunkAsync(
-            SwarmHash hash,
-            CancellationToken cancellationToken = default)
-        {
-            // Try to find on buffer.
-            if (chunkSavingBuffer.ContainsKey(hash))
-                return true;
-            
-            // Try to find on db.
-            using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
-            using(var __ = new DbExecutionContextHandler(dbContext))
-            {
-                //try to find on repository
-                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
-                if (chunkModel is not null)
-                    return true;
-            
-                //fallback on old gridfs
-                try
-                {
-                    await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
-                    return true;
-                }
-                catch (GridFSFileNotFoundException)
-                { }
-            }
-            
-            // If it's not found, search on a healthy bee node.
-            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
-            return await node.ChunkStore.HasChunkAsync(hash, cancellationToken);
-        }
-        
-        // Protected methods.
-        protected override async Task<bool> DeleteChunkAsync(SwarmHash hash)
-        {
-            using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
-
-            // Try to remove from buffer.
-            var found = chunkSavingBuffer.TryRemove(hash, out _);
-            
-            // Try to remove from repository.
-            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash);
-            if (chunk is not null)
-            {
-                found = true;
-                await dbContext.Chunks.DeleteAsync(chunk);
-            }
-            
-            // Try to remove from old gridfs.
-            try
-            {
-                await using var downStream = await dbContext.ChunksBucket.OpenDownloadStreamByNameAsync(hash.ToString());
-                found = true;
-                var id = downStream.FileInfo.Id;
-                await dbContext.ChunksBucket.DeleteAsync(id);
-            }
-            catch { }
-
-            return found;
-        }
-
-        protected override async Task<SwarmChunk> LoadChunkAsync(
-            SwarmHash hash,
-            CancellationToken cancellationToken = default)
+        public override async Task<SwarmChunk> GetAsync(SwarmHash hash, CancellationToken cancellationToken = default)
         {
             // Try to find on buffer.
             if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
@@ -218,14 +184,16 @@ namespace Etherna.Beehive.Services.Utilities
             return await GetFromBeeNodeAsync(hash, cancellationToken);
         }
 
-        protected override async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk>> LoadChunksAsync(
+        public override async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk?>> GetAsync(
             IEnumerable<SwarmHash> hashes,
-            CancellationToken cancellationToken)
+            int? canReturnAfterFailed = null,
+            int? canReturnAfterSucceeded = null,
+            CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(hashes, nameof(hashes));
+            ArgumentNullException.ThrowIfNull(hashes);
             
             var missingHashes = new HashSet<SwarmHash>();
-            var results = new Dictionary<SwarmHash, SwarmChunk>();
+            var results = new Dictionary<SwarmHash, SwarmChunk?>();
             
             // Try to find on buffer.
             foreach (var hash in hashes)
@@ -276,47 +244,74 @@ namespace Etherna.Beehive.Services.Utilities
                 }
             }
             
-            // If it's not found, search on a healthy bee node.
-            foreach (var hash in missingHashes)
-            {
-                try
-                {
-                    var chunk = await GetFromBeeNodeAsync(hash, cancellationToken);
-                    results.TryAdd(hash, chunk);
-                }
-                catch (BeeNetApiException) { }
-            }
+            // If it's not found, search on healthy bee nodes.
+            var fromBeeNodes = await GetFromBeeNodesAsync(missingHashes, cancellationToken);
+            foreach (var (hash, chunk) in fromBeeNodes)
+                results.TryAdd(hash, chunk);
             
             return results;
         }
 
-        protected override async Task<bool> SaveChunkAsync(SwarmChunk chunk)
+        public override async Task<bool> HasChunkAsync(
+            SwarmHash hash,
+            CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
+            // Try to find on buffer.
+            if (chunkSavingBuffer.ContainsKey(hash))
+                return true;
             
+            // Try to find on db.
+            using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
+            using(var __ = new DbExecutionContextHandler(dbContext))
+            {
+                //try to find on repository
+                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+                if (chunkModel is not null)
+                    return true;
+            
+                //fallback on old gridfs
+                try
+                {
+                    await dbContext.ChunksBucket.DownloadAsBytesByNameAsync(hash.ToString(), cancellationToken: cancellationToken);
+                    return true;
+                }
+                catch (GridFSFileNotFoundException)
+                { }
+            }
+            
+            // If it's not found, search on a healthy bee node.
+            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
+            return await node.ChunkStore.HasChunkAsync(hash, cancellationToken);
+        }
+
+        public async Task<bool> RemoveAsync(SwarmHash hash, CancellationToken cancellationToken = default)
+        {
+            using var dbExecContextHandler = new DbExecutionContextHandler(dbContext);
+
+            // Try to remove from buffer.
+            var found = chunkSavingBuffer.TryRemove(hash, out _);
+            
+            // Try to remove from repository.
+            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+            if (chunk is not null)
+            {
+                found = true;
+                await dbContext.Chunks.DeleteAsync(chunk, cancellationToken);
+            }
+            
+            // Try to remove from old gridfs.
             try
             {
-                var domainChunk = new Chunk(chunk.Hash, chunk.GetFullPayload(), chunk is SwarmSoc);
-
-                onSavingChunk?.Invoke(domainChunk);
-
-                if (savingBufferLength > 0)
-                {
-                    chunkSavingBuffer.TryAdd(chunk.Hash, domainChunk);
-                    if (chunkSavingBuffer.Count >= savingBufferLength)
-                        await FlushSaveAsync();
-                }
-                else
-                {
-                    await dbContext.Chunks.CreateAsync(domainChunk);
-                }
-                
-                return true;
+                await using var downStream = await dbContext.ChunksBucket.OpenDownloadStreamByNameAsync(
+                    hash.ToString(),
+                    cancellationToken: cancellationToken);
+                found = true;
+                var id = downStream.FileInfo.Id;
+                await dbContext.ChunksBucket.DeleteAsync(id, cancellationToken);
             }
-            catch
-            {
-                return false;
-            }
+            catch { }
+
+            return found;
         }
         
         // Helpers.
@@ -328,10 +323,69 @@ namespace Etherna.Beehive.Services.Utilities
             
             // Save in local db. Force flush on db now.
             //flush is required by pinning that needs to update chunk's pin reference on db.
-            await SaveChunkAsync(chunk);
+            await AddAsync(chunk, cancellationToken);
             await FlushSaveAsync();
             
             return chunk;
+        }
+
+        private async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk>> GetFromBeeNodesAsync(
+            HashSet<SwarmHash> hashes,
+            CancellationToken cancellationToken)
+        {
+            /*
+             * Algorithm:
+             * Scope is try to balance requests to nodes as much as possible.
+             * We need an efficient way to select healthy nodes for each hash, keeping distance between hashes and
+             * selected nodes as minimal as possible. Nodes are not equally distributed, and because of this we can't
+             * simply select the nearest node, this would create systematic unbalances on loads.
+             * Instead, hashes are not equally distributed too, but any unbalance would be random and not systematic.
+             *
+             * With these considerations, we will retrieve the list of healthy nodes, order them by overlay addresses,
+             * and will create equal address partitions to assign hashes to each node. The hash will be assigned to
+             * a single partition, and each partition will be searched with its node.
+             *
+             * In this way load balancing is guaranteed with a high number of hashes, and nodes tend to receive nearest
+             * hashes to search. Everything has linear complexity on the number of hashes, that is optimal.
+             *
+             * Partitioning is made reading first two bytes, and casting to uint16. The hash.ToBucketId() is a ready
+             * and perfect implementation of this.
+             */
+
+            if (hashes.Count == 0)
+                return new Dictionary<SwarmHash, SwarmChunk>();
+            
+            var healthyNodes = beeNodeLiveManager.HealthyNodes
+                .Where(n => n.Status.Addresses != null)
+                .OrderBy(n => n.Status.Addresses!.Overlay).ToArray();
+
+            if (healthyNodes.Length == 0)
+                return new Dictionary<SwarmHash, SwarmChunk>();
+            
+            var hashesByNode = new List<SwarmHash>[healthyNodes.Length];
+            for (int i = 0; i < hashesByNode.Length; i++)
+                hashesByNode[i] = new List<SwarmHash>();
+
+            foreach (var hash in hashes)
+            {
+                var hashBucketId = hash.ToBucketId();
+                var nodeIndex = (int)((hashBucketId * (uint)healthyNodes.Length) >> 16);
+                hashesByNode[nodeIndex].Add(hash);
+            }
+
+            var getTasks = new List<Task<IReadOnlyDictionary<SwarmHash, SwarmChunk?>>>();
+            for (int i = 0; i < healthyNodes.Length; i++)
+            {
+                if (hashesByNode[i].Count == 0)
+                    continue;
+                getTasks.Add(healthyNodes[i].ChunkStore.GetAsync(hashesByNode[i], cancellationToken: cancellationToken));
+            }
+
+            await Task.WhenAll(getTasks);
+            
+            return getTasks.SelectMany(t => t.Result)
+                .Where(p => p.Value != null)
+                .ToDictionary(p => p.Key, p => p.Value!);
         }
     }
 }

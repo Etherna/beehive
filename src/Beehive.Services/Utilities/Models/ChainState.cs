@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
     {
         public ChainState(string nodeId, Etherna.BeeNet.Models.ChainState chainStateDto)
         {
-            ArgumentNullException.ThrowIfNull(chainStateDto, nameof(chainStateDto));
+            ArgumentNullException.ThrowIfNull(chainStateDto);
 
             Block = chainStateDto.Block;
             ChainTip = chainStateDto.ChainTip;
@@ -31,8 +31,8 @@ namespace Etherna.Beehive.Services.Utilities.Models
             TotalAmount = chainStateDto.TotalAmount;
         }
 
-        public long Block { get; }
-        public int ChainTip { get; }
+        public ulong Block { get; }
+        public ulong ChainTip { get; }
         public BzzValue CurrentPrice { get; }
         public string SourceNodeId { get; }
         public DateTimeOffset TimeStamp { get; }
