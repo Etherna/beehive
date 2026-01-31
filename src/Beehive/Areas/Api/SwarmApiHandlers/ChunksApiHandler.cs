@@ -170,6 +170,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             
                 return Results.Json(
                     new ChunkReferenceDto(reference),
+                    CommonConsts.SwarmJsonSerializerOptions,
                     statusCode: StatusCodes.Status201Created);
             });
         

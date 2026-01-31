@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.DtoModels;
+using Etherna.Beehive.Configs;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
@@ -22,9 +23,11 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
     {
         public Task<IResult> GetHealthStatus() =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
-                Task.FromResult(Results.Json(new HealthDto(
-                    "ok",
-                    typeof(HealthApiHandler).Assembly.GetName().Version?.ToString() ?? "0.0.0",
-                    "beehive-0.0.0"))));
+                Task.FromResult(Results.Json(
+                    new HealthDto(
+                        "ok",
+                        typeof(HealthApiHandler).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+                        "beehive-0.0.0"),
+                    CommonConsts.SwarmJsonSerializerOptions)));
     }
 }

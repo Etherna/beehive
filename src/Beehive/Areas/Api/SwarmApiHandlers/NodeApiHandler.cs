@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.DtoModels;
+using Etherna.Beehive.Configs;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
@@ -22,9 +23,11 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
     {
         public Task<IResult> GetNodeStatus() =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, () =>
-                Task.FromResult(Results.Json(new NodeDto(
-                    "full",
-                    true,
-                    true))));
+                Task.FromResult(Results.Json(
+                    new NodeDto(
+                        "full",
+                        true,
+                        true),
+                    CommonConsts.SwarmJsonSerializerOptions)));
     }
 }

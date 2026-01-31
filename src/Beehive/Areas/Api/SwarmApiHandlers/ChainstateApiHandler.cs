@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.DtoModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Services.Utilities;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
@@ -30,12 +31,14 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var chainstate = beeNodeLiveManager.ChainState;
                 if (chainstate is null)
                     throw new KeyNotFoundException();
-                return Task.FromResult(Results.Json(new ChainStateDto(
-                    chainstate.Block,
-                    chainstate.ChainTip,
-                    chainstate.TotalAmount,
-                    chainstate.CurrentPrice,
-                    chainstate.TimeStamp)));
+                return Task.FromResult(Results.Json(
+                    new ChainStateDto(
+                        chainstate.Block,
+                        chainstate.ChainTip,
+                        chainstate.TotalAmount,
+                        chainstate.CurrentPrice,
+                        chainstate.TimeStamp),
+                    CommonConsts.SwarmJsonSerializerOptions));
             });
     }
 }

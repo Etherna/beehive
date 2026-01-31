@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.DtoModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.BeeNet.Models;
@@ -42,6 +43,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 
                 return Results.Json(
                     new PostageBatchIdWithTxHashDto(batchId, txHash),
+                    CommonConsts.SwarmJsonSerializerOptions,
                     statusCode: StatusCodes.Status201Created);
             });
 
@@ -56,6 +58,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             
                 return Results.Json(
                     new PostageBatchIdWithTxHashDto(batchId, txHash),
+                    CommonConsts.SwarmJsonSerializerOptions,
                     statusCode: StatusCodes.Status202Accepted);
             });
 
@@ -63,20 +66,22 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
                 var postageBatches = await postageBatchService.GetOwnedPostageBatchesAsync();
-            
-                return Results.Json(new PostageBatchStampListDto(postageBatches.Select(b =>
-                    new PostageBatchDto(
-                        b.Amount,
-                        b.Id,
-                        b.Ttl,
-                        b.BlockNumber,
-                        PostageBatch.BucketDepth,
-                        b.Depth,
-                        b.Exists,
-                        b.IsImmutable,
-                        b.Label,
-                        b.IsUsable,
-                        b.Utilization))));
+
+                return Results.Json(
+                    new PostageBatchStampListDto(postageBatches.Select(b =>
+                        new PostageBatchDto(
+                            b.Amount,
+                            b.Id,
+                            b.Ttl,
+                            b.BlockNumber,
+                            PostageBatch.BucketDepth,
+                            b.Depth,
+                            b.Exists,
+                            b.IsImmutable,
+                            b.Label,
+                            b.IsUsable,
+                            b.Utilization))),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         public Task<IResult> GetPostageBatchAsync(PostageBatchId batchId) =>
@@ -85,18 +90,20 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var postageBatch = await postageBatchService.TryGetPostageBatchDetailsAsync(batchId);
                 if (postageBatch is null)
                     throw new KeyNotFoundException();
-                return Results.Json(new PostageBatchDto(
-                    postageBatch.Amount,
-                    postageBatch.Id,
-                    postageBatch.Ttl,
-                    postageBatch.BlockNumber,
-                    PostageBatch.BucketDepth,
-                    postageBatch.Depth,
-                    postageBatch.Exists,
-                    postageBatch.IsImmutable,
-                    postageBatch.Label,
-                    postageBatch.IsUsable,
-                    postageBatch.Utilization));
+                return Results.Json(
+                    new PostageBatchDto(
+                        postageBatch.Amount,
+                        postageBatch.Id,
+                        postageBatch.Ttl,
+                        postageBatch.BlockNumber,
+                        PostageBatch.BucketDepth,
+                        postageBatch.Depth,
+                        postageBatch.Exists,
+                        postageBatch.IsImmutable,
+                        postageBatch.Label,
+                        postageBatch.IsUsable,
+                        postageBatch.Utilization),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         public Task<IResult> GetPostageBatchBucketsAsync(PostageBatchId batchId) =>
@@ -105,10 +112,12 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var postageBatch = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
                 if (postageBatch is null)
                     throw new KeyNotFoundException();// return new BeeNotFoundResult();
-                return Results.Json(new PostageBatchBucketsDto(
-                    postageBatch.Depth,
-                    PostageBatch.BucketDepth,
-                    postageBatch.Buckets.Select((c, i) => new PostageBatchBucketDto(i, c))));
+                return Results.Json(
+                    new PostageBatchBucketsDto(
+                        postageBatch.Depth,
+                        PostageBatch.BucketDepth,
+                        postageBatch.Buckets.Select((c, i) => new PostageBatchBucketDto(i, c))),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         public Task<IResult> TopUpPostageBatchAsync(
@@ -122,6 +131,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             
                 return Results.Json(
                     new PostageBatchIdWithTxHashDto(batchId, txHash),
+                    CommonConsts.SwarmJsonSerializerOptions,
                     statusCode: StatusCodes.Status202Accepted);
             });
     }

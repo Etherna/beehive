@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.InputModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Extensions;
@@ -58,17 +59,19 @@ namespace Etherna.Beehive.Areas.Api
                 var node = await beehiveDbContext.BeeNodes.FindOneAsync(id);
                 var nodeInstance = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(node.Id);
 
-                return Results.Json(new BeeNodeDto(
-                    node.Id,
-                    node.ConnectionString,
-                    nodeInstance.Status.Errors,
-                    nodeInstance.Status.Addresses?.Ethereum,
-                    nodeInstance.Status.HeartbeatTimeStamp,
-                    nodeInstance.Status.IsAlive,
-                    node.IsBatchCreationEnabled,
-                    nodeInstance.Status.Addresses?.Overlay,
-                    nodeInstance.Status.Addresses?.PssPublicKey,
-                    nodeInstance.Status.Addresses?.PublicKey));
+                return Results.Json(
+                    new BeeNodeDto(
+                        node.Id,
+                        node.ConnectionString,
+                        nodeInstance.Status.Errors,
+                        nodeInstance.Status.Addresses?.Ethereum,
+                        nodeInstance.Status.HeartbeatTimeStamp,
+                        nodeInstance.Status.IsAlive,
+                        node.IsBatchCreationEnabled,
+                        nodeInstance.Status.Addresses?.Overlay,
+                        nodeInstance.Status.Addresses?.PssPublicKey,
+                        nodeInstance.Status.Addresses?.PublicKey),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
         public Task<IResult> GetBeeNodesAsync() =>
@@ -95,7 +98,9 @@ namespace Etherna.Beehive.Areas.Api
                         nodeInstance.Status.Addresses?.PublicKey));
                 }
 
-                return Results.Json(nodeDtos);
+                return Results.Json(
+                    nodeDtos,
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
         public Task<IResult> RemoveBeeNodeAsync(string id) =>

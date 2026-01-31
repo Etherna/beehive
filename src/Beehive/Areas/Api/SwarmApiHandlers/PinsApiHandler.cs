@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.DtoModels;
+using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
@@ -78,7 +79,9 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         .Select(p => p.Reference!.Value)
                         .Distinct()
                         .ToListAsync());
-                return Results.Json(new BeePinsDto(pinnedReferences));
+                return Results.Json(
+                    new BeePinsDto(pinnedReferences),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         public Task<IResult> GetPinsBeehiveAsync(int page, int take) =>
@@ -88,13 +91,15 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     elements.Where(p => p.Reference.HasValue)
                         .PaginateDescending(p => p.CreationDateTime, page, take)
                         .ToListAsync());
-                return Results.Json(pins.Select(p => new BeehivePinDto(
-                    p.Reference!.Value,
-                    p.CreationDateTime,
-                    p.MissingChunks,
-                    p.IsProcessed,
-                    p.IsSucceeded,
-                    p.TotPinnedChunks)));
+                return Results.Json(
+                    pins.Select(p => new BeehivePinDto(
+                        p.Reference!.Value,
+                        p.CreationDateTime,
+                        p.MissingChunks,
+                        p.IsProcessed,
+                        p.IsSucceeded,
+                        p.TotPinnedChunks)),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         public Task<IResult> GetPinStatusBeeAsync(SwarmReference reference) =>
@@ -104,7 +109,9 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     p.Reference == reference && p.IsProcessed && !p.MissingChunks.Any());
                 if (pin is null)
                     throw new KeyNotFoundException();
-                return Results.Json(new ChunkReferenceDto(reference));
+                return Results.Json(
+                    new ChunkReferenceDto(reference),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         public Task<IResult> GetPinStatusBeehiveAsync(SwarmReference reference) =>
@@ -113,13 +120,15 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Reference == reference);
                 if (pin is null)
                     throw new KeyNotFoundException();
-                return Results.Json(new BeehivePinDto(
-                    pin.Reference!.Value,
-                    pin.CreationDateTime,
-                    pin.MissingChunks,
-                    pin.IsProcessed,
-                    pin.IsSucceeded,
-                    pin.TotPinnedChunks));
+                return Results.Json(
+                    new BeehivePinDto(
+                        pin.Reference!.Value,
+                        pin.CreationDateTime,
+                        pin.MissingChunks,
+                        pin.IsProcessed,
+                        pin.IsSucceeded,
+                        pin.TotPinnedChunks),
+                    CommonConsts.SwarmJsonSerializerOptions);
             });
 
         // Helpers.

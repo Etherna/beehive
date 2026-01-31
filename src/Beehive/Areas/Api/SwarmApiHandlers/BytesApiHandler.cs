@@ -120,7 +120,10 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         return await fileHasherPipeline.HashDataAsync(dataStream);
                     });
 
-                return Results.Json(new ChunkReferenceDto(reference), statusCode: StatusCodes.Status201Created);
+                return Results.Json(
+                    new ChunkReferenceDto(reference),
+                    CommonConsts.SwarmJsonSerializerOptions,
+                    statusCode: StatusCodes.Status201Created);
             });
     }
 }
