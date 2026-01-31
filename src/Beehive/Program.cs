@@ -12,20 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Asp.Versioning;
-using Asp.Versioning.ApiExplorer;
 using Etherna.ACR.Middlewares.DebugPages;
+using Etherna.Beehive.Areas.Api;
+using Etherna.Beehive.Areas.Api.SwarmApiHandlers;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Configs.MongODM;
-using Etherna.Beehive.Configs.Swagger;
-using Etherna.Beehive.Configs.Swagger.OperationFilters;
-using Etherna.Beehive.Configs.Swagger.SchemaFilters;
+using Etherna.Beehive.Configs.OpenApi;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Exceptions;
 using Etherna.Beehive.Extensions;
-using Etherna.Beehive.JsonConverters;
-using Etherna.Beehive.ModelBinders;
 using Etherna.Beehive.Options;
 using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services;
@@ -33,7 +29,7 @@ using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Tasks.Background;
 using Etherna.Beehive.Services.Tasks.Cron;
-using Etherna.BeeNet.AspNet;
+using Etherna.BeeNet.Services;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
@@ -50,10 +46,8 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
@@ -146,35 +140,47 @@ namespace Etherna.Beehive
             var services = builder.Services;
 
             // Configure Asp.Net Core framework services.
-            services.AddControllers(options =>
-            {
-                options.ModelBinderProviders.Insert(0, new BeehiveModelBinderProvider());
-            }).AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.Converters.Add(new DateTimeOffsetAsUnixSecondsJsonConverter());
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                options.JsonSerializerOptions.Converters.Add(new TimeSpanAsSecondsJsonConverter());
-                options.AddBeeNetJsonConverters();
-            });
             services.AddCors();
-            services.AddRazorPages();
-            
-            // Configure APIs.
-            services.AddApiVersioning(options =>
-                {
-                    options.AssumeDefaultVersionWhenUnspecified = true;
-                    options.DefaultApiVersion = new ApiVersion(1);
-                })
-                .AddApiExplorer(options =>
-                {
-                    // add the versioned api explorer, which also adds IApiVersionDescriptionProvider service
-                    // note: the specified format code will format the version as "'v'major[.minor][-status]"
-                    options.GroupNameFormat = "'v'VVV";
+            services.AddOpenApi("beehive04", options =>
+            {
+                options.AddDocumentTransformer(new BeehiveDocumentTransformer());
+                options.AddDocumentTransformer<MetadataFilterDocumentTransformer<BeehiveApiMarker>>();
 
-                    // note: this option is only necessary when versioning by url segment. the SubstitutionFormat
-                    // can also be used to control the format of the API version in route templates
-                    options.SubstituteApiVersionInUrl = true;
-                });
+                options.AddOperationTransformer<DeprecatedOperationTransformer>();
+                options.AddOperationTransformer<RemoveDefaultResponse200OperationTransformer>();
+                options.AddOperationTransformer<BeehiveOperationTransformer>();
+                
+                options.AddSchemaTransformer<SwarmModelsSchemaTransformer>();
+            });
+            services.AddOpenApi("swarm", options =>
+            {
+                options.AddDocumentTransformer(new SwarmDocumentTransformer());
+                options.AddDocumentTransformer<MetadataFilterDocumentTransformer<SwarmApiMarker>>();
+
+                options.AddOperationTransformer<AcceptsUnrestrictedOperationTransformer>();
+                options.AddOperationTransformer<DeprecatedOperationTransformer>();
+                options.AddOperationTransformer<RemoveDefaultResponse200OperationTransformer>();
+                options.AddOperationTransformer<SwarmOperationTransformer>();
+
+                options.AddSchemaTransformer<SwarmModelsSchemaTransformer>();
+            });
+            services.AddOpenApi("swarmv1", options =>
+            {
+                options.AddDocumentTransformer(new SwarmDocumentTransformer());
+                options.AddDocumentTransformer<MetadataFilterDocumentTransformer<SwarmV1ApiMarker>>();
+
+                options.AddOperationTransformer<AcceptsUnrestrictedOperationTransformer>();
+                options.AddOperationTransformer<DeprecatedOperationTransformer>();
+                options.AddOperationTransformer<RemoveDefaultResponse200OperationTransformer>();
+                options.AddOperationTransformer<SwarmOperationTransformer>();
+
+                options.AddSchemaTransformer<SwarmModelsSchemaTransformer>();
+            });
+            services.AddRazorPages();
+            services.ConfigureHttpJsonOptions(options =>
+            {
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
             // Configure Hangfire server.
             if (!env.IsStaging()) //don't start server in staging
@@ -193,52 +199,31 @@ namespace Etherna.Beehive
             }
             
             // Configure Bee.Net
-            services.AddBeeNet();
-
-            // Configure Swagger services.
-            services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-            services.AddSwaggerGen(options =>
-            {
-                options.SupportNonNullableReferenceTypes();
-                options.UseAllOfToExtendReferenceSchemas();
-                options.UseInlineDefinitionsForEnums();
-
-                //add a custom operation filter which sets default values
-                options.OperationFilter<SwaggerDefaultValuesFilter>();
-                
-                //add document filters
-                options.DocumentFilter<BeehiveDocumentFilter>();
-                
-                //add schema filters
-                options.SchemaFilter<BzzValueSchemaFilter>();
-                options.SchemaFilter<DateTimeOffsetSchemaFilter>();
-                options.SchemaFilter<EthAddressSchemaFilter>();
-                options.SchemaFilter<EthTxHashSchemaFilter>();
-                options.SchemaFilter<PostageBatchIdSchemaFilter>();
-                options.SchemaFilter<PostageStampSchemaFilter>();
-                options.SchemaFilter<SwarmAddressSchemaFilter>();
-                options.SchemaFilter<SwarmFeedTopicSchemaFilter>();
-                options.SchemaFilter<SwarmHashSchemaFilter>();
-                options.SchemaFilter<SwarmOverlayAddressSchemaFilter>();
-                options.SchemaFilter<SwarmReferenceSchemaFilter>();
-                options.SchemaFilter<SwarmSocIdentifierSchemaFilter>();
-                options.SchemaFilter<SwarmSocSignatureSchemaFilter>();
-                options.SchemaFilter<SwarmUriSchemaFilter>();
-                options.SchemaFilter<TagIdSchemaFilter>();
-                options.SchemaFilter<TimeSpanSchemaFilter>();
-                options.SchemaFilter<XDaiValueSchemaFilter>();
-
-                //integrate xml comments
-                var xmlFile = typeof(Program).GetTypeInfo().Assembly.GetName().Name + ".xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                options.IncludeXmlComments(xmlPath);
-            });
+            services.AddScoped<IChunkService, ChunkService>();
+            services.AddScoped<IFeedService, FeedService>();
 
             // Configure options.
             services.Configure<CashoutAllNodesChequesOptions>(config.GetSection(CashoutAllNodesChequesOptions.ConfigPosition));
             services.Configure<NodesAddressMaintainerOptions>(config.GetSection(NodesAddressMaintainerOptions.ConfigPosition));
             services.Configure<NodesChequebookMaintainerOptions>(config.GetSection(NodesChequebookMaintainerOptions.ConfigPosition));
             services.Configure<SeedDbOptions>(config.GetSection(SeedDbOptions.ConfigPosition));
+            
+            // Configure api handler.
+            //beehive
+            services.AddScoped<IBeehiveApiHandler, BeehiveApiHandler>();
+            //swarm
+            services.AddScoped<IBatchesApiHandler, BatchesApiHandler>();
+            services.AddScoped<IBytesApiHandler, BytesApiHandler>();
+            services.AddScoped<IBzzApiHandler, BzzApiHandler>();
+            services.AddScoped<IChainstateApiHandler, ChainstateApiHandler>();
+            services.AddScoped<IChunksApiHandler, ChunksApiHandler>();
+            services.AddScoped<IFeedsApiHandler, FeedsApiHandler>();
+            services.AddScoped<IHealthApiHandler, HealthApiHandler>();
+            services.AddScoped<INodeApiHandler, NodeApiHandler>();
+            services.AddScoped<IPinsApiHandler, PinsApiHandler>();
+            services.AddScoped<IReadinessApiHandler, ReadinessApiHandler>();
+            services.AddScoped<ISocApiHandler, SocApiHandler>();
+            services.AddScoped<IStampsApiHandler, StampsApiHandler>();
 
             // Configure Hangfire and persistence.
             services.AddMongODMWithHangfire(configureHangfireOptions: options =>
@@ -320,6 +305,13 @@ namespace Etherna.Beehive
             
             app.UseAuthorization();
 
+            // Add api and pages.
+            app.MapOpenApi();
+            app.MapRazorPages();
+            
+            app.MapBeehiveApi();
+            app.MapSwarmApi();
+
             // Add Hangfire.
             app.UseHangfireDashboard(
                 CommonConsts.HangfireAdminPath,
@@ -329,23 +321,16 @@ namespace Etherna.Beehive
                     IgnoreAntiforgeryToken = true
                 });
 
-            // Add Swagger and SwaggerUI.
-            var apiProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-            app.UseSwagger();
+            // Add SwaggerUI.
             app.UseSwaggerUI(options =>
             {
                 options.DocumentTitle = "Beehive API";
 
                 // build a swagger endpoint for each discovered API version
-                foreach (var description in apiProvider.ApiVersionDescriptions.Reverse())
-                {
-                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
-                }
+                options.SwaggerEndpoint("/openapi/swarm.json", "Swarm API");
+                options.SwaggerEndpoint("/openapi/swarmv1.json", "Swarm V1 API");
+                options.SwaggerEndpoint("/openapi/beehive04.json", "Beehive v0.4 API");
             });
-
-            // Add pages and controllers.
-            app.MapControllers();
-            app.MapRazorPages();
 
             // Register cron tasks.
             RecurringJob.AddOrUpdate<ICashoutAllNodesChequesTask>(

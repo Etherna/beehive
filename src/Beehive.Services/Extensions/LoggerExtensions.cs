@@ -58,8 +58,8 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(13, nameof(CleanupOldFailedTasksTaskStarted)),
                 "Clean up failed-tasks task started");
         
-        private static readonly Action<ILogger, string, BzzValue, IEnumerable<string>, Exception> _nodeCashedOut =
-            LoggerMessage.Define<string, BzzValue, IEnumerable<string>>(
+        private static readonly Action<ILogger, string, BzzValue, IEnumerable<EthTxHash>, Exception> _nodeCashedOut =
+            LoggerMessage.Define<string, BzzValue, IEnumerable<EthTxHash>>(
                 LogLevel.Information,
                 new EventId(0, nameof(NodeCashedOut)),
                 "Node {BeeNodeId} cashed out {BzzCashedOut} BZZ with tx hashes {TxHashes}");
@@ -94,8 +94,8 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(15, nameof(PushChunksBackgroundServiceStopped)),
                 "Push Chunks Background Service is stopped");
 
-        private static readonly Action<ILogger, string, BzzValue, string, Exception> _succededToDepositBzzOnNodeChequeBook =
-            LoggerMessage.Define<string, BzzValue, string>(
+        private static readonly Action<ILogger, string, BzzValue, EthTxHash, Exception> _succededToDepositBzzOnNodeChequeBook =
+            LoggerMessage.Define<string, BzzValue, EthTxHash>(
                 LogLevel.Information,
                 new EventId(8, nameof(SuccededToDepositBzzOnNodeChequeBook)),
                 "Node {BeeNodeId} chequebook received deposit of {BzzAmount} BZZ with tx hash {TxHash}");
@@ -112,8 +112,8 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(3, nameof(SuccededToFundXDaiOnNodeAddress)),
                 "Node {BeeNodeId} address funded with {XDaiFunded} xDai to total {XDaiTotal} xDai. Tx hash {TxHash}");
 
-        private static readonly Action<ILogger, string, BzzValue, string, Exception> _succededToWithdrawBzzOnNodeChequeBook =
-            LoggerMessage.Define<string, BzzValue, string>(
+        private static readonly Action<ILogger, string, BzzValue, EthTxHash, Exception> _succededToWithdrawBzzOnNodeChequeBook =
+            LoggerMessage.Define<string, BzzValue, EthTxHash>(
                 LogLevel.Information,
                 new EventId(10, nameof(SuccededToWithdrawBzzOnNodeChequeBook)),
                 "Node {BeeNodeId} chequebook sent withdraw of {BzzAmount} BZZ with tx hash {TxHash}");
@@ -193,7 +193,7 @@ namespace Etherna.Beehive.Services.Extensions
         public static void NoChunksToPush(this ILogger logger) =>
             _noChunksToPush(logger, null!);
 
-        public static void NodeCashedOut(this ILogger logger, string beeNodeId, BzzValue bzzCashedOut, IEnumerable<string> txHashes) =>
+        public static void NodeCashedOut(this ILogger logger, string beeNodeId, BzzValue bzzCashedOut, IEnumerable<EthTxHash> txHashes) =>
             _nodeCashedOut(logger, beeNodeId, bzzCashedOut, txHashes, null!);
 
         public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid) =>
@@ -217,7 +217,7 @@ namespace Etherna.Beehive.Services.Extensions
         public static void PushChunksBackgroundServiceStopped(this ILogger logger) =>
             _pushChunksBackgroundServiceStopped(logger, null!);
 
-        public static void SuccededToDepositBzzOnNodeChequeBook(this ILogger logger, string nodeId, BzzValue bzzDeposit, string txHash) =>
+        public static void SuccededToDepositBzzOnNodeChequeBook(this ILogger logger, string nodeId, BzzValue bzzDeposit, EthTxHash txHash) =>
             _succededToDepositBzzOnNodeChequeBook(logger, nodeId, bzzDeposit, txHash, null!);
 
         public static void SuccededToFundBzzOnNodeAddress(this ILogger logger, string nodeId, BzzValue bzzFunded, BzzValue bzzTotal, string txHash) =>
@@ -232,7 +232,7 @@ namespace Etherna.Beehive.Services.Extensions
         public static void SucceededToPushSoc(this ILogger logger, SwarmHash hash) =>
             _succededToPushSoc(logger, hash, null!);
 
-        public static void SuccededToWithdrawBzzOnNodeChequeBook(this ILogger logger, string nodeid, BzzValue bzzWithdraw, string txHash) =>
+        public static void SuccededToWithdrawBzzOnNodeChequeBook(this ILogger logger, string nodeid, BzzValue bzzWithdraw, EthTxHash txHash) =>
             _succededToWithdrawBzzOnNodeChequeBook(logger, nodeid, bzzWithdraw, txHash, null!);
 
         public static void UnhandledExceptionPushingChunksToNode(this ILogger logger, Exception exception) =>

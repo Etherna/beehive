@@ -16,6 +16,7 @@ namespace Etherna.Beehive.Configs
 {
     public static class BeehiveHttpConsts
     {
+        public const string AnyContentType = "*/*";
         public const string ApplicationOctetStreamContentType = "application/octet-stream";
         public const string ApplicationTarContentType = "application/x-tar";
         public const string BinaryOctetStreamContentType = "binary/octet-stream";

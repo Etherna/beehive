@@ -204,7 +204,16 @@ namespace Etherna.Beehive.Services.Utilities
         {
             // Update nodes from db.
             //add new nodes from db
-            var dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
+            List<BeeNode> dbNodes;
+            try
+            {
+                dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
+            }
+            catch (UnauthorizedAccessException) //can fail during dbcontext migration
+            {
+                return;
+            }
+            
             foreach (var dbNode in dbNodes)
                 await TryAddBeeNodeAsync(dbNode);
             //remove missing nodes from db
