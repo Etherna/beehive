@@ -58,6 +58,9 @@ namespace Etherna.Beehive.Services.Domain
             ulong? gasLimit,
             XDaiValue? gasPrice);
 
+        Task<ResourceLockHandler<ChunkPushLock>?> TryAcquireChunkPushLockAsync(
+            PostageBatchId batchId);
+
         Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
 
         Task<BeeNodeLiveInstance?> TryGetPostageBatchOwnerNodeAsync(PostageBatchId batchId);

@@ -45,7 +45,7 @@ namespace Etherna.Beehive.Services.Domain
             Func<IChunkStore, IPostageStamper, Task<SwarmReference>> chunkingFuncAsync,
             IDictionary<SwarmHash, PostageStamp>? presignedPostageStamps = null)
         {
-            ArgumentNullException.ThrowIfNull(chunkingFuncAsync, nameof(chunkingFuncAsync));
+            ArgumentNullException.ThrowIfNull(chunkingFuncAsync);
             
             // Acquire lock on postage batch.
             await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, useChunkCompaction);
