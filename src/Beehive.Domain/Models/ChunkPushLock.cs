@@ -13,28 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using System;
 
-namespace Etherna.Beehive.Areas.Api.DtoModels
+namespace Etherna.Beehive.Domain.Models
 {
-    // Bee output for compatibility:
-    // {
-    //     "chainTip": 44678020,
-    //     "block": 44678015,
-    //     "totalAmount": "565891072859",
-    //     "currentPrice": "81935"
-    // }
-    public sealed class ChainStateDto(
-        ulong block,
-        ulong chainTip,
-        BzzValue totalAmount,
-        BzzValue currentPrice,
-        DateTimeOffset timeStamp)
+    public class ChunkPushLock : ResourceLockBase
     {
-        public ulong ChainTip { get; } = chainTip;
-        public ulong Block { get; } = block;
-        public BzzValue TotalAmount { get; } = totalAmount;
-        public BzzValue CurrentPrice { get; } = currentPrice;
-        public DateTimeOffset TimeStamp { get; } = timeStamp;
+        // Constructors.
+        public ChunkPushLock(PostageBatchId batchId)
+            : base(batchId.ToString(), true)
+        { }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        protected ChunkPushLock() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     }
 }

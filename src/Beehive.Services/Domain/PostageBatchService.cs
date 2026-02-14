@@ -219,6 +219,14 @@ namespace Etherna.Beehive.Services.Domain
                 gasLimit,
                 gasPrice);
         }
+        
+        public Task<ResourceLockHandler<ChunkPushLock>?> TryAcquireChunkPushLockAsync(
+            PostageBatchId batchId) =>
+            resourceLockService.TryAcquireLockAsync(
+                () => new ChunkPushLock(batchId),
+                dbContext.ChunkPushLocks,
+                batchId.ToString(),
+                true);
 
         //*** OLD code to receive postage batch cache from node. See: https://etherna.atlassian.net/browse/BHM-198
         // public async Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(

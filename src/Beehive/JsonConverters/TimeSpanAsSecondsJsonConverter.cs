@@ -30,7 +30,7 @@ namespace Etherna.Beehive.JsonConverters
 
         public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options)
         {
-            ArgumentNullException.ThrowIfNull(writer, nameof(writer));
+            ArgumentNullException.ThrowIfNull(writer);
             
             writer.WriteNumberValue((long)value.TotalSeconds);
         }

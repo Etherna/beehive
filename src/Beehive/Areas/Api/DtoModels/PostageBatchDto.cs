@@ -18,6 +18,20 @@ using System.Text.Json.Serialization;
 
 namespace Etherna.Beehive.Areas.Api.DtoModels
 {
+    // Bee output for compatibility:
+    // {
+    //     "batchID": "42d923558a0fcec12cd6c84ef4118f32caa694d60ae677e1ebe76ad8e470d099",
+    //     "utilization": 0,
+    //     "usable": true,
+    //     "label": "",
+    //     "depth": 17,
+    //     "amount": "2831120640",
+    //     "bucketDepth": 16,
+    //     "blockNumber": 44667643,
+    //     "immutableFlag": false,
+    //     "exists": true,
+    //     "batchTTL": 120105
+    // }
     public sealed class PostageBatchDto(
         BzzValue? amount,
         PostageBatchId batchId,

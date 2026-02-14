@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.ExecContext.AsyncLocal;
+using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core;
@@ -63,8 +64,13 @@ namespace Etherna.Beehive.Persistence.Helpers
                 .Returns(mongoDatabaseMock.Object);
 
             // Register static integration with drivers.
-            BsonSerializer.TryRegisterDiscriminatorConvention(typeof(object),
-                new HierarchicalProxyTolerantDiscriminatorConvention("_t", execContext));
+            try
+            {
+                BsonSerializer.RegisterDiscriminatorConvention(typeof(object),
+                    new HierarchicalProxyTolerantDiscriminatorConvention("_t", execContext));
+            }
+            catch (BsonSerializationException)
+            { }
 
             BsonSerializer.SetSerializationContextAccessor(new SerializationContextAccessor(execContext));
 

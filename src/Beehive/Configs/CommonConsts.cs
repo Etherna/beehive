@@ -29,7 +29,7 @@ namespace Etherna.Beehive.Configs
         {
             Converters =
             {
-                new BzzValueJsonConverter(false),
+                new BzzValueJsonConverter(true),
                 new EncryptionKey256JsonConverter(),
                 new EthAddressJsonConverter(),
                 new JsonStringEnumConverter(),
@@ -37,7 +37,7 @@ namespace Etherna.Beehive.Configs
                 new SwarmHashJsonConverter(),
                 new SwarmReferenceJsonConverter(),
                 new TimeSpanAsSecondsJsonConverter(),
-                new XDaiValueJsonConverter(false)
+                new XDaiValueJsonConverter(true)
             },
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
@@ -45,7 +45,7 @@ namespace Etherna.Beehive.Configs
         {
             Converters =
             {
-                new BzzValueJsonConverter(false),
+                new BzzValueJsonConverter(true),
                 new DateTimeOffsetAsUnixSecondsJsonConverter(),
                 new EncryptionKey256JsonConverter(),
                 new EthAddressJsonConverter(),
@@ -63,7 +63,7 @@ namespace Etherna.Beehive.Configs
                 new SwarmUriJsonConverter(),
                 new TagIdJsonConverter(),
                 new TimeSpanAsSecondsJsonConverter(),
-                new XDaiValueJsonConverter(false)
+                new XDaiValueJsonConverter(true)
             },
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
