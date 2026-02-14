@@ -17,6 +17,13 @@ using System;
 
 namespace Etherna.Beehive.Areas.Api.DtoModels
 {
+    // Bee output for compatibility:
+    // {
+    //     "chainTip": 44678020,
+    //     "block": 44678015,
+    //     "totalAmount": "565891072859",
+    //     "currentPrice": "81935"
+    // }
     public sealed class ChainStateDto(
         ulong block,
         ulong chainTip,
@@ -24,8 +31,8 @@ namespace Etherna.Beehive.Areas.Api.DtoModels
         BzzValue currentPrice,
         DateTimeOffset timeStamp)
     {
-        public ulong Block { get; } = block;
         public ulong ChainTip { get; } = chainTip;
+        public ulong Block { get; } = block;
         public BzzValue TotalAmount { get; } = totalAmount;
         public BzzValue CurrentPrice { get; } = currentPrice;
         public DateTimeOffset TimeStamp { get; } = timeStamp;

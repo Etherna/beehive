@@ -33,8 +33,8 @@ namespace Etherna.Beehive.Configs.OpenApi
 
             if (context.JsonTypeInfo.Type == typeof(BzzValue) || context.JsonTypeInfo.Type == typeof(BzzValue?))
             {
-                schema.Type = JsonSchemaType.Integer;
-                schema.Format = "int64";
+                schema.Type = JsonSchemaType.String;
+                schema.Format = null;
             }
             if (context.JsonTypeInfo.Type == typeof(DateTimeOffset) || context.JsonTypeInfo.Type == typeof(DateTimeOffset?))
             {
@@ -150,8 +150,8 @@ namespace Etherna.Beehive.Configs.OpenApi
             }
             if (context.JsonTypeInfo.Type == typeof(XDaiValue) || context.JsonTypeInfo.Type == typeof(XDaiValue?))
             {
-                schema.Type = JsonSchemaType.Integer;
-                schema.Format = "int64";
+                schema.Type = JsonSchemaType.String;
+                schema.Format = null;
             }
 
             return Task.CompletedTask;
