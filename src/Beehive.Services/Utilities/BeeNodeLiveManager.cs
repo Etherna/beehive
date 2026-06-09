@@ -16,9 +16,9 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities.Models;
-using Etherna.BeeNet.Exceptions;
-using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver.Linq;
+using Etherna.SwarmSdk.Exceptions;
+using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -235,7 +235,7 @@ namespace Etherna.Beehive.Services.Utilities
                     ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
                 }
                 catch (Exception e) when (
-                    e is BeeNetApiException ||
+                    e is SwarmSdkApiException ||
                     e is HttpRequestException ||
                     e is SocketException)
                 { }

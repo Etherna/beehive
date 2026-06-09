@@ -14,7 +14,7 @@
 
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities.Models;
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

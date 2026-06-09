@@ -13,9 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Persistence.Serializers;
-using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Serialization;
+using Etherna.SwarmSdk.Models;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
