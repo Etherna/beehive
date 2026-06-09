@@ -145,6 +145,7 @@ namespace Etherna.Beehive
             services.AddOpenApi("beehive04", options =>
             {
                 options.AddDocumentTransformer(new BeehiveDocumentTransformer());
+                options.AddDocumentTransformer(new BinaryRequestBodyDocumentTransformer());
                 options.AddDocumentTransformer<MetadataFilterDocumentTransformer<BeehiveApiMarker>>();
 
                 options.AddOperationTransformer<DeprecatedOperationTransformer>();
@@ -156,6 +157,7 @@ namespace Etherna.Beehive
             services.AddOpenApi("swarm", options =>
             {
                 options.AddDocumentTransformer(new SwarmDocumentTransformer());
+                options.AddDocumentTransformer(new BinaryRequestBodyDocumentTransformer());
                 options.AddDocumentTransformer<MetadataFilterDocumentTransformer<SwarmApiMarker>>();
 
                 options.AddOperationTransformer<AcceptsUnrestrictedOperationTransformer>();
@@ -168,6 +170,7 @@ namespace Etherna.Beehive
             services.AddOpenApi("swarmv1", options =>
             {
                 options.AddDocumentTransformer(new SwarmDocumentTransformer());
+                options.AddDocumentTransformer(new BinaryRequestBodyDocumentTransformer());
                 options.AddDocumentTransformer<MetadataFilterDocumentTransformer<SwarmV1ApiMarker>>();
 
                 options.AddOperationTransformer<AcceptsUnrestrictedOperationTransformer>();
