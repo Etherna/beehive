@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Attributes;
+using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
 

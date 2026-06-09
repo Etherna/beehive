@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain

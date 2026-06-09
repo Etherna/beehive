@@ -18,11 +18,11 @@ using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
-using Etherna.BeeNet.Exceptions;
-using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Etherna.MongODM.Core.Utility;
+using Etherna.SwarmSdk.Exceptions;
+using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -193,7 +193,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
 
                 return true;
             }
-            catch (BeeNetApiException e) when (e.StatusCode == 404)
+            catch (SwarmSdkApiException e) when (e.StatusCode == 404)
             {
                 logger.PostageBatchNotFound(chunkRef.BatchId);
                 logger.FailedToPushChunk(chunkRef.Hash, e);

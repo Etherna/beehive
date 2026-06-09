@@ -15,18 +15,18 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Hashing.Postage;
-using Etherna.BeeNet.Hashing.Signer;
-using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.SwarmSdk.Hashing.Postage;
+using Etherna.SwarmSdk.Hashing.Signer;
+using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using PostageStamp = Etherna.BeeNet.Models.PostageStamp;
+using PostageStamp = Etherna.SwarmSdk.Models.PostageStamp;
 
 namespace Etherna.Beehive.Services.Domain
 {
