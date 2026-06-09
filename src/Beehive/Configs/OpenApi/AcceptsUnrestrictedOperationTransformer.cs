@@ -15,6 +15,7 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,8 +43,12 @@ namespace Etherna.Beehive.Configs.OpenApi
                         contentType => contentType,
                         _ => new OpenApiMediaType
                         {
-                            Schema = consumesUnrestrictedAttribute.RequestType != null
-                                ? new OpenApiSchemaReference(consumesUnrestrictedAttribute.RequestType.Name)
+                            // Emit binary request bodies inline ({ type: string, format: binary }) rather than as a
+                            // $ref to the named "Stream" component: a $ref-to-binary is mishandled by code generators
+                            // such as NSwag (it generates a JSON-serialized DTO body, breaking uploads).
+                            Schema = consumesUnrestrictedAttribute.RequestType is { } requestType &&
+                                     requestType != typeof(Stream)
+                                ? new OpenApiSchemaReference(requestType.Name)
                                 : new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" }
                         }),
                     Required = !consumesUnrestrictedAttribute.IsOptional
