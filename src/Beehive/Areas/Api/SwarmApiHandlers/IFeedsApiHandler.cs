@@ -37,7 +37,6 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             SwarmFeedType type,
             bool onlyRootChunk,
             RedundancyStrategy redundancyStrategy,
-            bool redundancyStrategyFallback,
-            bool resolveLegacyPayload);
+            bool redundancyStrategyFallback);
     }
 }

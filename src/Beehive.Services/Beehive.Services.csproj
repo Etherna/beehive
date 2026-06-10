@@ -18,7 +18,7 @@
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.5.0" />
     <PackageReference Include="MongODM.Hangfire" Version="0.25.0-alpha.55" />
     <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="6.1.0" />
-    <PackageReference Include="SwarmSdk.Client" Version="0.6.0-alpha.53" />
+    <PackageReference Include="SwarmSdk.Client" Version="0.6.0-alpha.55" />
   </ItemGroup>
 
   <ItemGroup>

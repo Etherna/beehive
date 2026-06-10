@@ -23,9 +23,8 @@ using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Services;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
@@ -88,8 +87,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             SwarmFeedType type,
             bool onlyRootChunk,
             RedundancyStrategy redundancyStrategy,
-            bool redundancyStrategyFallback,
-            bool resolveLegacyPayload) =>
+            bool redundancyStrategyFallback) =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
                 // Init.
@@ -129,11 +127,9 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 // an actual "at" value to compose it. In both cases better to do client side.
                 var nextFeedIndex = type == SwarmFeedType.Sequence ? feedChunk.Index.GetNext(0) : null;
 
-                // Unwrap original chunk from feed chunk.
-                var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(
-                    resolveLegacyPayload,
-                    new SwarmChunkBmt(),
-                    chunkStore);
+                // Resolve wrapped chunk from feed chunk, auto-detecting legacy (v1) vs current (v2) payload.
+                var resolvedChunk = await feedChunk.ResolveWrappedChunkAsync(new SwarmChunkBmt(), chunkStore);
+                var wrappedChunk = resolvedChunk.Chunk;
 
                 // Build response headers.
                 var currentIndexBytes = feedChunk.Index.MarshalBinary();
@@ -144,13 +140,13 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexHeader, currentIndexBytes.ToHex());
                 if (nextIndexBytes != null)
                     response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexNextHeader, nextIndexBytes.ToHex());
+                response.Headers.Append(SwarmHttpConsts.SwarmFeedResolvedVersionHeader, resolvedChunk.Version.ToHeaderValue());
                 response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, signature.ToString());
-                response.Headers.Append(CorsConstants.AccessControlExposeHeaders, new StringValues(
-                [
+                response.Headers.ExposeHeaders(
                     SwarmHttpConsts.SwarmFeedIndexHeader,
                     SwarmHttpConsts.SwarmFeedIndexNextHeader,
-                    SwarmHttpConsts.SwarmSocSignatureHeader
-                ]));
+                    SwarmHttpConsts.SwarmFeedResolvedVersionHeader,
+                    SwarmHttpConsts.SwarmSocSignatureHeader);
                 response.Headers.SetNoCache(); //disable cache
 
                 // Return content.
@@ -161,6 +157,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         contentType: BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
                 //else return joined data
+                //range processing emits non-safelisted Accept-Ranges (and Content-Range on partial responses).
+                response.Headers.ExposeHeaders(HeaderNames.AcceptRanges, HeaderNames.ContentRange);
                 var dataStream = ChunkDataStream.BuildNew(
                     wrappedChunk,
                     chunkStore,
@@ -168,7 +166,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     redundancyStrategyFallback);
                 return Results.File(
                     dataStream,
-                    contentType: BeehiveHttpConsts.ApplicationOctetStreamContentType);
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType,
+                    enableRangeProcessing: true);
             });
     }
 }

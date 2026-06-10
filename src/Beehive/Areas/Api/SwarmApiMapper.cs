@@ -57,8 +57,10 @@ namespace Etherna.Beehive.Areas.Api
                             [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback = true) =>
                         handler.DownloadBytesAsync(reference, redundancyLevel, redundancyStrategy, redundancyStrategyFallback))
                 .Produces<Stream>(StatusCodes.Status200OK, BeehiveHttpConsts.ApplicationOctetStreamContentType)
+                .Produces<Stream>(StatusCodes.Status206PartialContent, BeehiveHttpConsts.ApplicationOctetStreamContentType)
                 .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status416RangeNotSatisfiable);
             
             builder.MapHead("/bytes/{reference}",
                     (IBytesApiHandler handler,
@@ -97,8 +99,10 @@ namespace Etherna.Beehive.Areas.Api
                             redundancyStrategy,
                             redundancyStrategyFallback))
                 .Produces<Stream>()
+                .Produces<Stream>(StatusCodes.Status206PartialContent)
                 .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status416RangeNotSatisfiable);
             
             builder.MapHead("/bzz/{**address}",
                     (IBzzApiHandler handler,
@@ -230,12 +234,13 @@ namespace Etherna.Beehive.Areas.Api
                         [FromQuery] SwarmFeedType type = SwarmFeedType.Sequence,
                         [FromHeader(Name = SwarmHttpConsts.SwarmOnlyRootChunkHeader)] bool onlyRootChunk = false,
                         [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyStrategyHeader)] RedundancyStrategy redundancyStrategy = RedundancyStrategy.Data, 
-                        [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback = true,
-                        [FromHeader(Name = SwarmHttpConsts.SwarmFeedLegacyResolveHeader)] bool resolveLegacyPayload = false) =>
-                    handler.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk, redundancyStrategy, redundancyStrategyFallback, resolveLegacyPayload))
+                        [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback = true) =>
+                    handler.FindFeedUpdateAsync(owner, topic, at, after, afterLevel, type, onlyRootChunk, redundancyStrategy, redundancyStrategyFallback))
                 .Produces<Stream>(StatusCodes.Status200OK, BeehiveHttpConsts.ApplicationOctetStreamContentType)
+                .Produces<Stream>(StatusCodes.Status206PartialContent, BeehiveHttpConsts.ApplicationOctetStreamContentType)
                 .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status416RangeNotSatisfiable);
             
             builder.MapPost("/feeds/{owner}/{topic}",
                 (IFeedsApiHandler handler,
@@ -338,8 +343,10 @@ namespace Etherna.Beehive.Areas.Api
                             [FromHeader(Name = SwarmHttpConsts.SwarmRedundancyFallbackModeHeader)] bool redundancyStrategyFallback = true) =>
                         handler.ResolveSocAsync(owner, id, onlyRootChunk, redundancyStrategy, redundancyStrategyFallback))
                 .Produces<Stream>(StatusCodes.Status200OK, BeehiveHttpConsts.ApplicationOctetStreamContentType)
+                .Produces<Stream>(StatusCodes.Status206PartialContent, BeehiveHttpConsts.ApplicationOctetStreamContentType)
                 .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status416RangeNotSatisfiable);
             
             builder.MapPost("/soc/{owner}/{id}",
                 (ISocApiHandler handler,
