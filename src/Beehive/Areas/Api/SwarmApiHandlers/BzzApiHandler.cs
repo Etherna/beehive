@@ -27,7 +27,6 @@ using Etherna.SwarmSdk.Manifest;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Services;
 using ICSharpCode.SharpZipLib.Tar;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using System;
@@ -231,17 +230,19 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 if (feedChunk == null)
                     throw new KeyNotFoundException("Can't find feed updates");
 
-                var wrappedChunk = await feedChunk.UnwrapDataChunkAsync(false, new SwarmChunkBmt());
+                var resolvedChunk = await feedChunk.ResolveWrappedChunkAsync(new SwarmChunkBmt(), chunkStore);
+                var wrappedChunk = resolvedChunk.Chunk;
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
                 manifest = ReferencedMantarayManifest.BuildNew(wrappedChunk, wrappedChunk.Hash, chunkStore);
-                
-                //report feed index header
+
+                //report feed index and resolved version headers
                 var feedIndex = feedChunk.Index;
                 var binaryFeedIndex = feedIndex.MarshalBinary();
                 httpContext.Response.Headers[SwarmHttpConsts.SwarmFeedIndexHeader] = binaryFeedIndex.ToArray().ToHex();
-                httpContext.Response.Headers.Append(
-                    CorsConstants.AccessControlExposeHeaders,
-                    SwarmHttpConsts.SwarmFeedIndexHeader);
+                httpContext.Response.Headers[SwarmHttpConsts.SwarmFeedResolvedVersionHeader] = resolvedChunk.Version.ToHeaderValue();
+                httpContext.Response.Headers.ExposeHeaders(
+                    SwarmHttpConsts.SwarmFeedIndexHeader,
+                    SwarmHttpConsts.SwarmFeedResolvedVersionHeader);
 
                 //report no cache headers
                 httpContext.Response.Headers.SetNoCache();
@@ -268,7 +269,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     Inline = true
                 };
                 httpContext.Response.Headers.ContentDisposition = contentDisposition.ToString();
-                httpContext.Response.Headers.AccessControlExposeHeaders = HeaderNames.ContentDisposition;
+                httpContext.Response.Headers.ExposeHeaders(HeaderNames.ContentDisposition);
             
                 // Return result.
                 //if only headers
@@ -307,6 +308,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     redundancyStrategy,
                     redundancyStrategyFallback);
 
+                //range processing emits non-safelisted Accept-Ranges (and Content-Range on partial responses).
+                httpContext.Response.Headers.ExposeHeaders(HeaderNames.AcceptRanges, HeaderNames.ContentRange);
                 httpContext.Response.StatusCode = resourceInfo.IsFromErrorDoc ? 404 : 200;
                 return Results.File(dataStream, contentType: mimeType, enableRangeProcessing: true);
             }
