@@ -15,6 +15,7 @@
 using Elastic.Ingest.Elasticsearch;
 using Elastic.Ingest.Elasticsearch.DataStreams;
 using Elastic.Serilog.Sinks;
+using Elastic.Transport;
 using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.Beehive.Areas.Api;
 using Etherna.Beehive.Areas.Api.SwarmApiHandlers;
@@ -116,6 +117,8 @@ namespace Etherna.Beehive
             var elasticNodes = (configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException())
                 .Select(u => new Uri(u))
                 .ToArray();
+            var elasticUsername = configuration["Elastic:Username"];
+            var elasticPassword = configuration["Elastic:Password"];
             var assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
             var envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
 
@@ -129,6 +132,13 @@ namespace Etherna.Beehive
                 {
                     opts.BootstrapMethod = BootstrapMethod.Silent;
                     opts.DataStream = new DataStreamName("logs", assemblyName, envName);
+                }, transport =>
+                {
+                    // Apply basic auth only when credentials are configured, so the same build
+                    // runs against both the unsecured cluster (no creds) and the secured one
+                    // (Elastic:Username/Password set via env).
+                    if (!string.IsNullOrEmpty(elasticUsername) && !string.IsNullOrEmpty(elasticPassword))
+                        transport.Authentication(new BasicAuthentication(elasticUsername, elasticPassword));
                 })
                 .Enrich.WithProperty("Environment", environment)
                 .ReadFrom.Configuration(configuration)
