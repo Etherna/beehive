@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Hashing.Postage;
-using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
+using Etherna.SwarmSdk.Hashing.Postage;
+using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

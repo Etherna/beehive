@@ -15,17 +15,16 @@
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Chunks;
-using Etherna.BeeNet.Exceptions;
-using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Hashing.Pipeline;
-using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Serialization.Modifiers;
-using Microsoft.AspNetCore.Cors.Infrastructure;
+using Etherna.SwarmSdk.Chunks;
+using Etherna.SwarmSdk.Exceptions;
+using Etherna.SwarmSdk.Hashing;
+using Etherna.SwarmSdk.Hashing.Pipeline;
+using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using System.IO;
 using System.Threading.Tasks;
@@ -56,7 +55,13 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     redundancyStrategy,
                     redundancyStrategyFallback);
 
-                return Results.Stream(dataStream, BeehiveHttpConsts.ApplicationOctetStreamContentType);
+                //range processing emits non-safelisted Accept-Ranges (and Content-Range on partial responses).
+                httpContextAccessor.HttpContext!.Response.Headers.ExposeHeaders(
+                    HeaderNames.AcceptRanges, HeaderNames.ContentRange);
+                return Results.Stream(
+                    dataStream,
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType,
+                    enableRangeProcessing: true);
             });
 
         public Task<IResult> GetBytesHeadersAsync(SwarmReference reference) =>
@@ -82,12 +87,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     dataLength = SwarmCac.SpanToLength(cac.Span.Span);
 
                 var response = httpContextAccessor.HttpContext!.Response;
-                response.Headers.Append(
-                    CorsConstants.AccessControlExposeHeaders, new StringValues(
-                    [
-                        HeaderNames.AcceptRanges,
-                        HeaderNames.ContentEncoding
-                    ]));
+                response.Headers.AcceptRanges = "bytes"; //mirror the range-capable GET response
+                response.Headers.ExposeHeaders(HeaderNames.AcceptRanges);
                 response.ContentLength = (long)dataLength;
                 response.ContentType = BeehiveHttpConsts.ApplicationOctetStreamContentType;
 

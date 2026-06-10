@@ -14,7 +14,7 @@
 
 namespace Etherna.Beehive.Areas.Api
 {
-    public class SwarmV1ApiMarker
+    internal sealed class SwarmV1ApiMarker
     {
         
     }

@@ -15,14 +15,15 @@
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Chunks;
-using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Serialization.Modifiers;
-using Microsoft.AspNetCore.Cors.Infrastructure;
+using Etherna.SwarmSdk.Chunks;
+using Etherna.SwarmSdk.Hashing;
+using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -57,7 +58,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 // Build response headers.
                 var response = httpContextAccessor.HttpContext!.Response;
                 response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, soc.Signature.ToString());
-                response.Headers.Append(CorsConstants.AccessControlExposeHeaders, SwarmHttpConsts.SwarmSocSignatureHeader);
+                response.Headers.ExposeHeaders(SwarmHttpConsts.SwarmSocSignatureHeader);
             
                 // Return content.
                 //if only root, returns chunk's data
@@ -67,6 +68,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         contentType: BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
                 //else return joined data
+                //range processing emits non-safelisted Accept-Ranges (and Content-Range on partial responses).
+                response.Headers.ExposeHeaders(HeaderNames.AcceptRanges, HeaderNames.ContentRange);
                 var dataStream = ChunkDataStream.BuildNew(
                     soc.InnerChunk,
                     chunkStore,
@@ -74,7 +77,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     redundancyStrategyFallback);
                 return Results.File(
                     dataStream,
-                    contentType: BeehiveHttpConsts.ApplicationOctetStreamContentType);
+                    BeehiveHttpConsts.ApplicationOctetStreamContentType,
+                    enableRangeProcessing: true);
             });
 
         public Task<IResult> UploadSocAsync(

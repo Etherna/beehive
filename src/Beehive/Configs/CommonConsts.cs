@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.JsonConverters;
-using Etherna.BeeNet.JsonConverters;
+using Etherna.SwarmSdk.JsonConverters;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -23,13 +23,13 @@ namespace Etherna.Beehive.Configs
     {
         public const string DatabaseAdminPath = "/admin/db";
         public const string HangfireAdminPath = "/admin/hangfire";
-        public const string SwaggerPath = "/swagger";
+        public const string ScalarPath = "/scalar";
         
         public static readonly JsonSerializerOptions BeehiveV04JsonSerializerOptions = new()
         {
             Converters =
             {
-                new BzzValueJsonConverter(true),
+                new BzzValueJsonConverter(NumericFormat.AsString),
                 new EncryptionKey256JsonConverter(),
                 new EthAddressJsonConverter(),
                 new JsonStringEnumConverter(),
@@ -37,7 +37,7 @@ namespace Etherna.Beehive.Configs
                 new SwarmHashJsonConverter(),
                 new SwarmReferenceJsonConverter(),
                 new TimeSpanAsSecondsJsonConverter(),
-                new XDaiValueJsonConverter(true)
+                new XDaiValueJsonConverter(NumericFormat.AsString)
             },
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
@@ -45,7 +45,7 @@ namespace Etherna.Beehive.Configs
         {
             Converters =
             {
-                new BzzValueJsonConverter(true),
+                new BzzValueJsonConverter(NumericFormat.AsString),
                 new DateTimeOffsetAsUnixSecondsJsonConverter(),
                 new EncryptionKey256JsonConverter(),
                 new EthAddressJsonConverter(),
@@ -63,7 +63,7 @@ namespace Etherna.Beehive.Configs
                 new SwarmUriJsonConverter(),
                 new TagIdJsonConverter(),
                 new TimeSpanAsSecondsJsonConverter(),
-                new XDaiValueJsonConverter(true)
+                new XDaiValueJsonConverter(NumericFormat.AsString)
             },
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };

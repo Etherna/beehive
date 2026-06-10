@@ -13,8 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Exceptions;
-using Etherna.BeeNet.Exceptions;
 using Etherna.MongODM.Core.Exceptions;
+using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Serilog;
 using System;
@@ -56,7 +56,7 @@ namespace Etherna.Beehive.Areas.Api
                         return ErrorResults.GetUnauthorizedErrorResult(apiVersion);
 
                     // Error code 404.
-                    case BeeNetApiException { StatusCode: 404 }:
+                    case SwarmSdkApiException { StatusCode: 404 }:
                     case KeyNotFoundException:
                     case MongodmEntityNotFoundException:
                         return ErrorResults.GetNotFoundErrorResult(apiVersion);
@@ -66,7 +66,7 @@ namespace Etherna.Beehive.Areas.Api
                         return ErrorResults.GetLockedErrorResult(apiVersion);
                     
                     // Error code 503.
-                    case BeeNetApiException:
+                    case SwarmSdkApiException:
                         return ErrorResults.GetServiceUnavailableErrorResult(apiVersion);
                         
                     // Error code 500.

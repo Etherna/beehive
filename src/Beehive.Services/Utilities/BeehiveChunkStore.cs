@@ -14,13 +14,12 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Exceptions;
-using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.MongODM.Core.Serialization.Modifiers;
 using Etherna.MongODM.Core.Utility;
+using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

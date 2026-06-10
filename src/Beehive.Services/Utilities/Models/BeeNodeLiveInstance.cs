@@ -13,10 +13,10 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet;
-using Etherna.BeeNet.Exceptions;
-using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
+using Etherna.SwarmSdk;
+using Etherna.SwarmSdk.Exceptions;
+using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -104,7 +104,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
                 }
             }
             catch (Exception e) when (
-                e is BeeNetApiException ||
+                e is SwarmSdkApiException ||
                 e is HttpRequestException ||
                 e is SocketException)
             {

@@ -17,8 +17,8 @@ using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Models;
 using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -136,17 +136,33 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     payload = memoryStream.ToArray();
                 }
             
-                // Hash Content Addressed Chunk.
+                if (payload.Length < SwarmCac.SpanSize)
+                    throw new ArgumentOutOfRangeException(nameof(dataStream), payload.Length, $"Data is smaller than {SwarmCac.SpanSize} bytes");
+
+                // Build chunk. As Bee, data within cac size limits is a cac, larger data can only be a soc.
                 var chunkBmt = new SwarmChunkBmt();
-                var hash = chunkBmt.Hash(
-                    payload[..SwarmCac.SpanSize].ToArray(),
-                    payload[SwarmCac.SpanSize..].ToArray());
-                var chunk = new SwarmCac(hash, payload);
-            
+                SwarmChunk chunk;
+                if (payload.Length <= SwarmCac.SpanDataSize)
+                {
+                    //hash content addressed chunk
+                    var hash = chunkBmt.Hash(
+                        payload[..SwarmCac.SpanSize].ToArray(),
+                        payload[SwarmCac.SpanSize..].ToArray());
+                    chunk = new SwarmCac(hash, payload);
+                }
+                else
+                {
+                    //parse and validate single owner chunk
+                    var soc = SwarmSoc.BuildFromBytes(null, payload, chunkBmt);
+                    if (!soc.ValidateSoc(chunkBmt.Hasher))
+                        throw new ArgumentException("Invalid single owner chunk");
+                    chunk = soc;
+                }
+
                 // Recover batch owner, if required.
                 EthAddress? owner = null;
                 if (postageStamp != null)
-                    owner = postageStamp.Value.RecoverBatchOwner(hash, chunkBmt.Hasher);
+                    owner = postageStamp.Value.RecoverBatchOwner(chunk.Hash, chunkBmt.Hasher);
             
                 // Store chunk.
                 var reference = await dataService.UploadAsync(
@@ -156,16 +172,16 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     false,
                     async (chunkStore, postageStamper) =>
                     {
-                        postageStamper.Stamp(hash);
+                        postageStamper.Stamp(chunk.Hash);
                         await chunkStore.AddAsync(chunk);
 
-                        return new SwarmReference(hash, null);
+                        return new SwarmReference(chunk.Hash, null);
                     },
                     postageStamp is null
                         ? null
                         : new Dictionary<SwarmHash, PostageStamp>
                         {
-                            [hash] = postageStamp.Value
+                            [chunk.Hash] = postageStamp.Value
                         });
             
                 return Results.Json(

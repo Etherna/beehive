@@ -14,13 +14,13 @@
 
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Persistence.Helpers;
-using Etherna.BeeNet.Models;
 using Etherna.DomainEvents;
 using Etherna.MongoDB.Bson.IO;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Driver;
 using Etherna.MongODM.Core.Serialization.Serializers;
 using Etherna.MongODM.Core.Utility;
+using Etherna.SwarmSdk.Models;
 using Moq;
 using System;
 using System.Collections.Generic;

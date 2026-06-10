@@ -14,8 +14,8 @@
 
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities.Models;
-using Etherna.BeeNet.Hashing.Postage;
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Hashing.Postage;
+using Etherna.SwarmSdk.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
