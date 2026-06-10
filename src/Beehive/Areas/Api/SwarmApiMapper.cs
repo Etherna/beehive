@@ -182,7 +182,7 @@ namespace Etherna.Beehive.Areas.Api
                             [FromHeader(Name = SwarmHttpConsts.SwarmPostageStampHeader)] PostageStamp? postageStamp) =>
                         handler.UploadChunkAsync(dataStream, batchId, postageStamp))
                 .Accepts<Stream>(BeehiveHttpConsts.ApplicationOctetStreamContentType)
-                .FilterRequestSizeLimit(SwarmCac.SpanDataSize)
+                .FilterRequestSizeLimit(SwarmSoc.MaxSocSize) //socs can exceed max cac size
                 .FilterRequireAtLeastOneHeader(
                     SwarmHttpConsts.SwarmPostageBatchIdHeader,
                     SwarmHttpConsts.SwarmPostageStampHeader)
