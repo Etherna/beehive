@@ -46,6 +46,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Exceptions;
 using System;
@@ -325,15 +326,16 @@ namespace Etherna.Beehive
                     IgnoreAntiforgeryToken = true
                 });
 
-            // Add SwaggerUI.
-            app.UseSwaggerUI(options =>
+            // Add Scalar API Reference.
+            app.MapScalarApiReference(options =>
             {
-                options.DocumentTitle = "Beehive API";
-
-                // build a swagger endpoint for each discovered API version
-                options.SwaggerEndpoint("/openapi/swarm.json", "Swarm API");
-                options.SwaggerEndpoint("/openapi/swarmv1.json", "Swarm V1 API");
-                options.SwaggerEndpoint("/openapi/beehive04.json", "Beehive v0.4 API");
+                options.WithTitle("Beehive API")
+                    .DisableAgent()
+                    .HideClientButton()
+                    .HideDeveloperTools()
+                    .AddDocument("swarm", "Swarm API")
+                    .AddDocument("swarmv1", "Swarm V1 API")
+                    .AddDocument("beehive04", "Beehive v0.4 API");
             });
 
             // Register cron tasks.
