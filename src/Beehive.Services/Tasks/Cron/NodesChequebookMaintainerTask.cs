@@ -15,7 +15,7 @@
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;

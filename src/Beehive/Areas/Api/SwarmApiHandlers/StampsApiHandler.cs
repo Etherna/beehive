@@ -16,7 +16,7 @@ using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.Linq;

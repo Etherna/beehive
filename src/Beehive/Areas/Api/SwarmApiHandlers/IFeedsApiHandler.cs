@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
@@ -37,7 +37,6 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             SwarmFeedType type,
             bool onlyRootChunk,
             RedundancyStrategy redundancyStrategy,
-            bool redundancyStrategyFallback,
-            bool resolveLegacyPayload);
+            bool redundancyStrategyFallback);
     }
 }

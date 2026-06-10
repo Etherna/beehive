@@ -15,8 +15,8 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
-using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Driver;
+using Etherna.SwarmSdk.Models;
 using System.Linq;
 using System.Threading.Tasks;
 

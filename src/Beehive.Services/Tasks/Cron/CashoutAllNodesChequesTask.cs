@@ -15,8 +15,8 @@
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.BeeNet.Exceptions;
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Exceptions;
+using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
@@ -57,7 +57,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                             var cashoutResponse = await node.Client.GetChequebookCashoutForPeerAsync(peer);
                             uncashedBzzAmount = cashoutResponse.UncashedAmount;
                         }
-                        catch (BeeNetApiException e) when (e.StatusCode == 404)
+                        catch (SwarmSdkApiException e) when (e.StatusCode == 404)
                         { }
 
                         // Cashout.
@@ -69,11 +69,11 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                                 totalBzzCashedOut += uncashedBzzAmount.Value;
                                 txs.Add(txHash);
                             }
-                            catch (BeeNetApiException) { }
+                            catch (SwarmSdkApiException) { }
                         }
                     }
                 }
-                catch (BeeNetApiException) { return; } //issues contacting the node instance api
+                catch (SwarmSdkApiException) { return; } //issues contacting the node instance api
                 catch (HttpRequestException) { return; }
 
                 // Add log.

@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
+using Etherna.SwarmSdk.Models;
 
 namespace Etherna.Beehive.Persistence.Serializers
 {

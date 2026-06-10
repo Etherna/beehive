@@ -12,6 +12,10 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Elastic.Ingest.Elasticsearch;
+using Elastic.Ingest.Elasticsearch.DataStreams;
+using Elastic.Serilog.Sinks;
+using Elastic.Transport;
 using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.Beehive.Areas.Api;
 using Etherna.Beehive.Areas.Api.SwarmApiHandlers;
@@ -29,10 +33,10 @@ using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Tasks.Background;
 using Etherna.Beehive.Services.Tasks.Cron;
-using Etherna.BeeNet.Services;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
 using Etherna.MongODM.AspNetCore.UI;
+using Etherna.SwarmSdk.Services;
 using Hangfire;
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
@@ -43,9 +47,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Exceptions;
-using Serilog.Sinks.Elasticsearch;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -101,17 +105,6 @@ namespace Etherna.Beehive
         }
 
         // Helpers.
-        private static ElasticsearchSinkOptions ConfigureElasticSink(IConfigurationRoot configuration, string environment)
-        {
-            string assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
-            string envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
-            return new ElasticsearchSinkOptions((configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException()).Select(u => new Uri(u)))
-            {
-                AutoRegisterTemplate = true,
-                IndexFormat = $"{assemblyName}-{envName}-{DateTime.UtcNow:yyyy-MM}"
-            };
-        }
-
         private static void ConfigureLogging()
         {
             var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? throw new ServiceConfigurationException();
@@ -121,13 +114,32 @@ namespace Etherna.Beehive
                 .AddEnvironmentVariables()
                 .Build();
 
+            var elasticNodes = (configuration.GetSection("Elastic:Urls").Get<string[]>() ?? throw new ServiceConfigurationException())
+                .Select(u => new Uri(u))
+                .ToArray();
+            var elasticUsername = configuration["Elastic:Username"];
+            var elasticPassword = configuration["Elastic:Password"];
+            var assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
+            var envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
+
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
                 .Enrich.WithExceptionDetails()
                 .Enrich.WithMachineName()
                 .WriteTo.Debug(formatProvider: CultureInfo.InvariantCulture)
                 .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
-                .WriteTo.Elasticsearch(ConfigureElasticSink(configuration, environment))
+                .WriteTo.Elasticsearch(elasticNodes, opts =>
+                {
+                    opts.BootstrapMethod = BootstrapMethod.Silent;
+                    opts.DataStream = new DataStreamName("logs", assemblyName, envName);
+                }, transport =>
+                {
+                    // Apply basic auth only when credentials are configured, so the same build
+                    // runs against both the unsecured cluster (no creds) and the secured one
+                    // (Elastic:Username/Password set via env).
+                    if (!string.IsNullOrEmpty(elasticUsername) && !string.IsNullOrEmpty(elasticPassword))
+                        transport.Authentication(new BasicAuthentication(elasticUsername, elasticPassword));
+                })
                 .Enrich.WithProperty("Environment", environment)
                 .ReadFrom.Configuration(configuration)
                 .CreateLogger();
@@ -144,6 +156,7 @@ namespace Etherna.Beehive
             services.AddOpenApi("beehive04", options =>
             {
                 options.AddDocumentTransformer(new BeehiveDocumentTransformer());
+                options.AddDocumentTransformer(new BinaryRequestBodyDocumentTransformer());
                 options.AddDocumentTransformer<MetadataFilterDocumentTransformer<BeehiveApiMarker>>();
 
                 options.AddOperationTransformer<DeprecatedOperationTransformer>();
@@ -155,6 +168,7 @@ namespace Etherna.Beehive
             services.AddOpenApi("swarm", options =>
             {
                 options.AddDocumentTransformer(new SwarmDocumentTransformer());
+                options.AddDocumentTransformer(new BinaryRequestBodyDocumentTransformer());
                 options.AddDocumentTransformer<MetadataFilterDocumentTransformer<SwarmApiMarker>>();
 
                 options.AddOperationTransformer<AcceptsUnrestrictedOperationTransformer>();
@@ -167,6 +181,7 @@ namespace Etherna.Beehive
             services.AddOpenApi("swarmv1", options =>
             {
                 options.AddDocumentTransformer(new SwarmDocumentTransformer());
+                options.AddDocumentTransformer(new BinaryRequestBodyDocumentTransformer());
                 options.AddDocumentTransformer<MetadataFilterDocumentTransformer<SwarmV1ApiMarker>>();
 
                 options.AddOperationTransformer<AcceptsUnrestrictedOperationTransformer>();
@@ -321,15 +336,16 @@ namespace Etherna.Beehive
                     IgnoreAntiforgeryToken = true
                 });
 
-            // Add SwaggerUI.
-            app.UseSwaggerUI(options =>
+            // Add Scalar API Reference.
+            app.MapScalarApiReference(options =>
             {
-                options.DocumentTitle = "Beehive API";
-
-                // build a swagger endpoint for each discovered API version
-                options.SwaggerEndpoint("/openapi/swarm.json", "Swarm API");
-                options.SwaggerEndpoint("/openapi/swarmv1.json", "Swarm V1 API");
-                options.SwaggerEndpoint("/openapi/beehive04.json", "Beehive v0.4 API");
+                options.WithTitle("Beehive API")
+                    .DisableAgent()
+                    .HideClientButton()
+                    .HideDeveloperTools()
+                    .AddDocument("swarm", "Swarm API")
+                    .AddDocument("swarmv1", "Swarm V1 API")
+                    .AddDocument("beehive04", "Beehive v0.4 API");
             });
 
             // Register cron tasks.

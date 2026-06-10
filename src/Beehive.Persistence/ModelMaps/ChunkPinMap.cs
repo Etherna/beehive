@@ -13,13 +13,12 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.Beehive.Persistence.Serializers;
-using Etherna.BeeNet.Models;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
 using Etherna.MongODM.Core;
 using Etherna.MongODM.Core.Serialization;
 using Etherna.MongODM.Core.Serialization.Serializers;
+using Etherna.SwarmSdk.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Persistence.ModelMaps

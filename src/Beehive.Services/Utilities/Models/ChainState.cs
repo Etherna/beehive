@@ -12,14 +12,14 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Etherna.SwarmSdk.Models;
 using System;
 
 namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class ChainState
     {
-        public ChainState(string nodeId, Etherna.BeeNet.Models.ChainState chainStateDto)
+        public ChainState(string nodeId, SwarmSdk.Models.ChainState chainStateDto)
         {
             ArgumentNullException.ThrowIfNull(chainStateDto);
 
