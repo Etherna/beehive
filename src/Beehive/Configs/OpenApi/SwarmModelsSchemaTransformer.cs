@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Configs;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
@@ -30,6 +31,18 @@ namespace Etherna.Beehive.Configs.OpenApi
         {
             ArgumentNullException.ThrowIfNull(schema);
             ArgumentNullException.ThrowIfNull(context);
+
+            /* Enums are serialized as strings by the global JsonStringEnumConverter, but the
+             * JsonSchemaExporter emits their schema with the enum values and no "type". Restore it,
+             * and document that the binding also accepts the integer value (see
+             * CaseInsensitiveEnumBindingMiddleware). */
+            var underlyingType = Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
+            if (underlyingType.IsEnum && schema.Enum is { Count: > 0 })
+            {
+                schema.Type = JsonSchemaType.String;
+                schema.Description = "Accepts the value name (case-insensitive) or its integer equivalent: " +
+                                     $"{EnumApiConventions.FormatAllowedValues(underlyingType)}.";
+            }
 
             if (context.JsonTypeInfo.Type == typeof(BzzValue) || context.JsonTypeInfo.Type == typeof(BzzValue?))
             {
