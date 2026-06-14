@@ -215,7 +215,9 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             
             // Decode manifest.
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+#pragma warning disable CA1849
             var manifest = ReferencedMantarayManifest.BuildNew(address.Reference, chunkStore);
+#pragma warning restore CA1849
             
             // Try to dereference feed manifest first.
             var feedManifest = await feedService.TryDecodeFeedManifestAsync(manifest);
@@ -233,7 +235,9 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var resolvedChunk = await feedChunk.ResolveWrappedChunkAsync(new SwarmChunkBmt(), chunkStore);
                 var wrappedChunk = resolvedChunk.Chunk;
                 address = new SwarmAddress(wrappedChunk.Hash, address.Path);
+#pragma warning disable CA1849
                 manifest = ReferencedMantarayManifest.BuildNew(wrappedChunk, wrappedChunk.Hash, chunkStore);
+#pragma warning restore CA1849
 
                 //report feed index and resolved version headers
                 var feedIndex = feedChunk.Index;
