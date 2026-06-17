@@ -18,7 +18,7 @@
     <PackageReference Include="Etherna.DomainEvents" Version="1.5.0" />
     <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.55" />
     <PackageReference Include="Nethereum.Web3" Version="6.1.0" />
-    <PackageReference Include="SwarmSdk" Version="0.6.0-alpha.55" />
+    <PackageReference Include="SwarmSdk" Version="0.6.0-alpha.57" />
   </ItemGroup>
 
 </Project>

@@ -54,6 +54,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using DashboardOptions = Etherna.MongODM.AspNetCore.UI.DashboardOptions;
 
@@ -194,7 +195,7 @@ namespace Etherna.Beehive
             services.AddRazorPages();
             services.ConfigureHttpJsonOptions(options =>
             {
-                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.KebabCaseLower));
             });
 
             // Configure Hangfire server.
@@ -317,10 +318,12 @@ namespace Etherna.Beehive
 
             app.UseStaticFiles();
             app.UseRouting();
-            
+
             app.UseAuthorization();
 
             // Add api and pages.
+            app.UseMiddleware<CaseInsensitiveEnumBindingMiddleware>(); //swarm compatibility
+
             app.MapOpenApi();
             app.MapRazorPages();
             
