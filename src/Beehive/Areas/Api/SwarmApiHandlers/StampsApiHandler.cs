@@ -90,6 +90,11 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var postageBatch = await postageBatchService.TryGetPostageBatchDetailsAsync(batchId);
                 if (postageBatch is null)
                     throw new KeyNotFoundException();
+                
+                // Emulate bee response when postage batch is not usable.
+                if (!postageBatch.IsUsable)
+                    throw new BadHttpRequestException(ErrorResults.BatchNotUsableErrorMessage);
+                
                 return Results.Json(
                     new PostageBatchDto(
                         postageBatch.Amount,

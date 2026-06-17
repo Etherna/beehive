@@ -50,6 +50,11 @@ namespace Etherna.Beehive.Areas.Api
                     case MongodmInvalidEntityTypeException:
                     case SwarmChunkTypeException:
                         return ErrorResults.GetBadRequestErrorResult(apiVersion);
+                    
+                    case BadHttpRequestException:
+                        return e.Message == ErrorResults.BatchNotUsableErrorMessage ? //special case
+                            ErrorResults.GetBadRequestErrorResult(apiVersion, ErrorResults.BatchNotUsableErrorMessage) :
+                            ErrorResults.GetBadRequestErrorResult(apiVersion);
 
                     // Error code 401.
                     case UnauthorizedAccessException:

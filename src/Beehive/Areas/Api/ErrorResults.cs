@@ -22,6 +22,9 @@ namespace Etherna.Beehive.Areas.Api
 {
     public static class ErrorResults
     {
+        // Consts.
+        public const string BatchNotUsableErrorMessage = "batch not usable";
+        
         // Methods.
         public static IResult GetBadRequestErrorResult(
             ApiVersion version,
