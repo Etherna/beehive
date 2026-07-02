@@ -35,6 +35,7 @@ using Etherna.Beehive.Services.Tasks.Background;
 using Etherna.Beehive.Services.Tasks.Cron;
 using Etherna.DomainEvents;
 using Etherna.MongODM;
+using Etherna.MongODM.AspNetCore.Extensions;
 using Etherna.MongODM.AspNetCore.UI;
 using Etherna.SwarmSdk.Services;
 using Hangfire;

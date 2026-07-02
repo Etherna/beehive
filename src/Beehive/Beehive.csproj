@@ -19,14 +19,14 @@
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
     <PackageReference Include="Elastic.Serilog.Sinks" Version="9.0.0" />
     <PackageReference Include="EthernaACR" Version="0.4.0-alpha.66" />
-    <PackageReference Include="GitVersion.MsBuild" Version="6.7.0">
+    <PackageReference Include="GitVersion.MsBuild" Version="6.8.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
-    <PackageReference Include="MongODM" Version="0.25.0-alpha.55" />
-    <PackageReference Include="MongODM.AspNetCore.UI" Version="0.25.0-alpha.55" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.16.4" />
+    <PackageReference Include="MongODM" Version="0.25.0-alpha.59" />
+    <PackageReference Include="MongODM.AspNetCore.UI" Version="0.25.0-alpha.59" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.8" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Exceptions" Version="8.4.0" />
