@@ -15,10 +15,13 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Extensions;
+using Etherna.Beehive.Services.Options;
+using Etherna.Beehive.Services.Utilities.DevNode;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -34,7 +37,9 @@ namespace Etherna.Beehive.Services.Utilities
     /// <summary>
     /// Manage live instances of bee nodes
     /// </summary>
-    internal sealed class BeeNodeLiveManager(IBeehiveDbContext dbContext)
+    internal sealed class BeeNodeLiveManager(
+        IBeehiveDbContext dbContext,
+        IOptions<DevNodeOptions> devNodeOptions)
         : IBeeNodeLiveManager, IDisposable
     {
         // Consts.
@@ -72,6 +77,8 @@ namespace Etherna.Beehive.Services.Utilities
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
                 await TryAddBeeNodeAsync(node);
+
+            await TryAddDevNodeInstanceAsync();
         }
 
         public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
@@ -114,7 +121,10 @@ namespace Etherna.Beehive.Services.Utilities
         {
             if (beeNodeInstances.TryGetValue(beeNode.Id, out var liveInstance))
                 return liveInstance;
-            
+
+            //remove the dev node when a real node is registered
+            beeNodeInstances.TryRemove(DevNodeClient.NodeId, out _);
+
             // Try to add node and refresh live status (if necessary).
             liveInstance = new BeeNodeLiveInstance(beeNode);
             if (beeNodeInstances.TryAdd(beeNode.Id, liveInstance))
@@ -123,8 +133,15 @@ namespace Etherna.Beehive.Services.Utilities
             return beeNodeInstances[beeNode.Id];
         }
 
-        public bool TryRemoveBeeNode(string nodeId) =>
-            beeNodeInstances.TryRemove(nodeId, out _);
+        public async Task<bool> TryRemoveBeeNodeAsync(string nodeId)
+        {
+            var removed = beeNodeInstances.TryRemove(nodeId, out _);
+
+            //restore the dev node when no more nodes are registered
+            await TryAddDevNodeInstanceAsync();
+
+            return removed;
+        }
 
         public async Task<BeeNodeLiveInstance?> TrySelectHealthyNodeAsync(
             BeeNodeSelectionMode mode = BeeNodeSelectionMode.RoundRobin,
@@ -138,7 +155,7 @@ namespace Etherna.Beehive.Services.Utilities
             {
 
                 case BeeNodeSelectionMode.Random:
-                    var availableNodes = beeNodeInstances.Values.Where(instance => instance.Status.IsAlive).ToList();
+                    var availableNodes = AllNodes.Where(instance => instance.Status.IsAlive).ToList();
 
                     while (availableNodes.Count > 0)
                     {
@@ -163,27 +180,27 @@ namespace Etherna.Beehive.Services.Utilities
 
                     if (!lastSelectedNodesRoundRobin.TryGetValue(selectionContext, out BeeNodeLiveInstance? lastNode)) //take first node if never selected once in this context
                     {
-                        selectedNode = await beeNodeInstances.Values
+                        selectedNode = await AllNodes
                             .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
                             .FirstOrDefaultAsync();
                     }
                     else //take next on list if already selected one previously
                     {
-                        var lastSelectedNodeWithIndexList = beeNodeInstances.Values
+                        var lastSelectedNodeWithIndexList = AllNodes
                             .Select((node, index) => new { index, node })
                             .Where(g => g.node == lastNode)
                             .ToList();
 
                         if (lastSelectedNodeWithIndexList.Count > 0) //if prev node still exists
                         {
-                            selectedNode = await beeNodeInstances.Values
+                            selectedNode = await AllNodes
                                 .Skip(lastSelectedNodeWithIndexList.First().index + 1)
                                 .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
                                 .FirstOrDefaultAsync();
                         }
 
                         //or try from beginning
-                        selectedNode ??= await beeNodeInstances.Values
+                        selectedNode ??= await AllNodes
                             .Where(async instance => instance.Status.IsAlive && await isValidPredicate(instance))
                             .FirstOrDefaultAsync();
                     }
@@ -216,9 +233,11 @@ namespace Etherna.Beehive.Services.Utilities
             
             foreach (var dbNode in dbNodes)
                 await TryAddBeeNodeAsync(dbNode);
-            //remove missing nodes from db
-            foreach (var instance in AllNodes.Where(n => !dbNodes.Select(dbN => dbN.Id).Contains(n.Id)).ToArray())
-                TryRemoveBeeNode(instance.Id);
+            //remove missing nodes from db (dev node is not persisted, skip it)
+            foreach (var instance in AllNodes.Where(n =>
+                         n.Id != DevNodeClient.NodeId &&
+                         !dbNodes.Select(dbN => dbN.Id).Contains(n.Id)).ToArray())
+                await TryRemoveBeeNodeAsync(instance.Id);
 
             // Refresh nodes status.
             var tasks = new List<Task>();
@@ -240,6 +259,17 @@ namespace Etherna.Beehive.Services.Utilities
                     e is SocketException)
                 { }
             }
+        }
+
+        private async Task TryAddDevNodeInstanceAsync()
+        {
+            //add dev node only if other real nodes don't exist
+            if (!devNodeOptions.Value.Enabled || !beeNodeInstances.IsEmpty)
+                return;
+
+            var devNodeInstance = new BeeNodeLiveInstance(new DevNodeClient());
+            if (beeNodeInstances.TryAdd(DevNodeClient.NodeId, devNodeInstance))
+                await devNodeInstance.TryRefreshStatusAsync();
         }
     }
 }

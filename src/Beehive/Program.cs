@@ -221,6 +221,7 @@ namespace Etherna.Beehive
 
             // Configure options.
             services.Configure<CashoutAllNodesChequesOptions>(config.GetSection(CashoutAllNodesChequesOptions.ConfigPosition));
+            services.Configure<DevNodeOptions>(config.GetSection(DevNodeOptions.ConfigPosition));
             services.Configure<NodesAddressMaintainerOptions>(config.GetSection(NodesAddressMaintainerOptions.ConfigPosition));
             services.Configure<NodesChequebookMaintainerOptions>(config.GetSection(NodesChequebookMaintainerOptions.ConfigPosition));
             services.Configure<SeedDbOptions>(config.GetSection(SeedDbOptions.ConfigPosition));
