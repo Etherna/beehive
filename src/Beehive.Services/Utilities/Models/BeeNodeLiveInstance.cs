@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Utilities.DevNode;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
@@ -27,7 +28,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class BeeNodeLiveInstance
     {
-        // Constructor.
+        // Constructors.
         internal BeeNodeLiveInstance(
             BeeNode beeNode)
         {
@@ -38,10 +39,20 @@ namespace Etherna.Beehive.Services.Utilities.Models
             Status = new BeeNodeStatus();
         }
 
+        internal BeeNodeLiveInstance(
+            DevNodeClient devNodeClient)
+        {
+            Id = DevNodeClient.NodeId;
+            Client = devNodeClient;
+            ChunkStore = new SwarmClientChunkStore(devNodeClient);
+            IsBatchCreationEnabled = true;
+            Status = new BeeNodeStatus();
+        }
+
         // Properties.
         public string Id { get; }
         public SwarmClientChunkStore ChunkStore { get; }
-        public SwarmClient Client { get; }
+        public ISwarmClient Client { get; }
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
