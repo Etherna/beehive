@@ -17,7 +17,7 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver;
-using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Models;
 using System;
@@ -52,6 +52,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
 
             HashSet<SwarmHash> missingChunksHash = [];
             HashSet<SwarmHash> pinnedChunksHash = [];
+            /* The traversal reads back one chunk document per pinned chunk: keep them out of
+             * the identity map of this scope, or it grows with the pinned tree. */
+            using var noCacheModifier = serializerModifierAccessor.EnableCacheSerializerModifier(true);
             await chunkTraverser.TraverseAsync(
                 pin.Reference.Value,
                 async (foundChunk, _) =>

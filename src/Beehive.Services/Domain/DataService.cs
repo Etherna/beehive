@@ -16,7 +16,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver.Linq;
-using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Hashing.Signer;
 using Etherna.SwarmSdk.Models;
@@ -92,7 +92,6 @@ namespace Etherna.Beehive.Services.Domain
             {
                 pin = new ChunkPin(null); //set root hash later
                 await dbContext.ChunkPins.CreateAsync(pin);
-                pin = await dbContext.ChunkPins.FindOneAsync(pin.Id);
             }
 
             // Upload.

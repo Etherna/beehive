@@ -15,8 +15,8 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.DomainEvents;
 using Etherna.MongoDB.Driver.GridFS;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Repositories;
 
 namespace Etherna.Beehive.Domain
 {

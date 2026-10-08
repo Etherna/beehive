@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Etherna.DomainEvents" Version="1.5.0" />
-    <PackageReference Include="MongODM.Core" Version="0.25.0-alpha.63" />
+    <PackageReference Include="Etherna.Scrinium.Core" Version="0.25.6" />
     <PackageReference Include="Nethereum.Web3" Version="7.0.0" />
     <PackageReference Include="SwarmSdk" Version="0.6.0-alpha.64" />
   </ItemGroup>

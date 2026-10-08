@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,20 +12,21 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.ExecContext.AsyncLocal;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Driver;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Conventions;
-using Etherna.MongODM.Core.Domain.Models;
-using Etherna.MongODM.Core.Options;
-using Etherna.MongODM.Core.ProxyModels;
-using Etherna.MongODM.Core.Repositories;
-using Etherna.MongODM.Core.Serialization.Mapping;
-using Etherna.MongODM.Core.Serialization.Modifiers;
-using Etherna.MongODM.Core.Utility;
-using Microsoft.Extensions.Logging;
+using Etherna.MongoDB.Driver.Core.Clusters;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Conventions;
+using Etherna.Scrinium.Core.Domain.Models;
+using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
+using Etherna.Scrinium.Core.Options;
+using Etherna.Scrinium.Core.ProxyModels;
+using Etherna.Scrinium.Core.Repositories;
+using Etherna.Scrinium.Core.Serialization.Mapping;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Tasks;
+using Etherna.Scrinium.Core.Utility;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -41,25 +42,29 @@ namespace Etherna.Beehive.Persistence.Helpers
         {
             ArgumentNullException.ThrowIfNull(dbContext, nameof(dbContext));
 
-            // Setup dbcontext dependencies for initialization.
+            // Setup dbcontext dependencies for engine build.
             Mock<IDbDependencies> dbDependenciesMock = new();
             var execContext = AsyncLocalContext.Instance;
-
             dbDependenciesMock.Setup(d => d.BsonSerializerRegistry).Returns(new BsonSerializerRegistry());
-            dbDependenciesMock.Setup(d => d.DbCache).Returns(new DbCache());
             dbDependenciesMock.Setup(d => d.DbMaintainer).Returns(new Mock<IDbMaintainer>().Object);
             dbDependenciesMock.Setup(d => d.DbMigrationManager).Returns(new Mock<IDbMigrationManager>().Object);
             dbDependenciesMock.Setup(d => d.DiscriminatorRegistry).Returns(new DiscriminatorRegistry());
             dbDependenciesMock.Setup(d => d.ExecutionContext).Returns(execContext);
             dbDependenciesMock.Setup(d => d.MapRegistry).Returns(new MapRegistry());
-            dbDependenciesMock.Setup(d => d.ProxyGenerator).Returns(new ProxyGenerator(new Mock<ILoggerFactory>().Object, new Castle.DynamicProxy.ProxyGenerator()));
+            dbDependenciesMock.Setup(d => d.ProxyGenerator).Returns(new ProxyGenerator(execContext));
+            dbDependenciesMock.Setup(d => d.ReferencesRepairManager).Returns(new ReferencesRepairManager(new Mock<ITaskRunner>().Object));
             dbDependenciesMock.Setup(d => d.RepositoryRegistry).Returns(new RepositoryRegistry());
             dbDependenciesMock.Setup(d => d.SerializerModifierAccessor).Returns(new SerializerModifierAccessor(execContext));
 
             // Setup Mongo client.
+            //standalone topology: no implicit transactions
             mongoDatabaseMock ??= new Mock<IMongoDatabase>();
-
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Description)
+                .Returns(new ClusterDescription(new ClusterId(0), false, null, ClusterType.Standalone, []));
             var mongoClientMock = new Mock<IMongoClient>();
+            mongoClientMock.Setup(c => c.Cluster)
+                .Returns(clusterMock.Object);
             mongoClientMock.Setup(c => c.GetDatabase(It.IsAny<string>(), It.IsAny<MongoDatabaseSettings>()))
                 .Returns(mongoDatabaseMock.Object);
 
@@ -71,18 +76,17 @@ namespace Etherna.Beehive.Persistence.Helpers
             }
             catch (BsonSerializationException)
             { }
-
             BsonSerializer.SetSerializationContextAccessor(new SerializationContextAccessor(execContext));
 
-            // Initialize dbContext.
-            dbContext.Initialize(
+            // Build the engine and attach the dbContext to it.
+            var engine = dbContext.BuildEngine(
                 dbDependenciesMock.Object,
                 mongoClientMock.Object,
-                new DbContextOptions(),
-                Array.Empty<IDbContext>());
+                new DbContextOptions());
+            dbContext.AttachToEngine(engine, [], dbDependenciesMock.Object.RepositoryRegistry);
 
             // Disable creation of proxy models, for test scope.
-            dbContext.ProxyGenerator.DisableCreationWithProxyTypes = true;
+            engine.ProxyGenerator.DisableCreationWithProxyTypes = true;
         }
 
         public static Mock<IMongoCollection<TModel>> SetupCollectionMock<TModel, TKey>(

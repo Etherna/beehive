@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.Scrinium.Core.Repositories;
 using System;
 using System.Threading.Tasks;
 

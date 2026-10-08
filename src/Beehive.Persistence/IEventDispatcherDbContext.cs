@@ -13,7 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.DomainEvents;
-using Etherna.MongODM.Core;
+using Etherna.Scrinium.Core;
 
 namespace Etherna.Beehive.Persistence
 {

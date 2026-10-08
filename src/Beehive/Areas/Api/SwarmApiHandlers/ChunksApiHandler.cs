@@ -17,7 +17,7 @@ using Etherna.Beehive.Configs;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
 using System;
