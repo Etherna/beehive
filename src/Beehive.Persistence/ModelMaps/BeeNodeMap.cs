@@ -15,17 +15,18 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
-using Etherna.MongODM.Core.Serialization.Serializers;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Options;
+using Etherna.Scrinium.Core.Serialization;
+using Etherna.Scrinium.Core.Serialization.Serializers;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class BeeNodeMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddModelMap<BeeNode>("6b94df32-034f-46f9-a5c1-239905ad5d07",
+            dbContextEngine.MapRegistry.AddModelMap<BeeNode>("6b94df32-034f-46f9-a5c1-239905ad5d07",
                 mm =>
                 {
                     mm.AutoMap();
@@ -38,10 +39,14 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         /// <summary>
         /// A minimal serializer with only id
         /// </summary>
+        /// <param name="originDelete">How the documents hosting the reference react when the node is deleted</param>
         public static ReferenceSerializer<BeeNode, string> ReferenceSerializer(
-            IDbContext dbContext) =>
-            new(dbContext, config =>
+            IDbContextEngine dbContextEngine,
+            OriginDeleteMode originDelete) =>
+            new(dbContextEngine, config =>
             {
+                config.OriginDelete = originDelete;
+
                 config.AddModelMap<ModelBase>("e5d93371-e1a7-4ff3-b947-a4862c40d938");
                 config.AddModelMap<EntityModelBase>("a48cf8b2-1b18-450d-afc1-4094ce23ba78", _ => { });
                 config.AddModelMap<EntityModelBase<string>>("1a7fb389-fd58-4ad6-82b5-b687273bc5ab", mm =>
@@ -55,10 +60,14 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         /// <summary>
         /// A serializer with connection info to node
         /// </summary>
+        /// <param name="originDelete">How the documents hosting the reference react when the node is deleted</param>
         public static ReferenceSerializer<BeeNode, string> ConnectionInfoSerializer(
-            IDbContext dbContext) =>
-            new(dbContext, config =>
+            IDbContextEngine dbContextEngine,
+            OriginDeleteMode originDelete) =>
+            new(dbContextEngine, config =>
             {
+                config.OriginDelete = originDelete;
+
                 config.AddModelMap<ModelBase>("148b3991-63da-4966-a781-30295c71fcae");
                 config.AddModelMap<EntityModelBase>("774d614c-2bd2-4a51-83a7-6d0df1942216", _ => { });
                 config.AddModelMap<EntityModelBase<string>>("959def90-ddab-48a7-9a0e-1917be419171", mm =>

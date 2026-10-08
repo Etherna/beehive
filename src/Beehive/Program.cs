@@ -20,8 +20,8 @@ using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.Beehive.Areas.Api;
 using Etherna.Beehive.Areas.Api.SwarmApiHandlers;
 using Etherna.Beehive.Configs;
-using Etherna.Beehive.Configs.MongODM;
 using Etherna.Beehive.Configs.OpenApi;
+using Etherna.Beehive.Configs.Scrinium;
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Exceptions;
@@ -34,9 +34,10 @@ using Etherna.Beehive.Services.Tasks;
 using Etherna.Beehive.Services.Tasks.Background;
 using Etherna.Beehive.Services.Tasks.Cron;
 using Etherna.DomainEvents;
-using Etherna.MongODM;
-using Etherna.MongODM.AspNetCore.Extensions;
-using Etherna.MongODM.AspNetCore.UI;
+using Etherna.Scrinium.AspNetCore.UI;
+using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
+using Etherna.Scrinium.Core.Options;
+using Etherna.Scrinium.Extensions;
 using Etherna.SwarmSdk.Services;
 using Hangfire;
 using Hangfire.Mongo;
@@ -57,7 +58,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using DashboardOptions = Etherna.MongODM.AspNetCore.UI.DashboardOptions;
+using DashboardOptions = Etherna.Scrinium.AspNetCore.UI.DashboardOptions;
+using DomainEventsAsyncLocalContext = Etherna.ExecContext.AsyncLocal.AsyncLocalContext;
 
 namespace Etherna.Beehive
 {
@@ -77,6 +79,12 @@ namespace Etherna.Beehive
 
                 // Configs.
                 builder.Host.UseSerilog();
+                builder.Host.UseDefaultServiceProvider(options =>
+                {
+                    // The db context is scoped: a singleton capturing it would silently pin its identity map
+                    // for the process lifetime, so validate scopes in every environment.
+                    options.ValidateScopes = true;
+                });
                 builder.WebHost.ConfigureKestrel(serverOptions =>
                 {
                     serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
@@ -89,7 +97,7 @@ namespace Etherna.Beehive
                 ConfigureApplication(app);
 
                 // First operations.
-                app.SeedDbContexts();
+                SeedDbContext(app);
                 app.StartBeeNodeLiveManager();
 
                 // Run application.
@@ -244,7 +252,10 @@ namespace Etherna.Beehive
             services.AddScoped<IStampsApiHandler, StampsApiHandler>();
 
             // Configure Hangfire and persistence.
-            services.AddMongODMWithHangfire(configureHangfireOptions: options =>
+            //open the domain events execution context in each job, like Scrinium does for its own
+            GlobalJobFilters.Filters.Add(new Configs.Hangfire.DomainEventsExecutionContextFilter());
+
+            services.AddScriniumWithHangfire(configureHangfireOptions: options =>
             {
                 options.ConnectionString = config["ConnectionStrings:HangfireDb"] ??
                                            throw new ServiceConfigurationException("Hangfire connection string is not defined");
@@ -256,6 +267,9 @@ namespace Etherna.Beehive
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     }
                 };
+            }, configureScriniumOptions: options =>
+            {
+                options.DbMaintenanceQueueName = Queues.DB_MAINTENANCE;
             })
                 .AddDbContext<IBeehiveDbContext, BeehiveDbContext>(sp =>
                 {
@@ -271,9 +285,12 @@ namespace Etherna.Beehive
                 {
                     options.ConnectionString = config["ConnectionStrings:BeehiveDb"] ??
                                                throw new ServiceConfigurationException("BeehiveDb connection string is not defined");
+
+                    //a summary member read without a preload is a defect, not a query
+                    options.ImplicitLazyLoad = ReactionMode.Throw;
                 });
 
-            services.AddMongODMAdminDashboard(new DashboardOptions
+            services.AddScriniumAdminDashboard(new DashboardOptions
             {
                 AuthFilters = [new AllowAllFilter()],
                 BasePath = CommonConsts.DatabaseAdminPath
@@ -378,6 +395,19 @@ namespace Etherna.Beehive
                 NodesChequebookMaintainerTask.TaskId,
                 task => task.RunAsync(),
                 Cron.Daily(5, 15));
+        }
+
+        private static void SeedDbContext(WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+
+            // The seed runs outside any request: open the ambient contexts both libraries require.
+            //scrinium: exclusive access of the seeding flow
+            using var dbExecutionContext = AsyncLocalContext.Instance.InitAsyncLocalContext();
+            //domain events: event dispatch of the seeded nodes
+            using var domainEventsExecutionContext = DomainEventsAsyncLocalContext.Instance.InitAsyncLocalContext();
+
+            scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>().SeedIfNeededAsync().GetAwaiter().GetResult();
         }
     }
 }

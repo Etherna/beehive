@@ -15,9 +15,7 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
-using Etherna.MongoDB.Driver;
 using Etherna.SwarmSdk.Models;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
@@ -58,11 +56,9 @@ namespace Etherna.Beehive.Services.Domain
             
             await using var pinLockHandler = await AcquireLockAsync(pin.Id, true);
             
-            // Delete it, and then remove references from chunks.
+            // Delete it. Its references are pulled from the chunks in background, by the delete
+            // policy declared on the chunk pins reference serializer.
             await dbContext.ChunkPins.DeleteAsync(pin);
-            await dbContext.Chunks.UpdateManyAsync(
-                c => c.Pins.Any(p => p.Id == pin.Id),
-                Builders<Chunk>.Update.PullFilter(c => c.Pins, p => p.Id == pin.Id));
             
             return true;
         }

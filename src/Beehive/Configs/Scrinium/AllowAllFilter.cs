@@ -12,11 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.MongODM.AspNetCore.UI.Auth.Filters;
+using Etherna.Scrinium.AspNetCore.UI.Auth.Filters;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Configs.MongODM
+namespace Etherna.Beehive.Configs.Scrinium
 {
     public class AllowAllFilter : IDashboardAuthFilter
     {

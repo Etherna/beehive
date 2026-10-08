@@ -21,6 +21,7 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
@@ -37,9 +38,13 @@ namespace Etherna.Beehive.Services.Utilities
     /// <summary>
     /// Manage live instances of bee nodes
     /// </summary>
+    /// <remarks>
+    /// A singleton: the db context is scoped, so every db access opens a scope of its own
+    /// instead of capturing a context for the process lifetime.
+    /// </remarks>
     internal sealed class BeeNodeLiveManager(
-        IBeehiveDbContext dbContext,
-        IOptions<DevNodeOptions> devNodeOptions)
+        IOptions<DevNodeOptions> devNodeOptions,
+        IServiceScopeFactory serviceScopeFactory)
         : IBeeNodeLiveManager, IDisposable
     {
         // Consts.
@@ -67,12 +72,18 @@ namespace Etherna.Beehive.Services.Utilities
             if (beeNodeInstances.TryGetValue(nodeId, out var instance))
                 return instance;
 
+            using var scope = serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
+
             var beeNode = await dbContext.BeeNodes.FindOneAsync(nodeId);
             return await TryAddBeeNodeAsync(beeNode);
         }
 
         public async Task LoadAllNodesAsync()
         {
+            using var scope = serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
+
             var nodes = await dbContext.BeeNodes.QueryElementsAsync(
                 elements => elements.ToListAsync());
             foreach (var node in nodes)
@@ -224,6 +235,9 @@ namespace Etherna.Beehive.Services.Utilities
             List<BeeNode> dbNodes;
             try
             {
+                using var scope = serviceScopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
+
                 dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
             }
             catch (UnauthorizedAccessException) //can fail during dbcontext migration

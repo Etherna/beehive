@@ -18,13 +18,12 @@ using Etherna.DomainEvents;
 using Etherna.MongoDB.Bson.IO;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Driver;
-using Etherna.MongODM.Core.Serialization.Serializers;
-using Etherna.MongODM.Core.Utility;
+using Etherna.Scrinium.Core.Serialization.Serializers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Moq;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -32,7 +31,6 @@ using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
-    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable")]
     public class BeehiveDbContextDeserializationTest
     {
         // Fields.
@@ -409,7 +407,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<BeeNode>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<BeeNode>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -433,7 +431,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<Chunk>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<Chunk>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -458,7 +456,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<ChunkPin>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<ChunkPin>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -483,7 +481,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<ChunkPinLock>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<ChunkPinLock>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -508,7 +506,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageBatchCache>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PostageBatchCache>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -534,7 +532,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageBatchLock>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PostageBatchLock>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -559,7 +557,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageStamp>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PostageStamp>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -584,7 +582,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PushingChunkRef>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PushingChunkRef>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 

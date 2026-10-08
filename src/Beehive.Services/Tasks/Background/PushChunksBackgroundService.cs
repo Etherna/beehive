@@ -19,8 +19,8 @@ using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
-using Etherna.MongODM.Core.Serialization.Modifiers;
-using Etherna.MongODM.Core.Utility;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +32,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DomainEventsAsyncLocalContext = Etherna.ExecContext.AsyncLocal.AsyncLocalContext;
 
 namespace Etherna.Beehive.Services.Tasks.Background
 {
@@ -95,7 +96,12 @@ namespace Etherna.Beehive.Services.Tasks.Background
             var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
             var postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
-            using var _ = new DbExecutionContextHandler(dbContext);
+
+            // Open the ambient contexts both libraries require outside a request.
+            //scrinium: the db operations of this cycle
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext);
+            //domain events: the lock creation dispatches the created entity event
+            using var domainEventsExecutionContext = DomainEventsAsyncLocalContext.Instance.InitAsyncLocalContext();
             
             // Search chunk to push and lock its postage batch.
             ResourceLockHandler<ChunkPushLock>? lockHandler = null;

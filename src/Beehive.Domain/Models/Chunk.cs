@@ -12,7 +12,6 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.MongODM.Core.Attributes;
 using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
@@ -49,8 +48,7 @@ namespace Etherna.Beehive.Domain.Models
         }
 
         // Methods.
-        [PropertyAlterer(nameof(Pins))]
-        public void AddPin(ChunkPin chunkPin)
+        public virtual void AddPin(ChunkPin chunkPin)
         {
             _pins.Add(chunkPin);
         }
