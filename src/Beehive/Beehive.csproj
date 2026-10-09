@@ -18,14 +18,14 @@
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
     <PackageReference Include="Elastic.Serilog.Sinks" Version="9.0.0" />
+    <PackageReference Include="Etherna.Scrinium" Version="0.25.6" />
+    <PackageReference Include="Etherna.Scrinium.AspNetCore.UI" Version="0.25.6" />
     <PackageReference Include="EthernaACR" Version="0.4.0-alpha.66" />
     <PackageReference Include="GitVersion.MsBuild" Version="6.8.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
-    <PackageReference Include="Etherna.Scrinium" Version="0.25.6" />
-    <PackageReference Include="Etherna.Scrinium.AspNetCore.UI" Version="0.25.6" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.14" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />

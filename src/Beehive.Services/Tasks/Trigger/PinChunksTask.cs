@@ -54,34 +54,36 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             HashSet<SwarmHash> pinnedChunksHash = [];
             /* The traversal reads back one chunk document per pinned chunk: keep them out of
              * the identity map of this scope, or it grows with the pinned tree. */
-            using var noCacheModifier = serializerModifierAccessor.EnableCacheSerializerModifier(true);
-            await chunkTraverser.TraverseAsync(
-                pin.Reference.Value,
-                async (foundChunk, _) =>
-                {
-                    if (!pinnedChunksHash.Add(foundChunk.Hash))
-                        return;
-                    await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                        new ExpressionFilterDefinition<Chunk>(c => c.Hash == foundChunk.Hash),
-                        c => c.Pins,
-                        pin,
-                        new FindOneAndUpdateOptions<Chunk>());
-                },
-                async (invalidFoundChunk, _) =>
-                {
-                    if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
-                        return;
-                    await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                        new ExpressionFilterDefinition<Chunk>(c => c.Hash == invalidFoundChunk.Hash),
-                        c => c.Pins,
-                        pin,
-                        new FindOneAndUpdateOptions<Chunk>());
-                },
-                notFoundReference =>
-                {
-                    missingChunksHash.Add(notFoundReference.Reference.Hash);
-                    return Task.CompletedTask;
-                });
+            using (serializerModifierAccessor.EnableCacheSerializerModifier(true))
+            {
+                await chunkTraverser.TraverseAsync(
+                    pin.Reference.Value,
+                    async (foundChunk, _) =>
+                    {
+                        if (!pinnedChunksHash.Add(foundChunk.Hash))
+                            return;
+                        await dbContext.Chunks.TryFindOneAndAddToSetAsync(
+                            new ExpressionFilterDefinition<Chunk>(c => c.Hash == foundChunk.Hash),
+                            c => c.Pins,
+                            pin,
+                            new FindOneAndUpdateOptions<Chunk>());
+                    },
+                    async (invalidFoundChunk, _) =>
+                    {
+                        if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
+                            return;
+                        await dbContext.Chunks.TryFindOneAndAddToSetAsync(
+                            new ExpressionFilterDefinition<Chunk>(c => c.Hash == invalidFoundChunk.Hash),
+                            c => c.Pins,
+                            pin,
+                            new FindOneAndUpdateOptions<Chunk>());
+                    },
+                    notFoundReference =>
+                    {
+                        missingChunksHash.Add(notFoundReference.Reference.Hash);
+                        return Task.CompletedTask;
+                    });
+            }
             
             // Update pin with result.
             pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
