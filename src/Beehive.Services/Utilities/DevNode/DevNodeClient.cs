@@ -18,7 +18,9 @@ using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,8 +38,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         private static readonly ChainState DevChainState = new(
             Block: 1,
             ChainTip: 1,
-            CurrentPrice: BzzValue.FromPlurLong(24_000),
-            TotalAmount: BzzValue.FromPlurLong(0),
+            CurrentPrice: BzzValue.FromPlurDecimal(24_000),
+            TotalAmount: BzzValue.FromPlurDecimal(0),
             MinimumValidityBlocks: 1);
         private static readonly Uri DevNodeUrl = new("fake://dev-node");
         public static readonly EthAddress EthereumAddress = new("0x0000000000000000000000000000000000001633");

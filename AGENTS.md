@@ -70,6 +70,7 @@ Bugs and features are tracked in Jira project **BHM** (https://etherna.atlassian
 - All elements (usings, properties, methods, fields, enum members, etc.) are always alphabetically ordered within their respective sections.
 - Primary constructors are preferred everywhere the constructor is a simple parameter assignment — not limited to DI services.
 - Keep code clean: remove unused variables, dead code, and redundant imports.
+- Don't extract a private helper method for logic used in a single place — inline it. Reserve helpers for code shared by two or more call sites (or when extraction materially clarifies an otherwise long, complex method).
 - Every source file starts with the standard AGPL-3.0 copyright header (`// Copyright 2021-present Etherna SA` … see any existing file).
 
 ## Naming

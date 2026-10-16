@@ -60,6 +60,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
 
         public Task<bool> CreatePinAsync(
             SwarmReference reference,
+            RedundancyLevel? redundancyLevel = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -149,6 +150,11 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             long? actTimestamp = null,
             string? actPublisher = null,
             string? actHistoryAddress = null,
+            bool? cache = null,
+            RedundancyLevel? redundancyLevel = null,
+            RedundancyStrategy? redundancyStrategy = null,
+            bool? redundancyFallbackMode = null,
+            string? chunkRetrievalTimeout = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -285,17 +291,39 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public Task<string> GetWelcomeMessageAsync(CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
-        public Task<ICollection<string>> GranteeGetAsync(string reference, CancellationToken cancellationToken = default) =>
+        public Task<ICollection<string>> GranteeGetAsync(
+            string reference,
+            RedundancyLevel? redundancyLevel = null,
+            CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
-        public Task<GranteeResponse> GranteePatchAsync(string reference, string actHistoryAddress, PostageBatchId batchId, string[] addList, string[] revokeList, TagId? tagId = null, bool? pin = null, bool? deferredUpload = null, CancellationToken cancellationToken = default) =>
+        public Task<GranteeResponse> GranteePatchAsync(
+            string reference,
+            string actHistoryAddress,
+            PostageBatchId batchId,
+            string[] addList,
+            string[] revokeList,
+            TagId? tagId = null,
+            bool? pin = null,
+            bool? deferredUpload = null,
+            RedundancyLevel redundancyLevel = RedundancyLevel.None,
+            CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
-        public Task<GranteeResponse> GranteePostAsync(PostageBatchId batchId, string[] grantees, TagId? tagId = null, bool? pin = null, bool? deferredUpload = null, string? actHistoryAddress = null, CancellationToken cancellationToken = default) =>
+        public Task<GranteeResponse> GranteePostAsync(
+            PostageBatchId batchId,
+            string[] grantees,
+            TagId? tagId = null,
+            bool? pin = null,
+            bool? deferredUpload = null,
+            string? actHistoryAddress = null,
+            RedundancyLevel redundancyLevel = RedundancyLevel.None,
+            CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
         public Task<bool> IsContentRetrievableAsync(
             SwarmReference reference,
+            RedundancyLevel? redundancyLevel = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -329,6 +357,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public Task ReuploadContentAsync(
             SwarmReference reference,
             PostageBatchId batchId,
+            RedundancyLevel? redundancyLevel = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -337,6 +366,11 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             string targets,
             PostageBatchId batchId,
             string? recipient = null,
+            CancellationToken cancellationToken = default) =>
+            throw NewUnsupportedException();
+        
+        public Task<bool> SetRedistributionParticipationAsync(
+            bool enabled,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -351,7 +385,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
-        public Task StakeGetAsync(CancellationToken cancellationToken = default) =>
+        public Task<StakeInfo> StakeGetAsync(CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
         public Task StakePostAsync(
@@ -375,6 +409,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
 
         public Task SubscribeToGsocAsync(
             string reference,
+            IEnumerable<SwarmSocField>? socFields = null,
+            bool? cacheWrappedChunk = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -411,6 +447,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             RedundancyLevel? redundancyLevel = null,
             RedundancyStrategy? redundancyStrategy = null,
             bool? redundancyStrategyFallback = null,
+            bool? cache = null,
+            string? chunkRetrievalTimeout = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -422,6 +460,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             RedundancyLevel? redundancyLevel = null,
             RedundancyStrategy? redundancyStrategy = null,
             bool? redundancyStrategyFallback = null,
+            bool? cache = null,
+            string? chunkRetrievalTimeout = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -436,6 +476,12 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             bool deferredUpload = false,
             bool? pin = null,
             DateTimeOffset? timestamp = null,
+            CancellationToken cancellationToken = default) =>
+            throw NewUnsupportedException();
+        
+        public Task UpdatePostageBatchLabelAsync(
+            PostageBatchId batchId,
+            string label,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -465,8 +511,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             PostageBatchId? batchId,
             TagId? tagId = null,
             PostageStamp? presignedPostageStamp = null,
-            bool? act = null,
-            string? actHistoryAddress = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -475,8 +519,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             PostageBatchId? batchId,
             TagId? tagId = null,
             PostageStamp? presignedPostageStamp = null,
-            bool? act = null,
-            string? actHistoryAddress = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -504,6 +546,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             bool pin = false,
             bool? act = null,
             string? actHistoryAddress = null,
+            RedundancyLevel redundancyLevel = RedundancyLevel.None,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -531,8 +574,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             PostageStamp? presignedPostageStamp = null,
             TagId? tagId = null,
             bool deferredUpload = false,
-            bool? act = null,
-            string? actHistoryAddress = null,
             bool? pin = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();

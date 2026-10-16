@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         {
             // Action.
             var (batchId, txHash) = await devNodeClient.BuyPostageBatchAsync(
-                BzzValue.FromPlurLong(10_000_000),
+                BzzValue.FromPlurDecimal(10_000_000),
                 20,
                 label: "test",
                 immutable: false);
@@ -42,7 +42,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
 
             var batch = await devNodeClient.GetPostageBatchAsync(batchId);
             Assert.Equal(batchId, batch.Id);
-            Assert.Equal(BzzValue.FromPlurLong(10_000_000), batch.Amount);
+            Assert.Equal(BzzValue.FromPlurDecimal(10_000_000), batch.Amount);
             Assert.Equal(20, batch.Depth);
             Assert.Equal("test", batch.Label);
             Assert.False(batch.IsImmutable);
@@ -54,8 +54,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task BuyPostageBatchGeneratesUniqueBatchIds()
         {
             // Action.
-            var (batchId0, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
-            var (batchId1, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId0, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
+            var (batchId1, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Assert.
             Assert.NotEqual(batchId0, batchId1);
@@ -68,7 +68,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         {
             // Action & assert.
             var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
-                () => devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), depth));
+                () => devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), depth));
             Assert.Equal(400, exception.StatusCode);
         }
 
@@ -76,7 +76,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task DilutePostageBatchIncreasesDepth()
         {
             // Setup.
-            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Action.
             await devNodeClient.DilutePostageBatchAsync(batchId, 22);
@@ -91,7 +91,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         {
             // Setup.
             var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(
-                BzzValue.FromPlurLong(1_000_000),
+                BzzValue.FromPlurDecimal(1_000_000),
                 20,
                 immutable: true);
 
@@ -105,7 +105,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task DilutePostageBatchThrowsWithNotGreaterDepth()
         {
             // Setup.
-            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Action & assert.
             var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
@@ -126,8 +126,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task GetGlobalValidPostageBatchesReturnsBoughtBatches()
         {
             // Setup.
-            var (batchId0, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
-            var (batchId1, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId0, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
+            var (batchId1, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Action.
             var allBatches = await devNodeClient.GetGlobalValidPostageBatchesAsync();
@@ -157,7 +157,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task GetOwnedPostageBatchesReturnsBoughtBatches()
         {
             // Setup.
-            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Action.
             var batches = await devNodeClient.GetOwnedPostageBatchesAsync();
@@ -171,7 +171,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task GetPostageBatchBucketsReturnsEmptyBuckets()
         {
             // Setup.
-            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Action.
             var buckets = await devNodeClient.GetPostageBatchBucketsAsync(batchId);
@@ -197,14 +197,14 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public async Task TopUpPostageBatchIncreasesAmount()
         {
             // Setup.
-            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurLong(1_000_000), 20);
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
 
             // Action.
-            await devNodeClient.TopUpPostageBatchAsync(batchId, BzzValue.FromPlurLong(500_000));
+            await devNodeClient.TopUpPostageBatchAsync(batchId, BzzValue.FromPlurDecimal(500_000));
 
             // Assert.
             var batch = await devNodeClient.GetPostageBatchAsync(batchId);
-            Assert.Equal(BzzValue.FromPlurLong(1_500_000), batch.Amount);
+            Assert.Equal(BzzValue.FromPlurDecimal(1_500_000), batch.Amount);
         }
 
         [Fact]
@@ -212,7 +212,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         {
             // Action & assert.
             var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
-                () => devNodeClient.TopUpPostageBatchAsync(PostageBatchId.Zero, BzzValue.FromPlurLong(500_000)));
+                () => devNodeClient.TopUpPostageBatchAsync(PostageBatchId.Zero, BzzValue.FromPlurDecimal(500_000)));
             Assert.Equal(404, exception.StatusCode);
         }
     }
