@@ -43,7 +43,7 @@ namespace Etherna.Beehive.Services.Domain
         
         Task<(PostageBatch PostageBatch, EthAddress Owner)[]> GetGlobalValidPostageBatchesAsync();
         
-        Task<IEnumerable<PostageBatch>> GetOwnedPostageBatchesAsync();
+        Task<IEnumerable<PostageBatchResult>> GetOwnedPostageBatchesAsync();
         
         Task<bool> IsLockedAsync(PostageBatchId batchId);
 
@@ -61,7 +61,9 @@ namespace Etherna.Beehive.Services.Domain
         Task<ResourceLockHandler<ChunkPushLock>?> TryAcquireChunkPushLockAsync(
             PostageBatchId batchId);
 
-        Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
+        Task<PostageBatchResult?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);
+
+        BeeNodeLiveInstance? TryGetPostageBatchOwnerNode(PostageBatchCache postageBatchCache);
 
         Task<BeeNodeLiveInstance?> TryGetPostageBatchOwnerNodeAsync(PostageBatchId batchId);
     }

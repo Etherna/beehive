@@ -41,7 +41,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
             ILogger<NodesChequebookMaintainerTask> logger,
             IOptions<NodesChequebookMaintainerOptions> options)
         {
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             this.liveManager = liveManager;
             this.logger = logger;

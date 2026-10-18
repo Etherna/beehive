@@ -43,8 +43,8 @@ namespace Etherna.Beehive.Services.Domain
              * - A not exclusive lock tries to exec atomic findAndUpdate with upsert, incrementing a counter.
              *   The release will decrement the counter, and if no locks remains, the lock is deleted.
              */
-            ArgumentNullException.ThrowIfNull(buildNewLock, nameof(buildNewLock));
-            ArgumentNullException.ThrowIfNull(repository, nameof(repository));
+            ArgumentNullException.ThrowIfNull(buildNewLock);
+            ArgumentNullException.ThrowIfNull(repository);
 
             var now = DateTime.UtcNow;
 
@@ -107,7 +107,7 @@ namespace Etherna.Beehive.Services.Domain
             string resourceId)
             where TModel : ResourceLockBase
         {
-            ArgumentNullException.ThrowIfNull(repository, nameof(repository));
+            ArgumentNullException.ThrowIfNull(repository);
             
             var resourceLock = await repository.TryFindOneAsync(l => l.ResourceId == resourceId);
             return resourceLock != null && resourceLock.ExpirationTime > DateTime.UtcNow;
@@ -119,7 +119,7 @@ namespace Etherna.Beehive.Services.Domain
             bool exclusiveAccess)
             where TModel : ResourceLockBase
         {
-            ArgumentNullException.ThrowIfNull(repository, nameof(repository));
+            ArgumentNullException.ThrowIfNull(repository);
             
             // Find lock and optionally decrease counter.
             var resourceLock = exclusiveAccess ?

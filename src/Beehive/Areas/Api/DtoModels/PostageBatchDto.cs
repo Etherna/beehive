@@ -32,14 +32,19 @@ namespace Etherna.Beehive.Areas.Api.DtoModels
     //     "exists": true,
     //     "batchTTL": 120105
     // }
+    // A batch whose owner node could not answer carries "error" with the node's reason, "usable" false and only
+    // the values beehive knows. "blockNumber", "exists" and "batchTTL" are then omitted, never written as null: the
+    // SwarmSdk generated client reads them as non-nullable value types, a json null fails its deserialization, an
+    // absent member reads as default. "amount" is nullable for the client, and stays null as before.
     public sealed class PostageBatchDto(
         BzzValue? amount,
         PostageBatchId batchId,
-        TimeSpan batchTtl,
-        ulong blockNumber,
+        TimeSpan? batchTtl,
+        ulong? blockNumber,
         int bucketDepth,
         int? depth,
-        bool exists,
+        string? error,
+        bool? exists,
         bool immutableFlag,
         string label,
         bool usable,
@@ -53,10 +58,18 @@ namespace Etherna.Beehive.Areas.Api.DtoModels
         public int? Depth { get; } = depth;
         public BzzValue? Amount { get; } = amount;
         public int BucketDepth { get; } = bucketDepth;
-        public ulong BlockNumber { get; } = blockNumber;
+        //nullable only for a degraded entry: non-nullable again once beehive manages the postage batches itself
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public ulong? BlockNumber { get; } = blockNumber;
         public bool ImmutableFlag { get; } = immutableFlag;
-        public bool Exists { get; } = exists;
+        //nullable only for a degraded entry: non-nullable again once beehive manages the postage batches itself
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? Exists { get; } = exists;
+        //nullable only for a degraded entry: non-nullable again once beehive manages the postage batches itself
         [JsonPropertyName("batchTTL")]
-        public TimeSpan BatchTtl { get; } = batchTtl;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public TimeSpan? BatchTtl { get; } = batchTtl;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Error { get; } = error;
     }
 }

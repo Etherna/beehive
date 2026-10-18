@@ -28,6 +28,22 @@ namespace Etherna.Beehive.Services.Utilities.Models
         public DateTime HeartbeatTimeStamp { get; private set; }
         public bool IsAlive { get; private set; }
 
+        /// <summary>
+        /// The reason the node can't be asked, from its last heartbeat: null while it is alive
+        /// </summary>
+        public string? NotAliveReason
+        {
+            get
+            {
+                if (IsAlive)
+                    return null;
+                lock (_errors)
+                {
+                    return _errors.Count > 0 ? string.Join("; ", _errors) : "Node is not alive";
+                }
+            }
+        }
+
         // Internal methods.
         internal void FailedHeartbeatAttempt(IEnumerable<string> errors, DateTime timestamp)
         {
