@@ -12,11 +12,14 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
@@ -25,7 +28,45 @@ namespace Etherna.Beehive.Areas.Api
 {
     public class ExceptionHandlerTest
     {
+        // Test data.
+        public static IEnumerable<object[]> PostageBatchVerificationTests
+        {
+            get
+            {
+                var tests = new List<(Exception Exception, int ExpectedStatusCode, string ExpectedMessage)>
+                {
+                    //bee's own upload answers, whatever the internal message says
+                    (new PostageBatchNotFoundException("batch x not found on node y"),
+                        StatusCodes.Status404NotFound, "batch with id not found"),
+                    (new PostageBatchNotUsableException("batch x not usable yet on node y"),
+                        StatusCodes.Status422UnprocessableEntity, "batch not usable yet or does not exist"),
+
+                    //the node's reason
+                    (new BeeNodeUnavailableException("Node is not ready"),
+                        StatusCodes.Status503ServiceUnavailable, "Node is not ready")
+                };
+
+                return tests.Select(t => new object[] { t.Exception, t.ExpectedStatusCode, t.ExpectedMessage });
+            }
+        }
+
         // Tests.
+
+        [Theory, MemberData(nameof(PostageBatchVerificationTests))]
+        public async Task PostageBatchVerificationAnswersBeeStatusAndMessage(
+            Exception exception,
+            int expectedStatusCode,
+            string expectedMessage)
+        {
+            // Action.
+            var result = await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+            var (statusCode, body) = await ExecuteResultAsync(result);
+
+            // Assert.
+            Assert.Equal(expectedStatusCode, statusCode);
+            Assert.Equal(expectedStatusCode, body.GetProperty("code").GetInt32());
+            Assert.Equal(expectedMessage, body.GetProperty("message").GetString());
+        }
 
         [Fact]
         public async Task SwarmSdkApiExceptionAnswersServiceUnavailableWithNodeReason()

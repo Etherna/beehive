@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 22
+     * Last event id is: 23
      */
     public static class LoggerExtensions
     {
@@ -119,6 +119,12 @@ namespace Etherna.Beehive.Services.Extensions
                 "Node {BeeNodeId} chequebook sent withdraw of {BzzAmount} BZZ with tx hash {TxHash}");
 
         //*** WARNING LOGS ***
+        private static readonly Action<ILogger, long, PostageBatchId, Exception> _abandonedPostageBatchChunks =
+            LoggerMessage.Define<long, PostageBatchId>(
+                LogLevel.Warning,
+                new EventId(23, nameof(AbandonedPostageBatchChunks)),
+                "Abandoned {ChunksCount} queued chunks of Postage Batch with Id {PostageBatchId}: its owner node reported it not found");
+
         private static readonly Action<ILogger, PostageBatchId, Exception> _postageBatchNotFound =
             LoggerMessage.Define<PostageBatchId>(
                 LogLevel.Warning,
@@ -169,6 +175,9 @@ namespace Etherna.Beehive.Services.Extensions
                 "Unhandled exception pushing chunks to node");
 
         // Methods.
+        public static void AbandonedPostageBatchChunks(this ILogger logger, PostageBatchId batchId, long chunksCount) =>
+            _abandonedPostageBatchChunks(logger, chunksCount, batchId, null!);
+
         public static void CleanupOldFailedTasksTaskCompleted(this ILogger logger, long deletedTasks) =>
             _cleanupOldFailedTasksTaskCompleted(logger, deletedTasks, null!);
         

@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Helpers;
 using Etherna.Beehive.Services.Utilities;
@@ -110,7 +111,7 @@ namespace Etherna.Beehive.Services.Domain
             // Setup.
             nodeB.Status.FailedHeartbeatAttempt(["Node is not ready"], DateTime.UtcNow);
             nodeAClientMock.Setup(c => c.GetOwnedPostageBatchesAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync([NewLivePostageBatch(BatchOnNodeAId)]);
+                .ReturnsAsync([NewLivePostageBatch(BatchOnNodeAId, isUsable: true)]);
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeAId, NodeAId));
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeBId, NodeBId));
 
@@ -134,7 +135,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             nodeAClientMock.Setup(c => c.GetOwnedPostageBatchesAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync([NewLivePostageBatch(BatchOnNodeAId)]);
+                .ReturnsAsync([NewLivePostageBatch(BatchOnNodeAId, isUsable: true)]);
             nodeBClientMock.Setup(c => c.GetOwnedPostageBatchesAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(exception);
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeAId, NodeAId));
@@ -203,7 +204,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId));
+                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId, isUsable: true));
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeBId, NodeBId));
 
             // Action.
@@ -234,6 +235,77 @@ namespace Etherna.Beehive.Services.Domain
             Assert.Null(result);
         }
 
+        [Fact]
+        public async Task VerifyPostageBatchUsableAcceptsUsableBatch()
+        {
+            // Setup.
+            var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
+            nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId, isUsable: true));
+
+            // Action.
+            await service.VerifyPostageBatchUsableAsync(postageBatchCache);
+
+            // Assert.
+            nodeBClientMock.Verify(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task VerifyPostageBatchUsableRefusesBatchNotFoundOnOwnerNode()
+        {
+            // Setup.
+            var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
+            nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(NewApiException(404, """{"code":404,"message":"issuer does not exist"}"""));
+
+            // Action & assert.
+            await Assert.ThrowsAsync<PostageBatchNotFoundException>(
+                () => service.VerifyPostageBatchUsableAsync(postageBatchCache));
+        }
+
+        [Fact]
+        public async Task VerifyPostageBatchUsableRefusesNotAliveOwnerNodeWithItsReason()
+        {
+            // Setup.
+            var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
+            nodeB.Status.FailedHeartbeatAttempt(["Node is not ready"], DateTime.UtcNow);
+
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<BeeNodeUnavailableException>(
+                () => service.VerifyPostageBatchUsableAsync(postageBatchCache));
+            Assert.Equal("Node is not ready", exception.Message);
+            nodeBClientMock.Verify(c => c.GetPostageBatchAsync(It.IsAny<PostageBatchId>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task VerifyPostageBatchUsableRefusesNotUsableBatch()
+        {
+            // Setup.
+            var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
+            nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId, isUsable: false));
+
+            // Action & assert.
+            await Assert.ThrowsAsync<PostageBatchNotUsableException>(
+                () => service.VerifyPostageBatchUsableAsync(postageBatchCache));
+        }
+
+        [Theory, MemberData(nameof(NodeFailureTests))]
+        public async Task VerifyPostageBatchUsableReportsFailingOwnerNodeReason(
+            Exception exception,
+            string expectedError)
+        {
+            // Setup.
+            var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
+            nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(exception);
+
+            // Action & assert.
+            var result = await Assert.ThrowsAsync<BeeNodeUnavailableException>(
+                () => service.VerifyPostageBatchUsableAsync(postageBatchCache));
+            Assert.Equal(expectedError, result.Message);
+        }
+
         // Helpers.
         private static void AssertDegradedFromCache(PostageBatchResult details, string expectedError)
         {
@@ -257,7 +329,7 @@ namespace Etherna.Beehive.Services.Domain
                 new Dictionary<string, IEnumerable<string>>(),
                 null);
 
-        private static PostageBatch NewLivePostageBatch(PostageBatchId batchId) =>
+        private static PostageBatch NewLivePostageBatch(PostageBatchId batchId, bool isUsable) =>
             new(
                 id: batchId,
                 amount: BzzValue.FromPlurDecimal(1_000_000),
@@ -265,7 +337,7 @@ namespace Etherna.Beehive.Services.Domain
                 depth: 22,
                 exists: true,
                 isImmutable: false,
-                isUsable: true,
+                isUsable: isUsable,
                 label: "live",
                 ttl: TimeSpan.FromDays(1),
                 utilization: 3);

@@ -76,6 +76,20 @@ namespace Etherna.Beehive.Services.Tasks.Background
         }
 
         // Helpers.
+        private async Task AbandonPostageBatchPushesAsync(
+            PostageBatchId batchId,
+            IBeehiveDbContext dbContext,
+            CancellationToken cancellationToken)
+        {
+            //exhausting their attempts at once leaves the chunk refs in the final state of any failed push
+            var result = await dbContext.ChunkPushQueue.UpdateManyAsync(
+                r => r.BatchId == batchId && r.FailedAttempts < MaxFailedAttempts,
+                Builders<PushingChunkRef>.Update.Set(r => r.FailedAttempts, MaxFailedAttempts),
+                cancellationToken: cancellationToken);
+
+            logger.AbandonedPostageBatchChunks(batchId, result.ModifiedCount);
+        }
+
         private static async Task ReportPostageBatchUploadFailureAsync(
             PostageBatchId batchId,
             IBeehiveDbContext dbContext,
@@ -204,7 +218,8 @@ namespace Etherna.Beehive.Services.Tasks.Background
                 logger.PostageBatchNotFound(chunkRef.BatchId);
                 logger.FailedToPushChunk(chunkRef.Hash, e);
 
-                await ReportPostageBatchUploadFailureAsync(chunkRef.BatchId, dbContext, cancellationToken);
+                // The node's answer: the batch is gone. Abandon its queued chunks, no retry can push them anymore.
+                await AbandonPostageBatchPushesAsync(chunkRef.BatchId, dbContext, cancellationToken);
 
                 return false;
             }

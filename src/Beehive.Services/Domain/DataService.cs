@@ -54,6 +54,7 @@ namespace Etherna.Beehive.Services.Domain
             var postageBatchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
             if (postageBatchCache is null)
                 throw new KeyNotFoundException();
+            await postageBatchService.VerifyPostageBatchUsableAsync(postageBatchCache); //on its owner node, before storing anything
             var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
                 elements => elements.Where(s => s.BatchId == batchId)
                     .ToListAsync());

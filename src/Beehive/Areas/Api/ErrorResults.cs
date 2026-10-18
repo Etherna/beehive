@@ -23,7 +23,10 @@ namespace Etherna.Beehive.Areas.Api
     public static class ErrorResults
     {
         // Consts.
+        //bee's own messages, answered by its upload endpoints
+        public const string BatchNotFoundErrorMessage = "batch with id not found";
         public const string BatchNotUsableErrorMessage = "batch not usable";
+        public const string BatchNotUsableYetErrorMessage = "batch not usable yet or does not exist";
         
         // Methods.
         public static IResult GetBadRequestErrorResult(
@@ -74,5 +77,10 @@ namespace Etherna.Beehive.Areas.Api
             ApiVersion version,
             string? customMessage = null) =>
             GetErrorResult(version, StatusCodes.Status401Unauthorized, customMessage ?? "Unauthorized request");
+
+        public static IResult GetUnprocessableEntityErrorResult(
+            ApiVersion version,
+            string? customMessage = null) =>
+            GetErrorResult(version, StatusCodes.Status422UnprocessableEntity, customMessage ?? "Unprocessable entity");
     }
 }

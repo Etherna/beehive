@@ -328,5 +328,39 @@ namespace Etherna.Beehive.Services.Domain
 
             return TryGetPostageBatchOwnerNode(postageCache);
         }
+
+        public async Task VerifyPostageBatchUsableAsync(PostageBatchCache postageBatchCache)
+        {
+            ArgumentNullException.ThrowIfNull(postageBatchCache);
+
+            // Ask the owner node, unless the heartbeat already knows it can't answer.
+            var ownerNode = TryGetPostageBatchOwnerNode(postageBatchCache);
+            if (ownerNode is null)
+                throw new BeeNodeUnavailableException(
+                    $"Owner node {postageBatchCache.OwnerNodeId} of the batch is not registered");
+            var notAliveReason = ownerNode.Status.NotAliveReason;
+            if (notAliveReason is not null)
+                throw new BeeNodeUnavailableException(notAliveReason);
+
+            PostageBatch postageBatch;
+            try
+            {
+                postageBatch = await ownerNode.GetPostageBatchAsync(postageBatchCache.BatchId);
+            }
+            catch (SwarmSdkApiException e) when (e.StatusCode == 404)
+            {
+                //the node's answer: the batch is gone
+                throw new PostageBatchNotFoundException(
+                    $"Batch {postageBatchCache.BatchId} not found on its owner node {ownerNode.Id}", e);
+            }
+            catch (Exception e) when (e.IsBeeNodeCallFailure())
+            {
+                throw new BeeNodeUnavailableException(e.GetBeeNodeFailureReason(), e);
+            }
+
+            if (!postageBatch.IsUsable)
+                throw new PostageBatchNotUsableException(
+                    $"Batch {postageBatchCache.BatchId} is not usable yet on its owner node {ownerNode.Id}");
+        }
     }
 }
