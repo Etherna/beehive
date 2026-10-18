@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Exceptions;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Scrinium.Core.Exceptions;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -71,8 +72,8 @@ namespace Etherna.Beehive.Areas.Api
                         return ErrorResults.GetLockedErrorResult(apiVersion);
                     
                     // Error code 503.
-                    case SwarmSdkApiException:
-                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion);
+                    case SwarmSdkApiException apiException: //the body carries the node's own reason
+                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, apiException.GetBeeNodeFailureReason());
                         
                     // Error code 500.
                     case InvalidOperationException:

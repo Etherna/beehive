@@ -20,6 +20,7 @@ using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -29,23 +30,27 @@ namespace Etherna.Beehive.Services.Utilities.Models
     public class BeeNodeLiveInstance
     {
         // Constructors.
-        internal BeeNodeLiveInstance(
-            BeeNode beeNode)
-        {
-            Id = beeNode.Id;
-            Client = new SwarmClient(beeNode.ConnectionString, apiCompatibility: SwarmClients.Bee);
-            ChunkStore = new SwarmClientChunkStore(Client);
-            IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
-            Status = new BeeNodeStatus();
-        }
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client lives as long as the node instance")]
+        internal BeeNodeLiveInstance(BeeNode beeNode)
+            : this(
+                beeNode.Id,
+                new SwarmClient(beeNode.ConnectionString, apiCompatibility: SwarmClients.Bee),
+                beeNode.IsBatchCreationEnabled)
+        { }
+
+        internal BeeNodeLiveInstance(DevNodeClient devNodeClient)
+            : this(DevNodeClient.NodeId, devNodeClient, true)
+        { }
 
         internal BeeNodeLiveInstance(
-            DevNodeClient devNodeClient)
+            string id,
+            ISwarmClient client,
+            bool isBatchCreationEnabled)
         {
-            Id = DevNodeClient.NodeId;
-            Client = devNodeClient;
-            ChunkStore = new SwarmClientChunkStore(devNodeClient);
-            IsBatchCreationEnabled = true;
+            Id = id;
+            Client = client;
+            ChunkStore = new SwarmClientChunkStore(client);
+            IsBatchCreationEnabled = isBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }
 

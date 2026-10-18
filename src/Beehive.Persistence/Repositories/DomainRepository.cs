@@ -44,7 +44,7 @@ namespace Etherna.Beehive.Persistence.Repositories
         // Methods.
         public override async Task CreateAsync(IEnumerable<TModel> models, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(models, nameof(models));
+            ArgumentNullException.ThrowIfNull(models);
 
             // Create entity.
             await base.CreateAsync(models, cancellationToken);
@@ -66,7 +66,7 @@ namespace Etherna.Beehive.Persistence.Repositories
 
         public override async Task CreateAsync(TModel model, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(model, nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
 
             // Create entity.
             await base.CreateAsync(model, cancellationToken);
@@ -88,7 +88,7 @@ namespace Etherna.Beehive.Persistence.Repositories
             FilterDefinition<TModel>[]? additionalFilters = null,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(model, nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
 
             // Delete entity.
             await base.DeleteAsync(model, additionalFilters, cancellationToken);

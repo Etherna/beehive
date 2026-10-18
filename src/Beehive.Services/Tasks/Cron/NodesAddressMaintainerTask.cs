@@ -52,7 +52,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
             ILogger<NodesAddressMaintainerTask> logger,
             IOptions<NodesAddressMaintainerOptions> options)
         {
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             this.liveManager = liveManager;
             this.logger = logger;

@@ -403,7 +403,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(BeeNodeDeserializationTests))]
         public void BeeNodeDeserialization(DeserializationTestElement<BeeNode> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -427,7 +427,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(ChunkDeserializationTests))]
         public void ChunkDeserialization(DeserializationTestElement<Chunk> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -452,7 +452,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(ChunkPinDeserializationTests))]
         public void ChunkPinDeserialization(DeserializationTestElement<ChunkPin> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -477,7 +477,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(ChunkPinLockDeserializationTests))]
         public void ChunkPinLockDeserialization(DeserializationTestElement<ChunkPinLock> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -502,7 +502,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PostageBatchCacheDeserializationTests))]
         public void PostageBatchCacheDeserialization(DeserializationTestElement<PostageBatchCache> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -528,7 +528,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PostageBatchLockDeserializationTests))]
         public void PostageBatchLockDeserialization(DeserializationTestElement<PostageBatchLock> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -553,7 +553,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PostageStampDeserializationTests))]
         public void PostageStampDeserialization(DeserializationTestElement<PostageStamp> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
@@ -578,7 +578,7 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PushingChunkRefDeserializationTests))]
         public void PushingChunkRefDeserialization(DeserializationTestElement<PushingChunkRef> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
