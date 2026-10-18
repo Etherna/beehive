@@ -28,9 +28,10 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Services.Utilities.DevNode
 {
     /// <summary>
-    /// Emulated bee node client for local development.
-    /// Supports postage batch creation and reading with an in-memory store; any other operation
-    /// fails with a <see cref="SwarmSdkApiException"/>, as an unsupported node API would do.
+    /// Emulated bee node client for local development, starting clean.
+    /// Supports postage batch creation and reading, chunk and soc uploads, and the pins of the chunks it holds,
+    /// with in-memory stores; any other operation fails with a <see cref="SwarmSdkApiException"/>,
+    /// as an unsupported node API would do.
     /// </summary>
     internal sealed partial class DevNodeClient : ISwarmClient
     {
@@ -49,6 +50,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         private const string PublicKey = "020000000000000000000000000000000000000000000000000000000000001633";
 
         // Fields.
+        private readonly ConcurrentDictionary<SwarmHash, SwarmChunk> chunks = new();
+        private readonly ConcurrentDictionary<SwarmReference, bool> pins = new();
         private readonly ConcurrentDictionary<PostageBatchId, PostageBatch> postageBatches = new();
         private readonly Lock postageBatchesWriteLock = new();
 
@@ -87,6 +90,40 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             return Task.FromResult((batchId, EthTxHash.Zero));
         }
 
+        public Task ChunksBulkUploadAsync(
+            SwarmChunk[] chunks,
+            PostageBatchId batchId,
+            int maxUploadAttempts = 1,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(chunks);
+
+            if (!postageBatches.ContainsKey(batchId))
+                return Task.FromException(NewApiException(404, "batch with id not found"));
+
+            foreach (var chunk in chunks)
+                this.chunks[chunk.Hash] = chunk;
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> CreatePinAsync(
+            SwarmReference reference,
+            RedundancyLevel? redundancyLevel = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (!chunks.ContainsKey(reference.Hash))
+                return Task.FromException<bool>(NewApiException(404, "Chunk not found"));
+
+            return Task.FromResult(pins.TryAdd(reference, true));
+        }
+
+        public Task DeletePinAsync(
+            SwarmReference reference,
+            CancellationToken cancellationToken = default) =>
+            pins.TryRemove(reference, out _)
+                ? Task.CompletedTask
+                : Task.FromException(NewApiException(404, "Pin not found"));
+
         public Task<EthTxHash> DilutePostageBatchAsync(
             PostageBatchId batchId,
             int depth,
@@ -122,6 +159,9 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         public Task<ChequebookCheque[]> GetAllChequebookChequesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<ChequebookCheque[]>([]);
 
+        public Task<SwarmReference[]> GetAllPinsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(pins.Keys.ToArray());
+
         public Task<ChainState> GetChainStateAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(DevChainState);
 
@@ -133,7 +173,9 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             string? actPublisher = null,
             string? actHistoryAddress = null,
             CancellationToken cancellationToken = default) =>
-            Task.FromException<SwarmChunk>(NewApiException(404, "Chunk not found"));
+            chunks.TryGetValue(hash, out var chunk)
+                ? Task.FromResult(chunk)
+                : Task.FromException<SwarmChunk>(NewApiException(404, "Chunk not found"));
 
         public Task<(PostageBatch PostageBatch, EthAddress Owner)[]> GetGlobalValidPostageBatchesAsync(
             PostageBatchId? batchId = null,
@@ -157,6 +199,13 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
 
         public Task<PostageBatch[]> GetOwnedPostageBatchesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(postageBatches.Values.ToArray());
+
+        public Task<PinStatus> GetPinStatusAsync(
+            SwarmReference reference,
+            CancellationToken cancellationToken = default) =>
+            pins.ContainsKey(reference)
+                ? Task.FromResult(new PinStatus(reference, null, null, null, true, null))
+                : Task.FromException<PinStatus>(NewApiException(404, "Pin not found"));
 
         public Task<PostageBatch> GetPostageBatchAsync(
             PostageBatchId batchId,
@@ -189,7 +238,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             string? actPublisher = null,
             string? actHistoryAddress = null,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(false);
+            Task.FromResult(chunks.ContainsKey(hash));
 
         public Task<EthTxHash> TopUpPostageBatchAsync(
             PostageBatchId batchId,
@@ -220,8 +269,67 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             }
         }
 
+        public Task<SwarmHash> UploadChunkAsync(
+            SwarmCac chunk,
+            PostageBatchId? batchId,
+            TagId? tagId = null,
+            PostageStamp? presignedPostageStamp = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(chunk);
+
+            return StoreUploadedChunk(chunk, batchId, presignedPostageStamp);
+        }
+
+        public async Task<SwarmHash> UploadChunkAsync(
+            Stream chunkData,
+            PostageBatchId? batchId,
+            TagId? tagId = null,
+            PostageStamp? presignedPostageStamp = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(chunkData);
+
+            // A raw upload is a content addressed chunk: its hash is the bmt of what is sent.
+            using var buffer = new MemoryStream();
+            await chunkData.CopyToAsync(buffer, cancellationToken);
+            var spanData = buffer.ToArray();
+            var chunk = new SwarmCac(new SwarmChunkBmt().Hash(spanData), spanData);
+
+            return await UploadChunkAsync(chunk, batchId, tagId, presignedPostageStamp, cancellationToken);
+        }
+
+        public Task<SwarmHash> UploadSocAsync(
+            SwarmSoc soc,
+            PostageBatchId? batchId,
+            PostageStamp? presignedPostageStamp = null,
+            TagId? tagId = null,
+            bool deferredUpload = false,
+            bool? pin = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(soc);
+
+            var upload = StoreUploadedChunk(soc, batchId, presignedPostageStamp);
+            if (pin == true && upload.IsCompletedSuccessfully)
+                pins[new SwarmReference(soc.Hash, null)] = true;
+            return upload;
+        }
+
         // Helpers.
         private static SwarmSdkApiException NewApiException(int statusCode, string message) =>
             new(message, statusCode, null, new Dictionary<string, IEnumerable<string>>(), null);
+
+        private Task<SwarmHash> StoreUploadedChunk(SwarmChunk chunk, PostageBatchId? batchId, PostageStamp? presignedPostageStamp)
+        {
+            // Bee's own answers: no batch and no presigned stamp is a 400, an unknown batch a 404.
+            if (batchId is null && presignedPostageStamp is null)
+                return Task.FromException<SwarmHash>(NewApiException(400, "batch id not provided"));
+            if (batchId is not null && !postageBatches.ContainsKey(batchId.Value))
+                return Task.FromException<SwarmHash>(NewApiException(404, "batch with id not found"));
+
+            chunks[chunk.Hash] = chunk;
+            return Task.FromResult(chunk.Hash);
+        }
     }
 }

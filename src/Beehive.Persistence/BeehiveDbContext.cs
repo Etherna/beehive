@@ -109,6 +109,30 @@ namespace Etherna.Beehive.Persistence
                 });
             }
         }
+        public IRepository<NodePinImport, string> NodePinImports { get; } =
+            new Repository<NodePinImport, string>(new RepositoryOptions<NodePinImport>("nodePinImports")
+            {
+                IndexBuilders =
+                [
+                    (Builders<NodePinImport>.IndexKeys
+                            .Ascending(i => i.NodeId)
+                            .Descending(i => i.CreationDateTime),
+                        new CreateIndexOptions<NodePinImport>()),
+                    (Builders<NodePinImport>.IndexKeys.Ascending(i => i.Import.Id),
+                        new CreateIndexOptions<NodePinImport>())
+                ]
+            });
+        public IRepository<NodePinsImport, string> NodePinsImports { get; } =
+            new Repository<NodePinsImport, string>(new RepositoryOptions<NodePinsImport>("nodePinsImports")
+            {
+                IndexBuilders =
+                [
+                    (Builders<NodePinsImport>.IndexKeys
+                            .Ascending(i => i.NodeId)
+                            .Descending(i => i.CreationDateTime),
+                        new CreateIndexOptions<NodePinsImport>())
+                ]
+            });
         public IRepository<PostageBatchLock, string> PostageBatchLocks { get; } = new DomainRepository<PostageBatchLock, string>(
             new RepositoryOptions<PostageBatchLock>("postageBatchLocks")
             {
