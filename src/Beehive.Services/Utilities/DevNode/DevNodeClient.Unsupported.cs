@@ -46,21 +46,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
-        public Task ChunksBulkUploadAsync(
-            SwarmChunk[] chunks,
-            PostageBatchId batchId,
-            int maxUploadAttempts = 1,
-            CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
         public Task<SwarmOverlayAddress> ConnectToPeerAsync(
             string peerAddress,
-            CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
-        public Task<bool> CreatePinAsync(
-            SwarmReference reference,
-            RedundancyLevel? redundancyLevel = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -74,11 +61,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
 
         public Task DeletePeerAsync(
             string peerAddress,
-            CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
-        public Task DeletePinAsync(
-            SwarmReference reference,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
@@ -112,9 +94,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             throw NewUnsupportedException();
 
         public Task<(string Address, bool FullNode)[]> GetAllPeerAddressesAsync(CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
-        public Task<SwarmReference[]> GetAllPinsAsync(CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
         public Task<Settlement> GetAllSettlementsAsync(CancellationToken cancellationToken = default) =>
@@ -223,11 +202,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             throw NewUnsupportedException();
 
         public Task<GnosisChainTx[]> GetPendingTransactionsAsync(CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
-        public Task<PinStatus> GetPinStatusAsync(
-            SwarmReference reference,
-            CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
         public Task<ReserveCommitment> GetReserveCommitmentAsync(
@@ -506,22 +480,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 
-        public Task<SwarmHash> UploadChunkAsync(
-            Stream chunkData,
-            PostageBatchId? batchId,
-            TagId? tagId = null,
-            PostageStamp? presignedPostageStamp = null,
-            CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
-        public Task<SwarmHash> UploadChunkAsync(
-            SwarmCac chunk,
-            PostageBatchId? batchId,
-            TagId? tagId = null,
-            PostageStamp? presignedPostageStamp = null,
-            CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
         public Task<SwarmReference> UploadDirectoryAsync(
             string directoryPath,
             PostageBatchId batchId,
@@ -565,16 +523,6 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             bool? deferredUpload = null,
             RedundancyLevel redundancyLevel = RedundancyLevel.None,
             int maxUploadAttempts = 1,
-            CancellationToken cancellationToken = default) =>
-            throw NewUnsupportedException();
-
-        public Task<SwarmHash> UploadSocAsync(
-            SwarmSoc soc,
-            PostageBatchId? batchId,
-            PostageStamp? presignedPostageStamp = null,
-            TagId? tagId = null,
-            bool deferredUpload = false,
-            bool? pin = null,
             CancellationToken cancellationToken = default) =>
             throw NewUnsupportedException();
 

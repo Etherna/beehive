@@ -14,6 +14,7 @@
 
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -123,6 +124,111 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
         }
 
         [Fact]
+        public async Task CreatePinThrowsWithUnknownContent()
+        {
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
+                () => devNodeClient.CreatePinAsync("cc00000000000000000000000000000000000000000000000000000000000001"));
+            Assert.Equal(404, exception.StatusCode);
+        }
+
+        [Fact]
+        public async Task DeletePinThrowsWithUnknownPin()
+        {
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
+                () => devNodeClient.DeletePinAsync("cc00000000000000000000000000000000000000000000000000000000000001"));
+            Assert.Equal(404, exception.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetAllPinsListsNothingOnAFreshNode()
+        {
+            // Action.
+            var references = await devNodeClient.GetAllPinsAsync();
+
+            // Assert.
+            Assert.Empty(references);
+        }
+
+        [Fact]
+        public async Task GetChunkThrowsWithUnknownChunk()
+        {
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
+                () => devNodeClient.GetChunkAsync("cc00000000000000000000000000000000000000000000000000000000000001", new SwarmChunkBmt()));
+            Assert.Equal(404, exception.StatusCode);
+            Assert.False(await devNodeClient.IsChunkExistingAsync("cc00000000000000000000000000000000000000000000000000000000000001"));
+        }
+
+        [Fact]
+        public async Task UploadChunkStoresItForABoughtBatchAndLetsItBePinned()
+        {
+            // Setup.
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
+            var chunk = NewCac("a content uploaded to the dev node");
+
+            // Action.
+            var hash = await devNodeClient.UploadChunkAsync(chunk, batchId);
+
+            // Assert.
+            Assert.Equal(chunk.Hash, hash);
+            Assert.True(await devNodeClient.IsChunkExistingAsync(hash));
+            Assert.Equal(chunk.SpanData.ToArray(), ((SwarmCac)await devNodeClient.GetChunkAsync(hash, new SwarmChunkBmt())).SpanData.ToArray());
+
+            SwarmReference reference = new(hash, null);
+            Assert.True(await devNodeClient.CreatePinAsync(reference));
+            Assert.Equal([reference], await devNodeClient.GetAllPinsAsync());
+            Assert.True((await devNodeClient.GetPinStatusAsync(reference)).Succeeded);
+            await devNodeClient.DeletePinAsync(reference);
+            Assert.Empty(await devNodeClient.GetAllPinsAsync());
+            Assert.True(await devNodeClient.IsChunkExistingAsync(hash)); //unpinned, still held
+        }
+
+        [Fact]
+        public async Task UploadChunkFromStreamHashesTheContent()
+        {
+            // Setup.
+            var (batchId, _) = await devNodeClient.BuyPostageBatchAsync(BzzValue.FromPlurDecimal(1_000_000), 20);
+            var chunk = NewCac("a raw chunk sent as a stream");
+            using var stream = new MemoryStream(chunk.SpanData.ToArray());
+
+            // Action.
+            var hash = await devNodeClient.UploadChunkAsync(stream, batchId);
+
+            // Assert.
+            Assert.Equal(chunk.Hash, hash);
+            Assert.True(await devNodeClient.IsChunkExistingAsync(hash));
+        }
+
+        [Fact]
+        public async Task UploadChunkThrowsWithUnknownBatch()
+        {
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
+                () => devNodeClient.UploadChunkAsync(NewCac("no batch"), PostageBatchId.Zero));
+            Assert.Equal(404, exception.StatusCode);
+        }
+
+        [Fact]
+        public async Task UploadChunkThrowsWithoutBatch()
+        {
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
+                () => devNodeClient.UploadChunkAsync(NewCac("no batch"), null));
+            Assert.Equal(400, exception.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPinStatusThrowsWithUnknownPin()
+        {
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
+                () => devNodeClient.GetPinStatusAsync("cc00000000000000000000000000000000000000000000000000000000000001"));
+            Assert.Equal(404, exception.StatusCode);
+        }
+
+        [Fact]
         public async Task GetGlobalValidPostageBatchesReturnsBoughtBatches()
         {
             // Setup.
@@ -214,6 +320,13 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(
                 () => devNodeClient.TopUpPostageBatchAsync(PostageBatchId.Zero, BzzValue.FromPlurDecimal(500_000)));
             Assert.Equal(404, exception.StatusCode);
+        }
+
+        // Helpers.
+        private static SwarmCac NewCac(string text)
+        {
+            var spanData = SwarmCac.BuildFromData(SwarmHash.Zero, System.Text.Encoding.UTF8.GetBytes(text)).SpanData;
+            return new SwarmCac(new SwarmChunkBmt().Hash(spanData), spanData);
         }
     }
 }
