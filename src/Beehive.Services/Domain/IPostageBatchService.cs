@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.SwarmSdk.Hashing.Postage;
@@ -66,5 +67,13 @@ namespace Etherna.Beehive.Services.Domain
         BeeNodeLiveInstance? TryGetPostageBatchOwnerNode(PostageBatchCache postageBatchCache);
 
         Task<BeeNodeLiveInstance?> TryGetPostageBatchOwnerNodeAsync(PostageBatchId batchId);
+
+        /// <summary>
+        /// Verify on its owner node that the postage batch accepts uploads, without calling a node that is not alive
+        /// </summary>
+        /// <exception cref="PostageBatchNotFoundException">The owner node reports the batch as not found, now or before</exception>
+        /// <exception cref="PostageBatchNotUsableException">The owner node reports the batch as not usable yet</exception>
+        /// <exception cref="BeeNodeUnavailableException">The owner node cannot answer</exception>
+        Task VerifyPostageBatchUsableAsync(PostageBatchCache postageBatchCache);
     }
 }

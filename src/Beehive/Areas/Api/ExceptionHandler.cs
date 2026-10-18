@@ -62,16 +62,24 @@ namespace Etherna.Beehive.Areas.Api
                         return ErrorResults.GetUnauthorizedErrorResult(apiVersion);
 
                     // Error code 404.
+                    case PostageBatchNotFoundException: //bee's upload answer for a batch its node doesn't have
+                        return ErrorResults.GetNotFoundErrorResult(apiVersion, ErrorResults.BatchNotFoundErrorMessage);
                     case SwarmSdkApiException { StatusCode: 404 }:
                     case KeyNotFoundException:
                     case ScriniumEntityNotFoundException:
                         return ErrorResults.GetNotFoundErrorResult(apiVersion);
+
+                    // Error code 422.
+                    case PostageBatchNotUsableException: //bee's upload answer for a batch not usable yet
+                        return ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, ErrorResults.BatchNotUsableYetErrorMessage);
 
                     // Error code 423.
                     case ResourceLockException:
                         return ErrorResults.GetLockedErrorResult(apiVersion);
                     
                     // Error code 503.
+                    case BeeNodeUnavailableException: //the message is the node's reason
+                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, e.Message);
                     case SwarmSdkApiException apiException: //the body carries the node's own reason
                         return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, apiException.GetBeeNodeFailureReason());
                         
