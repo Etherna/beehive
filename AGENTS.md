@@ -63,6 +63,12 @@ The API is built with **Minimal APIs**, not MVC controllers — this is the cent
 
 Bugs and features are tracked in Jira project **BHM** (https://etherna.atlassian.net/projects/BHM). Branch names follow `feature/BHM-<id>-<slug>` / `improve/BHM-<id>-<slug>` / `fix/BHM-<id>-<slug>` — match this when creating branches.
 
+## Release process
+
+Releases follow git flow: `dev` is merged into `main` with a merge commit, the merge commit is tagged `vX.Y.Z` and the tag push triggers the stable Docker Hub deploy (`.github/workflows/stable-release.yml`: the image `etherna/beehive` tagged `vX`, `vX.Y` and `vX.Y.Z`, built by the `Dockerfile` with its tests; GitVersion derives the assembly version from the tag, there is no manual version bump). The release is completed by a GitHub release on the tag, carrying the notes of the Jira fixVersion in the Scrinium style: a one paragraph summary of the release, one highlight per change with its issue key in parentheses, an "Upgrading from" section with the deployment steps (Hangfire storage, collections, configuration, api differences, dependency updates) and the full changelog of the fixVersion grouped by issue type in a collapsed `<details>` block. Every issue follows the same workflow: branch from `dev` (`feature/BHM-xxx-*`, `improve/BHM-xxx-*` or `fix/BHM-xxx-*`), tests and AGENTS aligned in the same change, commits only after human review, one PR per issue to `dev`. A hotfix line follows git flow too: `hotfix/X.Y.Z` (no `v`: the tag carries it) branches from `main`, its issues carry the hotfix fix version, branch from the hotfix branch and PR to it; the finished line merges into `dev` first and into `main` second, the `main` merge commit tagged `vX.Y.Z`; once both merges are pushed the line branch is deleted, locally and on origin, together with the issue branches it merged. Every push on `dev` deploys the unstable image (`unstable-release.yml`, tag `dev`); a hotfix branch deploys nothing until its tag.
+
+**Which version is out and which line is open is read from git, never written here**: `git tag --sort=-v:refname | head -1` is the last release, `git log --oneline --decorate -1 <tag>` the commit it tagged, `git branch -r --list 'origin/hotfix/*' 'origin/release/*'` the open lines (none means the next release comes from `dev`), and `git log --oneline main..dev` what it will carry.
+
 # Coding Style
 
 ## General Principles
