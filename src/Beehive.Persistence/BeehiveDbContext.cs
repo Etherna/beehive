@@ -18,9 +18,9 @@ using Etherna.Beehive.Persistence.Repositories;
 using Etherna.DomainEvents;
 using Etherna.MongoDB.Driver;
 using Etherna.MongoDB.Driver.GridFS;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
-using Etherna.MongODM.Core.Serialization;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Repositories;
+using Etherna.Scrinium.Core.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -101,7 +101,7 @@ namespace Etherna.Beehive.Persistence
         {
             get
             {
-                return _chunksBucket ??= new GridFSBucket(Database, new GridFSBucketOptions
+                return _chunksBucket ??= new GridFSBucket(Engine.Database, new GridFSBucketOptions
                 {
                     BucketName = "chunks",
                     WriteConcern = WriteConcern.WMajority,
@@ -109,6 +109,30 @@ namespace Etherna.Beehive.Persistence
                 });
             }
         }
+        public IRepository<NodePinImport, string> NodePinImports { get; } =
+            new Repository<NodePinImport, string>(new RepositoryOptions<NodePinImport>("nodePinImports")
+            {
+                IndexBuilders =
+                [
+                    (Builders<NodePinImport>.IndexKeys
+                            .Ascending(i => i.NodeId)
+                            .Descending(i => i.CreationDateTime),
+                        new CreateIndexOptions<NodePinImport>()),
+                    (Builders<NodePinImport>.IndexKeys.Ascending(i => i.Import.Id),
+                        new CreateIndexOptions<NodePinImport>())
+                ]
+            });
+        public IRepository<NodePinsImport, string> NodePinsImports { get; } =
+            new Repository<NodePinsImport, string>(new RepositoryOptions<NodePinsImport>("nodePinsImports")
+            {
+                IndexBuilders =
+                [
+                    (Builders<NodePinsImport>.IndexKeys
+                            .Ascending(i => i.NodeId)
+                            .Descending(i => i.CreationDateTime),
+                        new CreateIndexOptions<NodePinsImport>())
+                ]
+            });
         public IRepository<PostageBatchLock, string> PostageBatchLocks { get; } = new DomainRepository<PostageBatchLock, string>(
             new RepositoryOptions<PostageBatchLock>("postageBatchLocks")
             {

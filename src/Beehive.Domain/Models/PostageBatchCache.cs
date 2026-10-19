@@ -32,7 +32,7 @@ namespace Etherna.Beehive.Domain.Models
             bool isImmutable,
             string ownerNodeId)
         {
-            ArgumentNullException.ThrowIfNull(buckets, nameof(buckets));
+            ArgumentNullException.ThrowIfNull(buckets);
             if (buckets.Length != PostageBuckets.BucketsSize)
                 throw new ArgumentOutOfRangeException(nameof(buckets), "Wrong buckets amount");
             

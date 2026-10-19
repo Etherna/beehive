@@ -15,9 +15,10 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
-using Etherna.MongODM.Core.Serialization.Serializers;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Options;
+using Etherna.Scrinium.Core.Serialization;
+using Etherna.Scrinium.Core.Serialization.Serializers;
 using Etherna.SwarmSdk.Models;
 using System.Threading.Tasks;
 
@@ -25,11 +26,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class ChunkPinMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddModelMap<ChunkPin>("63e584f0-2298-4c8f-bbc2-a84b90d836c2") //v0.4.1
+            dbContextEngine.MapRegistry.AddModelMap<ChunkPin>("63e584f0-2298-4c8f-bbc2-a84b90d836c2") //v0.4.1
                 .AddSecondarySchema("832d06b1-ed82-4f4f-9df9-ad24565df38d", //v0.4.0
-                    fixDeserializedModelFunc: pin =>
+                    fixDeserializedModelFunc: (_, pin) =>
                     {
                         var hash = (string)pin.ExtraElements!["Hash"];
                         EncryptionKey256? encKey = null;
@@ -48,10 +49,14 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         /// <summary>
         /// A minimal serializer with only id
         /// </summary>
+        /// <param name="originDelete">How the documents hosting the reference react when the pin is deleted</param>
         public static ReferenceSerializer<ChunkPin, string> ReferenceSerializer(
-            IDbContext dbContext) =>
-            new(dbContext, config =>
+            IDbContextEngine dbContextEngine,
+            OriginDeleteMode originDelete) =>
+            new(dbContextEngine, config =>
             {
+                config.OriginDelete = originDelete;
+
                 config.AddModelMap<ModelBase>("016abab0-d092-4dbc-84f5-098b09a4b704");
                 config.AddModelMap<EntityModelBase>("8d77f15f-a550-4553-9c91-4ee1170c2e77", mm => { });
                 config.AddModelMap<EntityModelBase<string>>("89c6bc1a-4c6d-4805-b4dc-58ce1f99abe2", mm =>

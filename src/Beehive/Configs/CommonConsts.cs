@@ -23,6 +23,7 @@ namespace Etherna.Beehive.Configs
     {
         public const string DatabaseAdminPath = "/admin/db";
         public const string HangfireAdminPath = "/admin/hangfire";
+        public const string PinsImportsAdminPath = "/admin/pins-imports";
         public const string ScalarPath = "/scalar";
         
         public static readonly JsonSerializerOptions BeehiveV04JsonSerializerOptions = new()

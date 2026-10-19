@@ -13,21 +13,21 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Persistence.Serializers;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Serialization;
 using Etherna.SwarmSdk.Models;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class BeeNetMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddCustomSerializerMap<PostageBatchId>(new PostageBatchIdSerializer()); //v0.4.0
-            dbContext.MapRegistry.AddCustomSerializerMap<SwarmAddress>(new SwarmAddressSerializer()); //v0.4.0
-            dbContext.MapRegistry.AddCustomSerializerMap<SwarmHash>(new SwarmHashSerializer()); //v0.4.0
-            dbContext.MapRegistry.AddCustomSerializerMap<SwarmReference>(new SwarmReferenceSerializer()); //v0.4.1
-            dbContext.MapRegistry.AddCustomSerializerMap<SwarmUri>(new SwarmUriSerializer()); //v0.4.0
+            dbContextEngine.MapRegistry.AddCustomSerializerMap<PostageBatchId>(new PostageBatchIdSerializer()); //v0.4.0
+            dbContextEngine.MapRegistry.AddCustomSerializerMap<SwarmAddress>(new SwarmAddressSerializer()); //v0.4.0
+            dbContextEngine.MapRegistry.AddCustomSerializerMap<SwarmHash>(new SwarmHashSerializer()); //v0.4.0
+            dbContextEngine.MapRegistry.AddCustomSerializerMap<SwarmReference>(new SwarmReferenceSerializer()); //v0.4.1
+            dbContextEngine.MapRegistry.AddCustomSerializerMap<SwarmUri>(new SwarmUriSerializer()); //v0.4.0
         }
     }
 }

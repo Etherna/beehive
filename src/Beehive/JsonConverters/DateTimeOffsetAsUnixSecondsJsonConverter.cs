@@ -30,7 +30,7 @@ namespace Etherna.Beehive.JsonConverters
 
         public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)
         {
-            ArgumentNullException.ThrowIfNull(writer, nameof(writer));
+            ArgumentNullException.ThrowIfNull(writer);
             
             writer.WriteNumberValue(value.ToUnixTimeSeconds());
         }

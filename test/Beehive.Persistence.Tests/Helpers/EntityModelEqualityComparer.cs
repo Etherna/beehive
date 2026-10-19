@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.MongODM.Core.Domain.Models;
+using Etherna.Scrinium.Core.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;

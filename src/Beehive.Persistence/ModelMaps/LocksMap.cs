@@ -13,25 +13,25 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Serialization;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class LocksMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddModelMap<ChunkPinLock>( //v0.4.0
+            dbContextEngine.MapRegistry.AddModelMap<ChunkPinLock>( //v0.4.0
                 "a73d46c1-b548-4461-b4d3-b947de2f97e9");
 
-            dbContext.MapRegistry.AddModelMap<ChunkPushLock>( //0.4.7
+            dbContextEngine.MapRegistry.AddModelMap<ChunkPushLock>( //0.4.7
                 "c5eb888f-e4eb-44ca-9513-e69a52d43f24");
 
-            dbContext.MapRegistry.AddModelMap<PostageBatchLock>( //v0.4.0
+            dbContextEngine.MapRegistry.AddModelMap<PostageBatchLock>( //v0.4.0
                 "e26fdf55-0245-4ead-b20a-13296e69d61d");
 
-            dbContext.MapRegistry.AddModelMap<ResourceLockBase>( //v0.4.0
+            dbContextEngine.MapRegistry.AddModelMap<ResourceLockBase>( //v0.4.0
                 "1d1f7db3-3cee-4845-8888-b822f6a7f471",
                 mm =>
                 {

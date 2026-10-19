@@ -1,4 +1,4 @@
-﻿// Copyright 2021-present Etherna SA
+// Copyright 2021-present Etherna SA
 // This file is part of Beehive.
 // 
 // Beehive is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,14 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.MongODM.AspNetCore.UI.Auth.Filters;
-using Microsoft.AspNetCore.Http;
+using Hangfire;
 using System.Threading.Tasks;
 
-namespace Etherna.Beehive.Configs.MongODM
+namespace Etherna.Beehive.Services.Tasks.Trigger
 {
-    public class AllowAllFilter : IDashboardAuthFilter
+    public interface IImportNodePinsTask
     {
-        public Task<bool> AuthorizeAsync(HttpContext? context) => Task.FromResult(true);
+        /* No automatic retry: the task records its own failure on the import, and a job re-run
+         * would find the import already failed. */
+        [AutomaticRetry(Attempts = 0)]
+        [Queue(Queues.PIN_CONTENTS)]
+        Task RunAsync(string nodePinsImportId);
     }
 }

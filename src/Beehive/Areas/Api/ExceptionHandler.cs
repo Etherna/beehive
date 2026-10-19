@@ -13,7 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Exceptions;
-using Etherna.MongODM.Core.Exceptions;
+using Etherna.Beehive.Services.Extensions;
+using Etherna.Scrinium.Core.Exceptions;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Serilog;
@@ -47,7 +48,7 @@ namespace Etherna.Beehive.Areas.Api
                     case ArgumentException:
                     case FormatException:
                     case InvalidDataException:
-                    case MongodmInvalidEntityTypeException:
+                    case ScriniumInvalidEntityTypeException:
                     case SwarmChunkTypeException:
                         return ErrorResults.GetBadRequestErrorResult(apiVersion);
                     
@@ -61,18 +62,26 @@ namespace Etherna.Beehive.Areas.Api
                         return ErrorResults.GetUnauthorizedErrorResult(apiVersion);
 
                     // Error code 404.
+                    case PostageBatchNotFoundException: //bee's upload answer for a batch its node doesn't have
+                        return ErrorResults.GetNotFoundErrorResult(apiVersion, ErrorResults.BatchNotFoundErrorMessage);
                     case SwarmSdkApiException { StatusCode: 404 }:
                     case KeyNotFoundException:
-                    case MongodmEntityNotFoundException:
+                    case ScriniumEntityNotFoundException:
                         return ErrorResults.GetNotFoundErrorResult(apiVersion);
+
+                    // Error code 422.
+                    case PostageBatchNotUsableException: //bee's upload answer for a batch not usable yet
+                        return ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, ErrorResults.BatchNotUsableYetErrorMessage);
 
                     // Error code 423.
                     case ResourceLockException:
                         return ErrorResults.GetLockedErrorResult(apiVersion);
                     
                     // Error code 503.
-                    case SwarmSdkApiException:
-                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion);
+                    case BeeNodeUnavailableException: //the message is the node's reason
+                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, e.Message);
+                    case SwarmSdkApiException apiException: //the body carries the node's own reason
+                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, apiException.GetBeeNodeFailureReason());
                         
                     // Error code 500.
                     case InvalidOperationException:

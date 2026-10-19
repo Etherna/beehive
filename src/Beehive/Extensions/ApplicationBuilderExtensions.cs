@@ -23,7 +23,7 @@ namespace Etherna.Beehive.Extensions
     {
         public static void StartBeeNodeLiveManager(this IApplicationBuilder appBuilder)
         {
-            ArgumentNullException.ThrowIfNull(appBuilder, nameof(appBuilder));
+            ArgumentNullException.ThrowIfNull(appBuilder);
 
             var beeNodeLiveManager = appBuilder.ApplicationServices.GetRequiredService<IBeeNodeLiveManager>();
 

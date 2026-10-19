@@ -71,11 +71,12 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     new PostageBatchStampListDto(postageBatches.Select(b =>
                         new PostageBatchDto(
                             b.Amount,
-                            b.Id,
+                            b.BatchId,
                             b.Ttl,
                             b.BlockNumber,
                             PostageBatch.BucketDepth,
                             b.Depth,
+                            b.Error,
                             b.Exists,
                             b.IsImmutable,
                             b.Label,
@@ -92,17 +93,19 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     throw new KeyNotFoundException();
                 
                 // Emulate bee response when postage batch is not usable.
-                if (!postageBatch.IsUsable)
+                // A batch whose owner node could not answer is reported instead, with its error.
+                if (postageBatch.Error is null && !postageBatch.IsUsable)
                     throw new BadHttpRequestException(ErrorResults.BatchNotUsableErrorMessage);
                 
                 return Results.Json(
                     new PostageBatchDto(
                         postageBatch.Amount,
-                        postageBatch.Id,
+                        postageBatch.BatchId,
                         postageBatch.Ttl,
                         postageBatch.BlockNumber,
                         PostageBatch.BucketDepth,
                         postageBatch.Depth,
+                        postageBatch.Error,
                         postageBatch.Exists,
                         postageBatch.IsImmutable,
                         postageBatch.Label,

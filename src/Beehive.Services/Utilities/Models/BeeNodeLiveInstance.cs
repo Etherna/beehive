@@ -13,12 +13,14 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Utilities.DevNode;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -27,21 +29,35 @@ namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class BeeNodeLiveInstance
     {
-        // Constructor.
+        // Constructors.
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client lives as long as the node instance")]
+        internal BeeNodeLiveInstance(BeeNode beeNode)
+            : this(
+                beeNode.Id,
+                new SwarmClient(beeNode.ConnectionString, apiCompatibility: SwarmClients.Bee),
+                beeNode.IsBatchCreationEnabled)
+        { }
+
+        internal BeeNodeLiveInstance(DevNodeClient devNodeClient)
+            : this(DevNodeClient.NodeId, devNodeClient, true)
+        { }
+
         internal BeeNodeLiveInstance(
-            BeeNode beeNode)
+            string id,
+            ISwarmClient client,
+            bool isBatchCreationEnabled)
         {
-            Id = beeNode.Id;
-            Client = new SwarmClient(beeNode.ConnectionString, apiCompatibility: SwarmClients.Bee);
-            ChunkStore = new SwarmClientChunkStore(Client);
-            IsBatchCreationEnabled = beeNode.IsBatchCreationEnabled;
+            Id = id;
+            Client = client;
+            ChunkStore = new SwarmClientChunkStore(client);
+            IsBatchCreationEnabled = isBatchCreationEnabled;
             Status = new BeeNodeStatus();
         }
 
         // Properties.
         public string Id { get; }
         public SwarmClientChunkStore ChunkStore { get; }
-        public SwarmClient Client { get; }
+        public ISwarmClient Client { get; }
         public bool IsBatchCreationEnabled { get; set; }
         public BeeNodeStatus Status { get; }
 
