@@ -13,15 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain;
-using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.MongoDB.Driver;
-using Etherna.MongODM.Core.Serialization.Modifiers;
-using Etherna.SwarmSdk.Chunks;
-using Etherna.SwarmSdk.Models;
-using System;
-using System.Collections.Generic;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Trigger
@@ -36,53 +30,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         // Methods.
         public async Task RunAsync(string chunkPinId)
         {
-            // Acquire lock on pin.
-            await using var pinLockHandler = await pinService.AcquireLockAsync(chunkPinId, true);
-
-            var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
-            if (!pin.Reference.HasValue)
-                throw new InvalidOperationException($"Pin doesn't have an hash");
-            if (pin.IsSucceeded)
-                return;
-
-            // Traverse chunks.
             await using var chunkStore =
                 new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
-            var chunkTraverser = new ChunkTraverser(chunkStore);
-
-            HashSet<SwarmHash> missingChunksHash = [];
-            HashSet<SwarmHash> pinnedChunksHash = [];
-            await chunkTraverser.TraverseAsync(
-                pin.Reference.Value,
-                async (foundChunk, _) =>
-                {
-                    if (!pinnedChunksHash.Add(foundChunk.Hash))
-                        return;
-                    await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                        new ExpressionFilterDefinition<Chunk>(c => c.Hash == foundChunk.Hash),
-                        c => c.Pins,
-                        pin,
-                        new FindOneAndUpdateOptions<Chunk>());
-                },
-                async (invalidFoundChunk, _) =>
-                {
-                    if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
-                        return;
-                    await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                        new ExpressionFilterDefinition<Chunk>(c => c.Hash == invalidFoundChunk.Hash),
-                        c => c.Pins,
-                        pin,
-                        new FindOneAndUpdateOptions<Chunk>());
-                },
-                notFoundReference =>
-                {
-                    missingChunksHash.Add(notFoundReference.Reference.Hash);
-                    return Task.CompletedTask;
-                });
-            
-            // Update pin with result.
-            pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
-            await dbContext.SaveChangesAsync();
+            await pinService.PinChunksAsync(chunkPinId, chunkStore);
         }
     }
 }

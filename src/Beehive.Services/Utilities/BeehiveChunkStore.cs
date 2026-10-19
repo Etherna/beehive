@@ -14,10 +14,11 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongoDB.Driver.Linq;
-using Etherna.MongODM.Core.Serialization.Modifiers;
-using Etherna.MongODM.Core.Utility;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
 using System;
@@ -30,13 +31,18 @@ using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Utilities
 {
+    /// <summary>
+    /// The chunk store over beehive's db, falling back on the bee nodes for the chunks it doesn't hold:
+    /// the nearest healthy node by default, or the given source node only
+    /// </summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
     public sealed class BeehiveChunkStore(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         ISerializerModifierAccessor serializerModifierAccessor,
         int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
-        Action<Chunk>? onSavingChunk = null)
+        Action<Chunk>? onSavingChunk = null,
+        BeeNodeLiveInstance? sourceNode = null)
         : ReadOnlyChunkStoreBase, IAsyncDisposable, IChunkStore, IDisposable
     {
         // Consts.
@@ -278,8 +284,8 @@ namespace Etherna.Beehive.Services.Utilities
                 { }
             }
             
-            // If it's not found, search on a healthy bee node.
-            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
+            // If it's not found, search on the source node, or on a healthy bee node.
+            var node = sourceNode ?? beeNodeLiveManager.SelectNearestHealthyNode(hash);
             return await node.ChunkStore.HasChunkAsync(hash, cancellationToken);
         }
 
@@ -316,8 +322,8 @@ namespace Etherna.Beehive.Services.Utilities
         // Helpers.
         private async Task<SwarmChunk> GetFromBeeNodeAsync(SwarmHash hash, CancellationToken cancellationToken)
         {
-            // Get from node.
-            var node = beeNodeLiveManager.SelectNearestHealthyNode(hash);
+            // Get from the source node, or from the nearest healthy one.
+            var node = sourceNode ?? beeNodeLiveManager.SelectNearestHealthyNode(hash);
             var chunk = await node.ChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
             
             // Save in local db. Force flush on db now.
@@ -353,6 +359,15 @@ namespace Etherna.Beehive.Services.Utilities
 
             if (hashes.Count == 0)
                 return new Dictionary<SwarmHash, SwarmChunk>();
+
+            // With a source node, everything is read from it.
+            if (sourceNode is not null)
+            {
+                var fromSourceNode = await sourceNode.ChunkStore.GetAsync(hashes, cancellationToken: cancellationToken);
+                return fromSourceNode
+                    .Where(p => p.Value != null)
+                    .ToDictionary(p => p.Key, p => p.Value!);
+            }
             
             var healthyNodes = beeNodeLiveManager.HealthyNodes
                 .Where(n => n.Status.Addresses != null)

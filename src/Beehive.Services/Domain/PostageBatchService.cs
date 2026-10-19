@@ -15,14 +15,16 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Linq;
+using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
@@ -131,27 +133,45 @@ namespace Etherna.Beehive.Services.Domain
             return await beeNodeInstance.Client.GetGlobalValidPostageBatchesAsync();
         }
 
-        [SuppressMessage("ReSharper", "EmptyGeneralCatchClause")]
-        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
-        public async Task<IEnumerable<PostageBatch>> GetOwnedPostageBatchesAsync()
+        public async Task<IEnumerable<PostageBatchResult>> GetOwnedPostageBatchesAsync()
         {
-            var healthyNodes = beeNodeLiveManager.HealthyNodes.ToArray();
-            List<Task<PostageBatch[]>> taskList = [];
-            List<PostageBatch> postageBatches = [];
+            var nodes = beeNodeLiveManager.AllNodes.ToArray();
 
-            foreach (var node in healthyNodes)
-                taskList.Add(node.Client.GetOwnedPostageBatchesAsync());
+            // Ask the alive nodes for their batches, in parallel. A node that is not alive is not asked.
+            Dictionary<string, Task<PostageBatch[]>> nodeTasks = []; //node id -> owned batches
+            Dictionary<string, string> nodeErrors = []; //node id -> reason the node could not answer
+            foreach (var node in nodes)
+            {
+                var notAliveReason = node.Status.NotAliveReason;
+                if (notAliveReason is null)
+                    nodeTasks[node.Id] = node.Client.GetOwnedPostageBatchesAsync();
+                else
+                    nodeErrors[node.Id] = notAliveReason;
+            }
 
-            foreach (var task in taskList)
+            List<PostageBatchResult> postageBatches = [];
+            foreach (var (nodeId, task) in nodeTasks)
             {
                 try
                 {
-                    postageBatches.AddRange(await task);
+                    postageBatches.AddRange((await task).Select(b => new PostageBatchResult(b)));
                 }
-                catch
-                { }
+                catch (Exception e) when (e.IsBeeNodeCallFailure())
+                {
+                    nodeErrors[nodeId] = e.GetBeeNodeFailureReason();
+                }
             }
-            
+
+            // Report the batches of the nodes that could not answer from the cache, each with its node's reason.
+            if (nodeErrors.Count > 0)
+            {
+                var failedNodeIds = nodeErrors.Keys.ToArray();
+                var cachedBatches = await dbContext.PostageBatchesCache.QueryElementsAsync(elements =>
+                    elements.Where(b => failedNodeIds.Contains(b.OwnerNodeId))
+                        .ToListAsync());
+                postageBatches.AddRange(cachedBatches.Select(b => new PostageBatchResult(b, nodeErrors[b.OwnerNodeId])));
+            }
+
             return postageBatches;
         }
 
@@ -165,8 +185,8 @@ namespace Etherna.Beehive.Services.Domain
             HashSet<SwarmHash> stampedChunkHashesCache,
             IPostageStamper newPostageStamper)
         {
-            ArgumentNullException.ThrowIfNull(postageBatchCache, nameof(postageBatchCache));
-            ArgumentNullException.ThrowIfNull(newPostageStamper, nameof(newPostageStamper));
+            ArgumentNullException.ThrowIfNull(postageBatchCache);
+            ArgumentNullException.ThrowIfNull(newPostageStamper);
             
             // Add new postage stamps.
             var newPostageStamps = newPostageStamper.StampStore.GetItems()
@@ -264,22 +284,83 @@ namespace Etherna.Beehive.Services.Domain
         // }
         //***
 
-        public async Task<PostageBatch?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId)
+        public async Task<PostageBatchResult?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId)
         {
-            var nodeLiveInstance = await TryGetPostageBatchOwnerNodeAsync(batchId);
-            if (nodeLiveInstance == null) //if postage doesn't exist
+            var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
+            if (postageCache is null) //if postage doesn't exist
                 return null;
-            
-            return await nodeLiveInstance.GetPostageBatchAsync(batchId);
+            var nodeLiveInstance = TryGetPostageBatchOwnerNode(postageCache);
+            if (nodeLiveInstance is null)
+                return null;
+
+            // Don't ask a node that is not alive: the heartbeat already knows why it can't answer.
+            var notAliveReason = nodeLiveInstance.Status.NotAliveReason;
+            if (notAliveReason is not null)
+                return new PostageBatchResult(postageCache, notAliveReason);
+
+            try
+            {
+                return new PostageBatchResult(await nodeLiveInstance.GetPostageBatchAsync(batchId));
+            }
+            catch (SwarmSdkApiException e) when (e.StatusCode == 404)
+            {
+                return null; //the node's answer: the batch is gone
+            }
+            catch (Exception e) when (e.IsBeeNodeCallFailure())
+            {
+                //the node not answering: report what the cache knows, with the reason
+                return new PostageBatchResult(postageCache, e.GetBeeNodeFailureReason());
+            }
+        }
+
+        public BeeNodeLiveInstance? TryGetPostageBatchOwnerNode(PostageBatchCache postageBatchCache)
+        {
+            ArgumentNullException.ThrowIfNull(postageBatchCache);
+
+            return beeNodeLiveManager.AllNodes.FirstOrDefault(n => n.Id == postageBatchCache.OwnerNodeId);
         }
 
         public async Task<BeeNodeLiveInstance?> TryGetPostageBatchOwnerNodeAsync(PostageBatchId batchId)
         {
             var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
-            if (postageCache == null)
+            if (postageCache is null)
                 return null;
 
-            return beeNodeLiveManager.AllNodes.FirstOrDefault(n => n.Id == postageCache.OwnerNodeId);
+            return TryGetPostageBatchOwnerNode(postageCache);
+        }
+
+        public async Task VerifyPostageBatchUsableAsync(PostageBatchCache postageBatchCache)
+        {
+            ArgumentNullException.ThrowIfNull(postageBatchCache);
+
+            // Ask the owner node, unless the heartbeat already knows it can't answer.
+            var ownerNode = TryGetPostageBatchOwnerNode(postageBatchCache);
+            if (ownerNode is null)
+                throw new BeeNodeUnavailableException(
+                    $"Owner node {postageBatchCache.OwnerNodeId} of the batch is not registered");
+            var notAliveReason = ownerNode.Status.NotAliveReason;
+            if (notAliveReason is not null)
+                throw new BeeNodeUnavailableException(notAliveReason);
+
+            PostageBatch postageBatch;
+            try
+            {
+                postageBatch = await ownerNode.GetPostageBatchAsync(postageBatchCache.BatchId);
+            }
+            catch (SwarmSdkApiException e) when (e.StatusCode == 404)
+            {
+                //the node's answer: the batch is gone
+                throw new PostageBatchNotFoundException(
+                    $"Batch {postageBatchCache.BatchId} not found on its owner node {ownerNode.Id}", e);
+            }
+            catch (Exception e) when (e.IsBeeNodeCallFailure())
+            {
+                throw new BeeNodeUnavailableException(e.GetBeeNodeFailureReason(), e);
+            }
+
+            if (!postageBatch.IsUsable)
+                throw new PostageBatchNotUsableException(
+                    $"Batch {postageBatchCache.BatchId} is not usable yet on its owner node {ownerNode.Id}");
         }
     }
 }

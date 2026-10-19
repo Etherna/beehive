@@ -13,6 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Utilities;
+using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.SwarmSdk.Models;
 using System.Threading.Tasks;
 
@@ -25,6 +27,12 @@ namespace Etherna.Beehive.Services.Domain
             bool exclusiveAccess);
 
         Task<bool> IsLockedAsync(string chunkPinId);
+
+        /// <summary>
+        /// Pin the chunks of a pin's reference, read through the given store, under the pin's exclusive lock
+        /// </summary>
+        /// <returns>The pin, processed: succeeded, or with its missing chunks; and the invalid chunks met</returns>
+        Task<PinChunksResult> PinChunksAsync(string chunkPinId, BeehiveChunkStore chunkStore);
         
         Task<bool> TryDeletePinAsync(SwarmReference pinReference);
     }

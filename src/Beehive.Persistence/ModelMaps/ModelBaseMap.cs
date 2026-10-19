@@ -16,18 +16,18 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.IdGenerators;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Serialization;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class ModelBaseMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddModelMap<ModelBase>("7653dfab-f715-42d1-8d3d-bbca69755399");
-            dbContext.MapRegistry.AddModelMap<EntityModelBase>("5cddcc0c-1a61-443c-bb72-98d1344cafb4");
-            dbContext.MapRegistry.AddModelMap<EntityModelBase<string>>("3d7b0f5d-d490-495e-af05-6114e8f8d2f4", modelMap =>
+            dbContextEngine.MapRegistry.AddModelMap<ModelBase>("7653dfab-f715-42d1-8d3d-bbca69755399");
+            dbContextEngine.MapRegistry.AddModelMap<EntityModelBase>("5cddcc0c-1a61-443c-bb72-98d1344cafb4");
+            dbContextEngine.MapRegistry.AddModelMap<EntityModelBase<string>>("3d7b0f5d-d490-495e-af05-6114e8f8d2f4", modelMap =>
             {
                 modelMap.AutoMap();
 

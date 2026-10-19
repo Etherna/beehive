@@ -12,7 +12,6 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.MongODM.Core.Attributes;
 using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
@@ -57,9 +56,6 @@ namespace Etherna.Beehive.Domain.Models
         public virtual long TotPinnedChunks { get; protected set; }
         
         // Methods.
-        [PropertyAlterer(nameof(Reference))]
-        [PropertyAlterer(nameof(IsProcessed))]
-        [PropertyAlterer(nameof(TotPinnedChunks))]
         public virtual void UploadSucceeded(
             SwarmReference rootChunkRef,
             long totPinnedChunks)
@@ -72,9 +68,6 @@ namespace Etherna.Beehive.Domain.Models
             TotPinnedChunks = totPinnedChunks;
         }
 
-        [PropertyAlterer(nameof(IsProcessed))]
-        [PropertyAlterer(nameof(MissingChunks))]
-        [PropertyAlterer(nameof(TotPinnedChunks))]
         public virtual void UpdateProcessed(
             IEnumerable<SwarmHash> missingChunks,
             long totPinnedChunks)

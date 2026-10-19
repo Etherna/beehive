@@ -13,16 +13,16 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Serialization;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Serialization;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class UploadedChunkRefMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddModelMap<PushingChunkRef>(
+            dbContextEngine.MapRegistry.AddModelMap<PushingChunkRef>(
                 "30e3473f-5d56-4821-9c66-aa8922b46942"); //v0.4.0
         }
     }

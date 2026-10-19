@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 22
+     * Last event id is: 29
      */
     public static class LoggerExtensions
     {
@@ -70,7 +70,19 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(7, nameof(NodeConfigurationUpdated)),
                 "Node {BeeNodeId} updated configuration");
 
-        private static readonly Action<ILogger, string, Uri, bool, Exception> _nodeRegistered =
+                private static readonly Action<ILogger, string, long, long, long, long, Exception> _nodePinsImportCompleted =
+            LoggerMessage.Define<string, long, long, long, long>(
+                LogLevel.Information,
+                new EventId(25, nameof(NodePinsImportCompleted)),
+                "Node {NodeId}: pins import completed, {ImportedPins} imported, {SkippedPins} already pinned, {FailedPins} failed, {UnpinnedPins} unpinned on the node");
+
+        private static readonly Action<ILogger, string, bool, Exception> _nodePinsImportStarted =
+            LoggerMessage.Define<string, bool>(
+                LogLevel.Information,
+                new EventId(24, nameof(NodePinsImportStarted)),
+                "Node {NodeId}: pins import started, unpin imported: {UnpinImported}");
+
+private static readonly Action<ILogger, string, Uri, bool, Exception> _nodeRegistered =
             LoggerMessage.Define<string, Uri, bool>(
                 LogLevel.Information,
                 new EventId(5, nameof(NodeRegistered)),
@@ -119,6 +131,30 @@ namespace Etherna.Beehive.Services.Extensions
                 "Node {BeeNodeId} chequebook sent withdraw of {BzzAmount} BZZ with tx hash {TxHash}");
 
         //*** WARNING LOGS ***
+        private static readonly Action<ILogger, long, PostageBatchId, Exception> _abandonedPostageBatchChunks =
+            LoggerMessage.Define<long, PostageBatchId>(
+                LogLevel.Warning,
+                new EventId(23, nameof(AbandonedPostageBatchChunks)),
+                "Abandoned {ChunksCount} queued chunks of Postage Batch with Id {PostageBatchId}: its owner node reported it not found");
+
+        private static readonly Action<ILogger, string, SwarmReference, Exception> _nodePinImportFailed =
+            LoggerMessage.Define<string, SwarmReference>(
+                LogLevel.Warning,
+                new EventId(26, nameof(NodePinImportFailed)),
+                "Node {NodeId}: import of pin {Reference} failed");
+
+        private static readonly Action<ILogger, string, SwarmReference, int, int, Exception> _nodePinImportIncomplete =
+            LoggerMessage.Define<string, SwarmReference, int, int>(
+                LogLevel.Warning,
+                new EventId(27, nameof(NodePinImportIncomplete)),
+                "Node {NodeId}: import of pin {Reference} is incomplete, {MissingChunks} chunks missing and {InvalidChunks} invalid on the node");
+
+        private static readonly Action<ILogger, string, SwarmReference, Exception> _nodePinUnpinFailed =
+            LoggerMessage.Define<string, SwarmReference>(
+                LogLevel.Warning,
+                new EventId(28, nameof(NodePinUnpinFailed)),
+                "Node {NodeId}: unpin of {Reference} failed after its import");
+
         private static readonly Action<ILogger, PostageBatchId, Exception> _postageBatchNotFound =
             LoggerMessage.Define<PostageBatchId>(
                 LogLevel.Warning,
@@ -162,13 +198,22 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(11, nameof(FailedToWithdrawBzzOnNodeChequeBook)),
                 "Withdraw on node {BeeNodeId} chequebook failed with {BzzAmount} BZZ");
 
-        private static readonly Action<ILogger, Exception> _unhandledExceptionPushingChunksToNode =
+                private static readonly Action<ILogger, string, Exception> _nodePinsImportFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(29, nameof(NodePinsImportFailed)),
+                "Node {NodeId}: pins import failed");
+
+private static readonly Action<ILogger, Exception> _unhandledExceptionPushingChunksToNode =
             LoggerMessage.Define(
                 LogLevel.Error,
                 new EventId(16, nameof(UnhandledExceptionPushingChunksToNode)),
                 "Unhandled exception pushing chunks to node");
 
         // Methods.
+        public static void AbandonedPostageBatchChunks(this ILogger logger, PostageBatchId batchId, long chunksCount) =>
+            _abandonedPostageBatchChunks(logger, chunksCount, batchId, null!);
+
         public static void CleanupOldFailedTasksTaskCompleted(this ILogger logger, long deletedTasks) =>
             _cleanupOldFailedTasksTaskCompleted(logger, deletedTasks, null!);
         
@@ -198,6 +243,24 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid) =>
             _nodeConfigurationUpdated(logger, beeNodeid, null!);
+
+        public static void NodePinImportFailed(this ILogger logger, string nodeId, SwarmReference reference, Exception exception) =>
+            _nodePinImportFailed(logger, nodeId, reference, exception);
+
+        public static void NodePinImportIncomplete(this ILogger logger, string nodeId, SwarmReference reference, int missingChunks, int invalidChunks) =>
+            _nodePinImportIncomplete(logger, nodeId, reference, missingChunks, invalidChunks, null!);
+
+        public static void NodePinsImportCompleted(this ILogger logger, string nodeId, long importedPins, long skippedPins, long failedPins, long unpinnedPins) =>
+            _nodePinsImportCompleted(logger, nodeId, importedPins, skippedPins, failedPins, unpinnedPins, null!);
+
+        public static void NodePinsImportFailed(this ILogger logger, string nodeId, Exception exception) =>
+            _nodePinsImportFailed(logger, nodeId, exception);
+
+        public static void NodePinsImportStarted(this ILogger logger, string nodeId, bool unpinImported) =>
+            _nodePinsImportStarted(logger, nodeId, unpinImported, null!);
+
+        public static void NodePinUnpinFailed(this ILogger logger, string nodeId, SwarmReference reference, Exception exception) =>
+            _nodePinUnpinFailed(logger, nodeId, reference, exception);
 
         public static void NodeRegistered(this ILogger logger, string beeNodeId, Uri connectionString, bool isBatchCreationEnabled) =>
             _nodeRegistered(logger, beeNodeId, connectionString, isBatchCreationEnabled, null!);

@@ -1,0 +1,169 @@
+@page "/admin/pins-imports"
+@using Etherna.Beehive.Domain.Models
+@model Etherna.Beehive.Pages.Admin.PinsImportsModel
+@{
+    ViewData["Title"] = "Pins imports";
+
+    static string OutcomeBadge(NodePinImportOutcome outcome) => outcome switch
+    {
+        NodePinImportOutcome.Imported => "bg-success",
+        NodePinImportOutcome.AlreadyPinned => "bg-secondary",
+        _ => "bg-danger"
+    };
+
+    static string StateBadge(NodePinsImportState state) => state switch
+    {
+        NodePinsImportState.Completed => "bg-success",
+        NodePinsImportState.Running => "bg-primary",
+        NodePinsImportState.Pending => "bg-secondary",
+        _ => "bg-danger"
+    };
+
+    static string Short(string value) => value.Length > 12 ? value[..12] + "…" : value;
+}
+
+<h1>Pins imports</h1>
+<p class="text-muted">The contents pinned on each bee node, and their import into beehive's own pins.</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-info">@Model.Message</div>
+}
+
+<p>
+    <a class="btn btn-link btn-sm" asp-page="/Admin/PinsImports" asp-route-failedOnly="@(!Model.FailedOnly)">
+        @(Model.FailedOnly ? "Show every record" : "Show the failed records only")
+    </a>
+</p>
+
+@foreach (var node in Model.Nodes)
+{
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>
+                <strong>@node.Id</strong>
+                <span class="text-muted">@node.Url</span>
+            </span>
+            <span class="badge @(node.IsAlive ? "bg-success" : "bg-danger")">@(node.IsAlive ? "alive" : "not alive")</span>
+        </div>
+        <div class="card-body">
+            <h6>On the node, not yet in beehive</h6>
+            @if (node.NodeError is not null)
+            {
+                <p class="text-danger">The node could not be asked: @node.NodeError</p>
+            }
+            else if (node.PinsSnapshot!.NotImported.Count == 0)
+            {
+                <p class="text-muted">Nothing: every one of the @node.PinsSnapshot.PinnedOnNode.Count contents pinned on the node is in beehive.</p>
+            }
+            else
+            {
+                <details>
+                    <summary>@node.PinsSnapshot.NotImported.Count contents, of @node.PinsSnapshot.PinnedOnNode.Count pinned on the node</summary>
+                    <ul class="small font-monospace mt-2">
+                        @foreach (var reference in node.PinsSnapshot.NotImported)
+                        {
+                            <li>@reference</li>
+                        }
+                    </ul>
+                </details>
+            }
+
+            <form method="post" asp-page-handler="Start" class="my-3">
+                <input type="hidden" name="nodeId" value="@node.Id" />
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">Import the pins of this node</button>
+                    </div>
+                    <div class="col-auto form-check">
+                        <input class="form-check-input" type="checkbox" name="unpin" value="true" id="unpin-@node.Id" />
+                        <label class="form-check-label" for="unpin-@node.Id">unpin on the node once imported</label>
+                    </div>
+                </div>
+                <details class="mt-2">
+                    <summary class="small text-muted">Only some contents</summary>
+                    <textarea class="form-control form-control-sm font-monospace mt-1" name="references" rows="3"
+                              placeholder="swarm references, one per line: empty for every pin of the node"></textarea>
+                </details>
+            </form>
+
+            <h6>Last import</h6>
+            @if (node.LatestImport is null)
+            {
+                <p class="text-muted">Never imported.</p>
+            }
+            else
+            {
+                var import = node.LatestImport;
+                <p>
+                    <span class="badge @StateBadge(import.State)">@import.State</span>
+                    started @(import.StartedDateTime?.ToString("u") ?? "-"),
+                    completed @(import.CompletedDateTime?.ToString("u") ?? "-"),
+                    unpin @(import.UnpinImported ? "on" : "off"),
+                    @(import.ImportsEveryPin ? "every pin of the node" : $"{import.RequestedReferences.Count()} requested contents").
+                    Pins to import: @(import.TotalPins?.ToString() ?? "-"),
+                    imported @import.ImportedPins, already pinned @import.SkippedPins, failed @import.FailedPins, unpinned @import.UnpinnedPins.
+                    @if (import.FailureReason is not null)
+                    {
+                        <span class="text-danger">Import failed: @import.FailureReason</span>
+                    }
+                </p>
+
+                <div class="d-flex gap-2 mb-3">
+                    <form method="post" asp-page-handler="Cleanup">
+                        <input type="hidden" name="nodeId" value="@node.Id" />
+                        <input type="hidden" name="failed" value="false" />
+                        <button class="btn btn-outline-secondary btn-sm" type="submit">Delete the completed imports</button>
+                    </form>
+                    <form method="post" asp-page-handler="Cleanup">
+                        <input type="hidden" name="nodeId" value="@node.Id" />
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Delete every finished import, completed and failed</button>
+                    </form>
+                </div>
+
+                @if (node.LatestImportRecords.Count == 0)
+                {
+                    <p class="text-muted">No records@(Model.FailedOnly ? " of failed pins" : "").</p>
+                }
+                else
+                {
+                    <table class="table table-sm small">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Outcome</th>
+                                <th>Chunks</th>
+                                <th>Missing</th>
+                                <th>Invalid</th>
+                                <th>Unpinned by the import</th>
+                                <th>On the node now</th>
+                                <th>Failure</th>
+                                <th>When</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in node.LatestImportRecords)
+                            {
+                                <tr>
+                                    <td class="font-monospace" title="@record.Reference">@Short(record.Reference.ToString())</td>
+                                    <td><span class="badge @OutcomeBadge(record.Outcome)">@record.Outcome</span></td>
+                                    <td>@record.PinnedChunks</td>
+                                    <td>@record.MissingChunks.Count()</td>
+                                    <td>@record.InvalidChunks.Count()</td>
+                                    <td>@(record.UnpinnedByImport ? "yes" : record.UnpinFailureReason is not null ? $"failed: {record.UnpinFailureReason}" : "no")</td>
+                                    <td>@(node.IsOnNode(record.Reference) switch { true => "yes", false => "no", null => "unknown" })</td>
+                                    <td class="text-danger">@record.FailureReason</td>
+                                    <td>@record.CreationDateTime.ToString("u")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    @if (node.LatestImportRecords.Count == Etherna.Beehive.Pages.Admin.PinsImportsModel.MaxListedRecords)
+                    {
+                        <p class="text-muted">The newest @Etherna.Beehive.Pages.Admin.PinsImportsModel.MaxListedRecords records are shown; the api lists them all.</p>
+                    }
+                }
+            }
+        </div>
+    </div>
+}

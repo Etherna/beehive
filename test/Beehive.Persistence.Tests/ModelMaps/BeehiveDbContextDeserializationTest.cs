@@ -18,13 +18,12 @@ using Etherna.DomainEvents;
 using Etherna.MongoDB.Bson.IO;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Driver;
-using Etherna.MongODM.Core.Serialization.Serializers;
-using Etherna.MongODM.Core.Utility;
+using Etherna.Scrinium.Core.Serialization.Serializers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Moq;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -32,7 +31,6 @@ using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
-    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable")]
     public class BeehiveDbContextDeserializationTest
     {
         // Fields.
@@ -266,6 +264,203 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             }
         }
 
+        public static IEnumerable<object[]> NodePinImportDeserializationTests
+        {
+            get
+            {
+                var tests = new List<DeserializationTestElement<NodePinImport>>();
+
+                // "529f1657-29f4-4c82-9355-6fa99750ad9d" - v0.4.11, imported and unpinned
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("68f3a1b2c4d5e6f708192a41"),
+                            "_m" : "529f1657-29f4-4c82-9355-6fa99750ad9d",
+                            "CreationDateTime" : ISODate("2026-10-18T14:01:00.000+0000"),
+                            "FailureReason" : null,
+                            "Import" : {
+                                "_m" : "a6f656c8-f1b7-4695-9c08-8ac2c380ba98",
+                                "_id" : ObjectId("68f3a1b2c4d5e6f708192a3b")
+                            },
+                            "InvalidChunks" : [],
+                            "MissingChunks" : [],
+                            "NodeId" : "68311505d850b75f33146f7c",
+                            "PinnedChunks" : NumberLong(4),
+                            "Reference" : "496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde",
+                            "UnpinFailureReason" : null,
+                            "UnpinnedByImport" : true,
+                            "WasAlreadyPinned" : false
+                        }
+                        """;
+
+                    var expectedMock = new Mock<NodePinImport>();
+                    expectedMock.Setup(i => i.Id).Returns("68f3a1b2c4d5e6f708192a41");
+                    expectedMock.Setup(i => i.CreationDateTime).Returns(new DateTime(2026, 10, 18, 14, 01, 00, 000));
+                    expectedMock.Setup(i => i.FailureReason).Returns((string?)null);
+                    var importMock = new Mock<NodePinsImport>();
+                    importMock.Setup(i => i.Id).Returns("68f3a1b2c4d5e6f708192a3b");
+                    expectedMock.Setup(i => i.Import).Returns(importMock.Object);
+                    expectedMock.Setup(i => i.InvalidChunks).Returns([]);
+                    expectedMock.Setup(i => i.MissingChunks).Returns([]);
+                    expectedMock.Setup(i => i.NodeId).Returns("68311505d850b75f33146f7c");
+                    expectedMock.Setup(i => i.PinnedChunks).Returns(4);
+                    expectedMock.Setup(i => i.Reference).Returns("496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde");
+                    expectedMock.Setup(i => i.UnpinFailureReason).Returns((string?)null);
+                    expectedMock.Setup(i => i.UnpinnedByImport).Returns(true);
+                    expectedMock.Setup(i => i.WasAlreadyPinned).Returns(false);
+
+                    tests.Add(new DeserializationTestElement<NodePinImport>(sourceDocument, expectedMock.Object));
+                }
+
+                // "529f1657-29f4-4c82-9355-6fa99750ad9d" - v0.4.11, failed with a missing chunk
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("68f3a1b2c4d5e6f708192a42"),
+                            "_m" : "529f1657-29f4-4c82-9355-6fa99750ad9d",
+                            "CreationDateTime" : ISODate("2026-10-18T14:01:30.000+0000"),
+                            "FailureReason" : "1 chunks missing on the node",
+                            "Import" : {
+                                "_m" : "a6f656c8-f1b7-4695-9c08-8ac2c380ba98",
+                                "_id" : ObjectId("68f3a1b2c4d5e6f708192a3b")
+                            },
+                            "InvalidChunks" : [],
+                            "MissingChunks" : ["bb00000000000000000000000000000000000000000000000000000000000009"],
+                            "NodeId" : "68311505d850b75f33146f7c",
+                            "PinnedChunks" : NumberLong(2),
+                            "Reference" : "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f",
+                            "UnpinFailureReason" : null,
+                            "UnpinnedByImport" : false,
+                            "WasAlreadyPinned" : false
+                        }
+                        """;
+
+                    var expectedMock = new Mock<NodePinImport>();
+                    expectedMock.Setup(i => i.Id).Returns("68f3a1b2c4d5e6f708192a42");
+                    expectedMock.Setup(i => i.CreationDateTime).Returns(new DateTime(2026, 10, 18, 14, 01, 30, 000));
+                    expectedMock.Setup(i => i.FailureReason).Returns("1 chunks missing on the node");
+                    var importMock = new Mock<NodePinsImport>();
+                    importMock.Setup(i => i.Id).Returns("68f3a1b2c4d5e6f708192a3b");
+                    expectedMock.Setup(i => i.Import).Returns(importMock.Object);
+                    expectedMock.Setup(i => i.InvalidChunks).Returns([]);
+                    expectedMock.Setup(i => i.MissingChunks).Returns(["bb00000000000000000000000000000000000000000000000000000000000009"]);
+                    expectedMock.Setup(i => i.NodeId).Returns("68311505d850b75f33146f7c");
+                    expectedMock.Setup(i => i.PinnedChunks).Returns(2);
+                    expectedMock.Setup(i => i.Reference).Returns("7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f");
+                    expectedMock.Setup(i => i.UnpinFailureReason).Returns((string?)null);
+                    expectedMock.Setup(i => i.UnpinnedByImport).Returns(false);
+                    expectedMock.Setup(i => i.WasAlreadyPinned).Returns(false);
+
+                    tests.Add(new DeserializationTestElement<NodePinImport>(sourceDocument, expectedMock.Object));
+                }
+
+                return tests.Select(t => new object[] { t });
+            }
+        }
+
+        public static IEnumerable<object[]> NodePinsImportDeserializationTests
+        {
+            get
+            {
+                var tests = new List<DeserializationTestElement<NodePinsImport>>();
+
+                // "879c21f2-9ad8-4776-a904-605c26afe6dc" - v0.4.11, completed
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("68f3a1b2c4d5e6f708192a3b"),
+                            "_m" : "879c21f2-9ad8-4776-a904-605c26afe6dc",
+                            "CreationDateTime" : ISODate("2026-10-18T14:00:00.000+0000"),
+                            "CompletedDateTime" : ISODate("2026-10-18T14:05:30.000+0000"),
+                            "FailedPins" : NumberLong(1),
+                            "FailureReason" : null,
+                            "ImportedPins" : NumberLong(12),
+                            "JobId" : "68f3a1b2c4d5e6f708192a3c",
+                            "NodeId" : "68311505d850b75f33146f7c",
+                            "RequestedReferences" : [],
+                            "SkippedPins" : NumberLong(3),
+                            "StartedDateTime" : ISODate("2026-10-18T14:00:01.000+0000"),
+                            "TotalPins" : NumberLong(16),
+                            "UnpinImported" : true,
+                            "UnpinnedPins" : NumberLong(15)
+                        }
+                        """;
+
+                    var expectedImportMock = new Mock<NodePinsImport>();
+                    expectedImportMock.Setup(i => i.Id).Returns("68f3a1b2c4d5e6f708192a3b");
+                    expectedImportMock.Setup(i => i.CreationDateTime).Returns(new DateTime(2026, 10, 18, 14, 00, 00, 000));
+                    expectedImportMock.Setup(i => i.CompletedDateTime).Returns(new DateTime(2026, 10, 18, 14, 05, 30, 000));
+                    expectedImportMock.Setup(i => i.FailedPins).Returns(1);
+                    expectedImportMock.Setup(i => i.FailureReason).Returns((string?)null);
+                    expectedImportMock.Setup(i => i.ImportedPins).Returns(12);
+                    expectedImportMock.Setup(i => i.JobId).Returns("68f3a1b2c4d5e6f708192a3c");
+                    expectedImportMock.Setup(i => i.NodeId).Returns("68311505d850b75f33146f7c");
+                    expectedImportMock.Setup(i => i.RequestedReferences).Returns([]);
+                    expectedImportMock.Setup(i => i.SkippedPins).Returns(3);
+                    expectedImportMock.Setup(i => i.StartedDateTime).Returns(new DateTime(2026, 10, 18, 14, 00, 01, 000));
+                    expectedImportMock.Setup(i => i.TotalPins).Returns(16);
+                    expectedImportMock.Setup(i => i.UnpinImported).Returns(true);
+                    expectedImportMock.Setup(i => i.UnpinnedPins).Returns(15);
+
+                    tests.Add(new DeserializationTestElement<NodePinsImport>(sourceDocument, expectedImportMock.Object));
+                }
+
+                // "879c21f2-9ad8-4776-a904-605c26afe6dc" - v0.4.11, pending, on two requested contents
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("68f3a1b2c4d5e6f708192a3d"),
+                            "_m" : "879c21f2-9ad8-4776-a904-605c26afe6dc",
+                            "CreationDateTime" : ISODate("2026-10-18T15:00:00.000+0000"),
+                            "CompletedDateTime" : null,
+                            "FailedPins" : NumberLong(0),
+                            "FailureReason" : null,
+                            "ImportedPins" : NumberLong(0),
+                            "JobId" : null,
+                            "NodeId" : "dev-node",
+                            "RequestedReferences" : [
+                                "496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde",
+                                "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f"
+                            ],
+                            "SkippedPins" : NumberLong(0),
+                            "StartedDateTime" : null,
+                            "TotalPins" : null,
+                            "UnpinImported" : false,
+                            "UnpinnedPins" : NumberLong(0)
+                        }
+                        """;
+
+                    var expectedImportMock = new Mock<NodePinsImport>();
+                    expectedImportMock.Setup(i => i.Id).Returns("68f3a1b2c4d5e6f708192a3d");
+                    expectedImportMock.Setup(i => i.CreationDateTime).Returns(new DateTime(2026, 10, 18, 15, 00, 00, 000));
+                    expectedImportMock.Setup(i => i.CompletedDateTime).Returns((DateTime?)null);
+                    expectedImportMock.Setup(i => i.FailedPins).Returns(0);
+                    expectedImportMock.Setup(i => i.FailureReason).Returns((string?)null);
+                    expectedImportMock.Setup(i => i.ImportedPins).Returns(0);
+                    expectedImportMock.Setup(i => i.JobId).Returns((string?)null);
+                    expectedImportMock.Setup(i => i.NodeId).Returns("dev-node");
+                    expectedImportMock.Setup(i => i.RequestedReferences).Returns(
+                    [
+                        "496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde",
+                        "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f"
+                    ]);
+                    expectedImportMock.Setup(i => i.SkippedPins).Returns(0);
+                    expectedImportMock.Setup(i => i.StartedDateTime).Returns((DateTime?)null);
+                    expectedImportMock.Setup(i => i.TotalPins).Returns((long?)null);
+                    expectedImportMock.Setup(i => i.UnpinImported).Returns(false);
+                    expectedImportMock.Setup(i => i.UnpinnedPins).Returns(0);
+
+                    tests.Add(new DeserializationTestElement<NodePinsImport>(sourceDocument, expectedImportMock.Object));
+                }
+
+                return tests.Select(t => new object[] { t });
+            }
+        }
+
         public static IEnumerable<object[]> PostageBatchCacheDeserializationTests
         {
             get
@@ -405,11 +600,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(BeeNodeDeserializationTests))]
         public void BeeNodeDeserialization(DeserializationTestElement<BeeNode> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<BeeNode>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<BeeNode>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -429,11 +624,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(ChunkDeserializationTests))]
         public void ChunkDeserialization(DeserializationTestElement<Chunk> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<Chunk>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<Chunk>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -454,11 +649,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(ChunkPinDeserializationTests))]
         public void ChunkPinDeserialization(DeserializationTestElement<ChunkPin> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<ChunkPin>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<ChunkPin>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -479,11 +674,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(ChunkPinLockDeserializationTests))]
         public void ChunkPinLockDeserialization(DeserializationTestElement<ChunkPinLock> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<ChunkPinLock>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<ChunkPinLock>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -501,14 +696,78 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             Assert.NotNull(result.Id);
         }
         
-        [Theory, MemberData(nameof(PostageBatchCacheDeserializationTests))]
-        public void PostageBatchCacheDeserialization(DeserializationTestElement<PostageBatchCache> testElement)
+        [Theory, MemberData(nameof(NodePinImportDeserializationTests))]
+        public void NodePinImportDeserialization(DeserializationTestElement<NodePinImport> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageBatchCache>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<NodePinImport>(dbContext.Engine);
+            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
+            testElement.SetupAction(mongoDatabaseMock, dbContext);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            var result = modelMapSerializer.Deserialize(deserializationContext);
+
+            // Assert.
+            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
+            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
+            Assert.Equal(testElement.ExpectedModel.FailureReason, result.FailureReason);
+            Assert.Equal(testElement.ExpectedModel.Import.Id, result.Import.Id);
+            Assert.Equal(testElement.ExpectedModel.InvalidChunks, result.InvalidChunks);
+            Assert.Equal(testElement.ExpectedModel.MissingChunks, result.MissingChunks);
+            Assert.Equal(testElement.ExpectedModel.NodeId, result.NodeId);
+            Assert.Equal(testElement.ExpectedModel.PinnedChunks, result.PinnedChunks);
+            Assert.Equal(testElement.ExpectedModel.Reference, result.Reference);
+            Assert.Equal(testElement.ExpectedModel.UnpinFailureReason, result.UnpinFailureReason);
+            Assert.Equal(testElement.ExpectedModel.UnpinnedByImport, result.UnpinnedByImport);
+            Assert.Equal(testElement.ExpectedModel.WasAlreadyPinned, result.WasAlreadyPinned);
+            Assert.NotNull(result.Id);
+        }
+
+        [Theory, MemberData(nameof(NodePinsImportDeserializationTests))]
+        public void NodePinsImportDeserialization(DeserializationTestElement<NodePinsImport> testElement)
+        {
+            ArgumentNullException.ThrowIfNull(testElement);
+
+            // Setup.
+            using var documentReader = new JsonReader(testElement.SourceDocument);
+            var modelMapSerializer = new ModelMapSerializer<NodePinsImport>(dbContext.Engine);
+            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
+            testElement.SetupAction(mongoDatabaseMock, dbContext);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            var result = modelMapSerializer.Deserialize(deserializationContext);
+
+            // Assert.
+            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
+            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
+            Assert.Equal(testElement.ExpectedModel.CompletedDateTime, result.CompletedDateTime);
+            Assert.Equal(testElement.ExpectedModel.FailedPins, result.FailedPins);
+            Assert.Equal(testElement.ExpectedModel.FailureReason, result.FailureReason);
+            Assert.Equal(testElement.ExpectedModel.ImportedPins, result.ImportedPins);
+            Assert.Equal(testElement.ExpectedModel.JobId, result.JobId);
+            Assert.Equal(testElement.ExpectedModel.NodeId, result.NodeId);
+            Assert.Equal(testElement.ExpectedModel.RequestedReferences, result.RequestedReferences);
+            Assert.Equal(testElement.ExpectedModel.SkippedPins, result.SkippedPins);
+            Assert.Equal(testElement.ExpectedModel.StartedDateTime, result.StartedDateTime);
+            Assert.Equal(testElement.ExpectedModel.TotalPins, result.TotalPins);
+            Assert.Equal(testElement.ExpectedModel.UnpinImported, result.UnpinImported);
+            Assert.Equal(testElement.ExpectedModel.UnpinnedPins, result.UnpinnedPins);
+            Assert.NotNull(result.Id);
+        }
+
+        [Theory, MemberData(nameof(PostageBatchCacheDeserializationTests))]
+        public void PostageBatchCacheDeserialization(DeserializationTestElement<PostageBatchCache> testElement)
+        {
+            ArgumentNullException.ThrowIfNull(testElement);
+
+            // Setup.
+            using var documentReader = new JsonReader(testElement.SourceDocument);
+            var modelMapSerializer = new ModelMapSerializer<PostageBatchCache>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -530,11 +789,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PostageBatchLockDeserializationTests))]
         public void PostageBatchLockDeserialization(DeserializationTestElement<PostageBatchLock> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageBatchLock>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PostageBatchLock>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -555,11 +814,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PostageStampDeserializationTests))]
         public void PostageStampDeserialization(DeserializationTestElement<PostageStamp> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageStamp>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PostageStamp>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 
@@ -580,11 +839,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
         [Theory, MemberData(nameof(PushingChunkRefDeserializationTests))]
         public void PushingChunkRefDeserialization(DeserializationTestElement<PushingChunkRef> testElement)
         {
-            ArgumentNullException.ThrowIfNull(testElement, nameof(testElement));
+            ArgumentNullException.ThrowIfNull(testElement);
 
             // Setup.
             using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PushingChunkRef>(dbContext);
+            var modelMapSerializer = new ModelMapSerializer<PushingChunkRef>(dbContext.Engine);
             var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
             testElement.SetupAction(mongoDatabaseMock, dbContext);
 

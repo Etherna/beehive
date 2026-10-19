@@ -18,7 +18,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Extensions;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
-using Etherna.MongODM.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Models;

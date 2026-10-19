@@ -15,18 +15,19 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Extensions;
-using Etherna.MongODM.Core.Serialization;
-using Etherna.MongODM.Core.Serialization.Serializers;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Extensions;
+using Etherna.Scrinium.Core.Options;
+using Etherna.Scrinium.Core.Serialization;
+using Etherna.Scrinium.Core.Serialization.Serializers;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
     internal sealed class ChunkMap : IModelMapsCollector
     {
-        public void Register(IDbContext dbContext)
+        public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContext.MapRegistry.AddModelMap<Chunk>( //v0.4.0
+            dbContextEngine.MapRegistry.AddModelMap<Chunk>( //v0.4.0
                 "06aaf593-07af-4fca-99a9-bdc3718547d8",
                 mm =>
                 {
@@ -34,7 +35,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
 
                     // Set members with custom serializers.
                     mm.SetMemberSerializer(c => c.Payload, new ReadonlyMemorySerializer<byte>(BsonType.Binary));
-                    mm.SetMemberSerializer(c => c.Pins, new EnumerableSerializer<ChunkPin>(ChunkPinMap.ReferenceSerializer(dbContext)));
+                    //a deleted pin leaves the chunks it pinned: its references are pulled in background
+                    mm.SetMemberSerializer(c => c.Pins, new EnumerableSerializer<ChunkPin>(
+                        ChunkPinMap.ReferenceSerializer(dbContextEngine, OriginDeleteMode.RemoveReference)));
                 });
         }
     }

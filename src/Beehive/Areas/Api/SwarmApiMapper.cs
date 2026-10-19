@@ -84,7 +84,9 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<ChunkReferenceDto>(StatusCodes.Status201Created)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status402PaymentRequired)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status422UnprocessableEntity)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
             
             //bzz
             builder.MapGet("/bzz/{**address}",
@@ -151,7 +153,9 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<ChunkReferenceDto>(StatusCodes.Status201Created)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status402PaymentRequired)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status422UnprocessableEntity)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
             
             //chainstate
             builder.MapGet("/chainstate",
@@ -190,7 +194,9 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<ChunkReferenceDto>(StatusCodes.Status201Created)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status402PaymentRequired)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status422UnprocessableEntity)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
             
             if (!hasBeePrefix)
             {
@@ -207,6 +213,8 @@ namespace Etherna.Beehive.Areas.Api
                     .Produces(StatusCodes.Status400BadRequest)
                     .Produces(StatusCodes.Status402PaymentRequired)
                     .Produces(StatusCodes.Status404NotFound)
+                    .Produces(StatusCodes.Status422UnprocessableEntity)
+                    .Produces(StatusCodes.Status503ServiceUnavailable)
                     .IsDeprecated("Use /ev1/chunks/bulk-upload instead");
             
                 builder.MapPost("/ev1/chunks/bulk-upload",
@@ -220,7 +228,9 @@ namespace Etherna.Beehive.Areas.Api
                     .Produces(StatusCodes.Status201Created)
                     .Produces(StatusCodes.Status400BadRequest)
                     .Produces(StatusCodes.Status402PaymentRequired)
-                    .Produces(StatusCodes.Status404NotFound);
+                    .Produces(StatusCodes.Status404NotFound)
+                    .Produces(StatusCodes.Status422UnprocessableEntity)
+                    .Produces(StatusCodes.Status503ServiceUnavailable);
             }
             
             //feeds
@@ -256,7 +266,9 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status401Unauthorized)
                 .Produces(StatusCodes.Status402PaymentRequired)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status422UnprocessableEntity)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
             
             //health
             builder.MapGet("/health",
@@ -375,7 +387,9 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status401Unauthorized)
                 .Produces(StatusCodes.Status402PaymentRequired)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status422UnprocessableEntity)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
                 
             //stamps
             builder.MapGet("/stamps",

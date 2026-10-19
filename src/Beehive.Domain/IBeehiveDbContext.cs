@@ -15,8 +15,8 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.DomainEvents;
 using Etherna.MongoDB.Driver.GridFS;
-using Etherna.MongODM.Core;
-using Etherna.MongODM.Core.Repositories;
+using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.Repositories;
 
 namespace Etherna.Beehive.Domain
 {
@@ -31,6 +31,8 @@ namespace Etherna.Beehive.Domain
         IRepository<PushingChunkRef, string> ChunkPushQueue { get; }
         IRepository<Chunk, string> Chunks { get; }
         GridFSBucket ChunksBucket { get; }
+        IRepository<NodePinImport, string> NodePinImports { get; }
+        IRepository<NodePinsImport, string> NodePinsImports { get; }
         IRepository<PostageBatchCache, string> PostageBatchesCache { get; }
         IRepository<PostageBatchLock, string> PostageBatchLocks { get; }
         IRepository<PostageStamp, string> PostageStamps { get; }
