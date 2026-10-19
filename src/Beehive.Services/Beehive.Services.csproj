@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Etherna.DomainEvents.AspNetCore" Version="1.5.0" />
-    <PackageReference Include="Etherna.Scrinium.Hangfire" Version="0.25.6" />
+    <PackageReference Include="Etherna.Scrinium.Hangfire" Version="0.25.7" />
     <PackageReference Include="Nethereum.JsonRpc.WebSocketClient" Version="7.0.0" />
     <PackageReference Include="SwarmSdk.Client" Version="0.6.0-alpha.82" />
   </ItemGroup>
