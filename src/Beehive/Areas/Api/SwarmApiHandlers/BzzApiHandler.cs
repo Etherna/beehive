@@ -28,6 +28,7 @@ using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Services;
 using ICSharpCode.SharpZipLib.Tar;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
@@ -47,6 +48,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         IBeehiveDbContext dbContext,
         IFeedService feedService,
         IHttpContextAccessor httpContextAccessor,
+        ILogger<BzzApiHandler> logger,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IBzzApiHandler
     {
@@ -214,7 +216,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
             
             // Decode manifest.
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
 #pragma warning disable CA1849
             var manifest = ReferencedMantarayManifest.BuildNew(address.Reference, chunkStore);
 #pragma warning restore CA1849

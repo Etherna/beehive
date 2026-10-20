@@ -23,6 +23,7 @@ using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
@@ -36,6 +37,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         IDataService dataService,
         IBeehiveDbContext dbContext,
         IHttpContextAccessor httpContextAccessor,
+        ILogger<SocApiHandler> logger,
         ISerializerModifierAccessor serializerModifierAccessor)
         : ISocApiHandler
     {
@@ -48,7 +50,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
                 // Try find soc.
-                await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+                await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
                 var chunk = await chunkStore.TryGetAsync(
                     SwarmSoc.BuildHash(id, owner, new Hasher())).ConfigureAwait(false);
 

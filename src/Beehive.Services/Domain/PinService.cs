@@ -15,12 +15,14 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -29,6 +31,7 @@ namespace Etherna.Beehive.Services.Domain
 {
     public sealed class PinService(
         IBeehiveDbContext dbContext,
+        ILogger<PinService> logger,
         IResourceLockService resourceLockService,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinService
@@ -111,6 +114,7 @@ namespace Etherna.Beehive.Services.Domain
             // Update pin with result.
             pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
             await dbContext.SaveChangesAsync();
+            logger.PinProcessed(pin.Reference.Value, pinnedChunksHash.Count, missingChunksHash.Count, invalidChunksHash.Count);
 
             return new PinChunksResult(pin, invalidChunksHash);
         }
@@ -127,6 +131,7 @@ namespace Etherna.Beehive.Services.Domain
             // Delete it. Its references are pulled from the chunks in background, by the delete
             // policy declared on the chunk pins reference serializer.
             await dbContext.ChunkPins.DeleteAsync(pin);
+            logger.PinDeleted(pinReference);
             
             return true;
         }

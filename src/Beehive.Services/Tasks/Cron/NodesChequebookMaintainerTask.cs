@@ -57,6 +57,8 @@ namespace Etherna.Beehive.Services.Tasks.Cron
             if (!isEnabled)
                 return;
 
+            var deposits = 0;
+            var withdraws = 0;
             foreach (var node in liveManager.AllNodes)
             {
                 BzzValue? availableBzzBalance = null;
@@ -65,7 +67,10 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                     var chequebookBalanceDto = await node.Client.GetChequebookBalanceAsync();
                     availableBzzBalance = chequebookBalanceDto.AvailableBalance;
                 }
-                catch { }
+                catch (Exception e)
+                {
+                    logger.BeeNodeCallFailed(node.Id, "getChequebookBalance", e.GetBeeNodeFailureReason(), e);
+                }
 
                 // Deposit.
                 if (options.RunDeposits &&
@@ -77,6 +82,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                     {
                         var tx = await node.Client.DepositIntoChequebookAsync(bzzDepositAmount);
                         logger.SuccededToDepositBzzOnNodeChequeBook(node.Id, bzzDepositAmount, tx);
+                        deposits++;
                     }
                     catch (Exception ex)
                     {
@@ -94,6 +100,7 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                     {
                         var tx = await node.Client.WithdrawFromChequebookAsync(bzzWithdrawAmount);
                         logger.SuccededToWithdrawBzzOnNodeChequeBook(node.Id, bzzWithdrawAmount, tx);
+                        withdraws++;
                     }
                     catch (Exception ex)
                     {
@@ -101,6 +108,8 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                     }
                 }
             }
+
+            logger.NodesChequebookMaintainerTaskCompleted(deposits, withdraws);
         }
     }
 }

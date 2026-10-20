@@ -18,6 +18,7 @@ using Etherna.Scrinium.Core.Exceptions;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Serilog;
+using Serilog.Events;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -39,56 +40,68 @@ namespace Etherna.Beehive.Areas.Api
             }
             catch (Exception e)
             {
-                // Log exception.
-                Log.Warning(e, "API exception");
-
-                switch (e)
+                var result = e switch
                 {
                     // Error code 400.
-                    case ArgumentException:
-                    case FormatException:
-                    case InvalidDataException:
-                    case ScriniumInvalidEntityTypeException:
-                    case SwarmChunkTypeException:
-                        return ErrorResults.GetBadRequestErrorResult(apiVersion);
+                    ArgumentException or
+                    FormatException or
+                    InvalidDataException or
+                    ScriniumInvalidEntityTypeException or
+                    SwarmChunkTypeException =>
+                        ErrorResults.GetBadRequestErrorResult(apiVersion),
                     
-                    case BadHttpRequestException:
-                        return e.Message == ErrorResults.BatchNotUsableErrorMessage ? //special case
+                    BadHttpRequestException =>
+                        e.Message == ErrorResults.BatchNotUsableErrorMessage ? //special case
                             ErrorResults.GetBadRequestErrorResult(apiVersion, ErrorResults.BatchNotUsableErrorMessage) :
-                            ErrorResults.GetBadRequestErrorResult(apiVersion);
+                            ErrorResults.GetBadRequestErrorResult(apiVersion),
 
                     // Error code 401.
-                    case UnauthorizedAccessException:
-                        return ErrorResults.GetUnauthorizedErrorResult(apiVersion);
+                    UnauthorizedAccessException =>
+                        ErrorResults.GetUnauthorizedErrorResult(apiVersion),
 
                     // Error code 404.
-                    case PostageBatchNotFoundException: //bee's upload answer for a batch its node doesn't have
-                        return ErrorResults.GetNotFoundErrorResult(apiVersion, ErrorResults.BatchNotFoundErrorMessage);
-                    case SwarmSdkApiException { StatusCode: 404 }:
-                    case KeyNotFoundException:
-                    case ScriniumEntityNotFoundException:
-                        return ErrorResults.GetNotFoundErrorResult(apiVersion);
+                    PostageBatchNotFoundException => //bee's upload answer for a batch its node doesn't have
+                        ErrorResults.GetNotFoundErrorResult(apiVersion, ErrorResults.BatchNotFoundErrorMessage),
+                    SwarmSdkApiException { StatusCode: 404 } or
+                    KeyNotFoundException or
+                    ScriniumEntityNotFoundException =>
+                        ErrorResults.GetNotFoundErrorResult(apiVersion),
 
                     // Error code 422.
-                    case PostageBatchNotUsableException: //bee's upload answer for a batch not usable yet
-                        return ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, ErrorResults.BatchNotUsableYetErrorMessage);
+                    PostageBatchNotUsableException => //bee's upload answer for a batch not usable yet
+                        ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, ErrorResults.BatchNotUsableYetErrorMessage),
 
                     // Error code 423.
-                    case ResourceLockException:
-                        return ErrorResults.GetLockedErrorResult(apiVersion);
+                    ResourceLockException =>
+                        ErrorResults.GetLockedErrorResult(apiVersion),
                     
                     // Error code 503.
-                    case BeeNodeUnavailableException: //the message is the node's reason
-                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, e.Message);
-                    case SwarmSdkApiException apiException: //the body carries the node's own reason
-                        return ErrorResults.GetServiceUnavailableErrorResult(apiVersion, apiException.GetBeeNodeFailureReason());
+                    BeeNodeUnavailableException => //the message is the node's reason
+                        ErrorResults.GetServiceUnavailableErrorResult(apiVersion, e.Message),
+                    SwarmSdkApiException apiException => //the body carries the node's own reason
+                        ErrorResults.GetServiceUnavailableErrorResult(apiVersion, apiException.GetBeeNodeFailureReason()),
                         
                     // Error code 500.
-                    case InvalidOperationException:
-                    default:
-                        return ErrorResults.GetInternalServerErrorResult(apiVersion);
-                }
+                    _ => ErrorResults.GetInternalServerErrorResult(apiVersion)
+                };
+
+                // Log the exception by the answer: a failure of beehive is an error, one of a node a warning,
+                // a client error a trace, not a problem of the server.
+                var statusCode = (result as IStatusCodeHttpResult)?.StatusCode ?? StatusCodes.Status500InternalServerError;
+                Log.Write(GetLogEventLevel(statusCode), e, "API exception answered with status {StatusCode}", statusCode);
+
+                return result;
             }
         }
+
+        // Helpers.
+        private static LogEventLevel GetLogEventLevel(int statusCode) =>
+            statusCode switch
+            {
+                StatusCodes.Status401Unauthorized => LogEventLevel.Warning,
+                StatusCodes.Status503ServiceUnavailable => LogEventLevel.Warning,
+                >= StatusCodes.Status500InternalServerError => LogEventLevel.Error,
+                _ => LogEventLevel.Debug
+            };
     }
 }

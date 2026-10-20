@@ -23,6 +23,7 @@ using Etherna.MongoDB.Driver.Linq;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,7 @@ namespace Etherna.Beehive.Services.Domain
     public sealed class PostageBatchService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
+        ILogger<PostageBatchService> logger,
         IResourceLockService resourceLockService)
         : IPostageBatchService
     {
@@ -88,6 +90,7 @@ namespace Etherna.Beehive.Services.Domain
                 immutable,
                 beeNodeInstance.Id);
             await dbContext.PostageBatchesCache.CreateAsync(batchCache);
+            logger.PostageBatchBought(batchId, beeNodeInstance.Id, depth, amount, immutable, txHash);
             
             return (batchId, txHash);
         }
@@ -115,6 +118,7 @@ namespace Etherna.Beehive.Services.Domain
             // Update cache.
             postageCache.Depth = depth;
             await dbContext.SaveChangesAsync();
+            logger.PostageBatchDiluted(batchId, node.Id, depth, txHash);
             
             return txHash;
         }
@@ -158,7 +162,9 @@ namespace Etherna.Beehive.Services.Domain
                 }
                 catch (Exception e) when (e.IsBeeNodeCallFailure())
                 {
-                    nodeErrors[nodeId] = e.GetBeeNodeFailureReason();
+                    var reason = e.GetBeeNodeFailureReason();
+                    logger.BeeNodeCallFailed(nodeId, "getOwnedPostageBatches", reason, e);
+                    nodeErrors[nodeId] = reason;
                 }
             }
 
@@ -233,11 +239,14 @@ namespace Etherna.Beehive.Services.Domain
             if (node == null)
                 throw new KeyNotFoundException();
             
-            return await node.TopUpPostageBatchAsync(
+            var txHash = await node.TopUpPostageBatchAsync(
                 batchId,
                 amount,
                 gasLimit,
                 gasPrice);
+            logger.PostageBatchToppedUp(batchId, node.Id, amount, txHash);
+
+            return txHash;
         }
         
         public Task<ResourceLockHandler<ChunkPushLock>?> TryAcquireChunkPushLockAsync(
@@ -309,7 +318,9 @@ namespace Etherna.Beehive.Services.Domain
             catch (Exception e) when (e.IsBeeNodeCallFailure())
             {
                 //the node not answering: report what the cache knows, with the reason
-                return new PostageBatchResult(postageCache, e.GetBeeNodeFailureReason());
+                var reason = e.GetBeeNodeFailureReason();
+                logger.BeeNodeCallFailed(nodeLiveInstance.Id, "getPostageBatch", reason, e);
+                return new PostageBatchResult(postageCache, reason);
             }
         }
 

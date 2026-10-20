@@ -19,6 +19,7 @@ using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -41,6 +42,8 @@ namespace Etherna.Beehive.Services.Tasks.Cron
         // Methods.
         public async Task RunAsync()
         {
+            var nodesCount = 0;
+            BzzValue allNodesBzzCashedOut = 0;
             foreach (var node in liveManager.AllNodes)
             {
                 BzzValue totalBzzCashedOut = 0;
@@ -69,17 +72,28 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                                 totalBzzCashedOut += uncashedBzzAmount.Value;
                                 txs.Add(txHash);
                             }
-                            catch (SwarmSdkApiException) { }
+                            catch (SwarmSdkApiException e)
+                            {
+                                logger.ChequeCashoutFailed(node.Id, peer, e);
+                            }
                         }
                     }
                 }
-                catch (SwarmSdkApiException) { return; } //issues contacting the node instance api
-                catch (HttpRequestException) { return; }
+                catch (Exception e) when (e is SwarmSdkApiException or HttpRequestException) //issues contacting the node instance api
+                {
+                    logger.BeeNodeCallFailed(node.Id, "cashoutCheques", e.GetBeeNodeFailureReason(), e);
+                    return;
+                }
 
                 // Add log.
                 if (totalBzzCashedOut > 0)
                     logger.NodeCashedOut(node.Id, totalBzzCashedOut, txs);
+
+                nodesCount++;
+                allNodesBzzCashedOut += totalBzzCashedOut;
             }
+
+            logger.CashoutAllNodesChequesTaskCompleted(nodesCount, allNodesBzzCashedOut);
         }
     }
 }

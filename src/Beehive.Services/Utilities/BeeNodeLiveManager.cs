@@ -22,6 +22,7 @@ using Etherna.MongoDB.Driver.Linq;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
@@ -44,6 +45,7 @@ namespace Etherna.Beehive.Services.Utilities
     /// </remarks>
     internal sealed class BeeNodeLiveManager(
         IOptions<DevNodeOptions> devNodeOptions,
+        ILogger<BeeNodeLiveManager> logger,
         IServiceScopeFactory serviceScopeFactory)
         : IBeeNodeLiveManager, IDisposable
     {
@@ -134,10 +136,11 @@ namespace Etherna.Beehive.Services.Utilities
                 return liveInstance;
 
             //remove the dev node when a real node is registered
-            beeNodeInstances.TryRemove(DevNodeClient.NodeId, out _);
+            if (beeNodeInstances.TryRemove(DevNodeClient.NodeId, out _))
+                logger.DevNodeDisabled();
 
             // Try to add node and refresh live status (if necessary).
-            liveInstance = new BeeNodeLiveInstance(beeNode);
+            liveInstance = new BeeNodeLiveInstance(beeNode, logger);
             if (beeNodeInstances.TryAdd(beeNode.Id, liveInstance))
                 await liveInstance.TryRefreshStatusAsync();
 
@@ -147,6 +150,8 @@ namespace Etherna.Beehive.Services.Utilities
         public async Task<bool> TryRemoveBeeNodeAsync(string nodeId)
         {
             var removed = beeNodeInstances.TryRemove(nodeId, out _);
+            if (removed)
+                logger.BeeNodeLiveInstanceRemoved(nodeId);
 
             //restore the dev node when no more nodes are registered
             await TryAddDevNodeInstanceAsync();
@@ -240,8 +245,9 @@ namespace Etherna.Beehive.Services.Utilities
 
                 dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
             }
-            catch (UnauthorizedAccessException) //can fail during dbcontext migration
+            catch (UnauthorizedAccessException e) //can fail during dbcontext migration
             {
+                logger.BeeNodesHeartbeatSkipped(e);
                 return;
             }
             
@@ -271,7 +277,9 @@ namespace Etherna.Beehive.Services.Utilities
                     e is SwarmSdkApiException ||
                     e is HttpRequestException ||
                     e is SocketException)
-                { }
+                {
+                    logger.BeeNodeCallFailed(node.Id, "getChainState", e.GetBeeNodeFailureReason(), e);
+                }
             }
         }
 
@@ -281,9 +289,12 @@ namespace Etherna.Beehive.Services.Utilities
             if (!devNodeOptions.Value.Enabled || !beeNodeInstances.IsEmpty)
                 return;
 
-            var devNodeInstance = new BeeNodeLiveInstance(new DevNodeClient());
+            var devNodeInstance = new BeeNodeLiveInstance(new DevNodeClient(), logger);
             if (beeNodeInstances.TryAdd(DevNodeClient.NodeId, devNodeInstance))
+            {
+                logger.DevNodeEnabled();
                 await devNodeInstance.TryRefreshStatusAsync();
+            }
         }
     }
 }

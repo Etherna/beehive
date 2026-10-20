@@ -26,6 +26,7 @@ using Etherna.SwarmSdk.Models;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -89,7 +90,7 @@ namespace Etherna.Beehive.Services.Domain
             dbContextMock.Setup(c => c.NodePinsImports).Returns(importsMock.Object);
 
             // A registered node, alive.
-            var node = new BeeNodeLiveInstance(NodeId, nodeClientMock.Object, true);
+            var node = new BeeNodeLiveInstance(NodeId, nodeClientMock.Object, true, NullLogger.Instance);
             node.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
             var beeNodeLiveManagerMock = new Mock<IBeeNodeLiveManager>();
             beeNodeLiveManagerMock.Setup(m => m.GetBeeNodeLiveInstanceAsync(NodeId)).ReturnsAsync(node);
@@ -101,7 +102,8 @@ namespace Etherna.Beehive.Services.Domain
                 backgroundJobClientMock.Object,
                 dbContextMock.Object,
                 beeNodeLiveManagerMock.Object,
-                hangfireJobsMonitorMock.Object);
+                hangfireJobsMonitorMock.Object,
+                NullLogger<NodePinsImportService>.Instance);
         }
 
         // Tests.

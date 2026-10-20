@@ -20,6 +20,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,6 +33,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         IBeeNodeLiveManager beeNodeLiveManager,
         IDataService dataService,
         IBeehiveDbContext dbContext,
+        ILogger<ChunksApiHandler> logger,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IChunksApiHandler
     {
@@ -41,6 +43,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 await using var chunkStore = new BeehiveChunkStore(
                     beeNodeLiveManager,
                     dbContext,
+                    logger,
                     serializerModifierAccessor);
 
                 var chunk = await chunkStore.GetAsync(hash);
@@ -56,6 +59,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 await using var chunkStore = new BeehiveChunkStore(
                     beeNodeLiveManager,
                     dbContext,
+                    logger,
                     serializerModifierAccessor);
 
                 var hasChunk = await chunkStore.HasChunkAsync(hash);

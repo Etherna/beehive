@@ -18,10 +18,8 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Tasks.Trigger;
-using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Extensions;
-using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Models;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
@@ -33,10 +31,9 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
     public sealed class PinsApiHandler(
         IBackgroundJobClient backgroundJobClient,
-        IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
-        IPinService pinService,
-        ISerializerModifierAccessor serializerModifierAccessor)
+        IPinChunksTask pinChunksTask,
+        IPinService pinService)
         : IPinsApiHandler
     {
         public Task<IResult> CreatePinBeeAsync(SwarmReference reference) =>
@@ -156,12 +153,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             }
             else
             {
-                var task = new PinChunksTask(
-                    beeNodeLiveManager,
-                    pinService,
-                    dbContext,
-                    serializerModifierAccessor);
-                await task.RunAsync(pin.Id);
+                await pinChunksTask.RunAsync(pin.Id);
             }
         }
     }

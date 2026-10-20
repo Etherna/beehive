@@ -13,14 +13,18 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.MongoDB.Driver.Linq;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Cron
 {
-    public class CleanupExpiredLocksTask(IBeehiveDbContext dbContext)
+    public class CleanupExpiredLocksTask(
+        IBeehiveDbContext dbContext,
+        ILogger<CleanupExpiredLocksTask> logger)
         : ICleanupExpiredLocksTask
     {
         // Consts.
@@ -35,6 +39,8 @@ namespace Etherna.Beehive.Services.Tasks.Cron
 
             foreach (var expiredLock in expiredLocks)
                 await dbContext.ChunkPinLocks.DeleteAsync(expiredLock);
+
+            logger.CleanupExpiredLocksTaskCompleted(expiredLocks.Count);
         }
     }
 }

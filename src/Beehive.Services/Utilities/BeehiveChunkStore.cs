@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongoDB.Driver.Linq;
@@ -21,6 +22,7 @@ using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,6 +41,7 @@ namespace Etherna.Beehive.Services.Utilities
     public sealed class BeehiveChunkStore(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
+        ILogger logger,
         ISerializerModifierAccessor serializerModifierAccessor,
         int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
         Action<Chunk>? onSavingChunk = null,
@@ -117,8 +120,9 @@ namespace Etherna.Beehive.Services.Utilities
                 
                 return true;
             }
-            catch
+            catch (Exception e)
             {
+                logger.FailedToStoreChunk(chunk.Hash, e);
                 return false;
             }
         }
@@ -325,6 +329,7 @@ namespace Etherna.Beehive.Services.Utilities
             // Get from the source node, or from the nearest healthy one.
             var node = sourceNode ?? beeNodeLiveManager.SelectNearestHealthyNode(hash);
             var chunk = await node.ChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
+            logger.ChunkReadFromNode(hash, node.Id);
             
             // Save in local db. Force flush on db now.
             //flush is required by pinning that needs to update chunk's pin reference on db.
@@ -364,9 +369,11 @@ namespace Etherna.Beehive.Services.Utilities
             if (sourceNode is not null)
             {
                 var fromSourceNode = await sourceNode.ChunkStore.GetAsync(hashes, cancellationToken: cancellationToken);
-                return fromSourceNode
+                var foundOnSourceNode = fromSourceNode
                     .Where(p => p.Value != null)
                     .ToDictionary(p => p.Key, p => p.Value!);
+                logger.ChunksReadFromNode(foundOnSourceNode.Count, hashes.Count, sourceNode.Id);
+                return foundOnSourceNode;
             }
             
             var healthyNodes = beeNodeLiveManager.HealthyNodes
@@ -387,19 +394,34 @@ namespace Etherna.Beehive.Services.Utilities
                 hashesByNode[nodeIndex].Add(hash);
             }
 
-            var getTasks = new List<Task<IReadOnlyDictionary<SwarmHash, SwarmChunk?>>>();
+            var getTasks = new List<(BeeNodeLiveInstance Node, int RequestedChunks, Task<IReadOnlyDictionary<SwarmHash, SwarmChunk?>> Task)>();
             for (int i = 0; i < healthyNodes.Length; i++)
             {
                 if (hashesByNode[i].Count == 0)
                     continue;
-                getTasks.Add(healthyNodes[i].ChunkStore.GetAsync(hashesByNode[i], cancellationToken: cancellationToken));
+                getTasks.Add((
+                    healthyNodes[i],
+                    hashesByNode[i].Count,
+                    healthyNodes[i].ChunkStore.GetAsync(hashesByNode[i], cancellationToken: cancellationToken)));
             }
 
-            await Task.WhenAll(getTasks);
-            
-            return getTasks.SelectMany(t => t.Result)
-                .Where(p => p.Value != null)
-                .ToDictionary(p => p.Key, p => p.Value!);
+            await Task.WhenAll(getTasks.Select(t => t.Task));
+
+            var found = new Dictionary<SwarmHash, SwarmChunk>();
+            foreach (var (node, requestedChunks, task) in getTasks)
+            {
+                var foundOnNode = 0;
+                foreach (var (hash, chunk) in await task) //already completed
+                {
+                    if (chunk is null)
+                        continue;
+                    found[hash] = chunk;
+                    foundOnNode++;
+                }
+                logger.ChunksReadFromNode(foundOnNode, requestedChunks, node.Id);
+            }
+
+            return found;
         }
     }
 }

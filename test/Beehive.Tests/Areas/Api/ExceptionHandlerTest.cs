@@ -16,6 +16,9 @@ using Etherna.Beehive.Domain.Exceptions;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -51,6 +54,40 @@ namespace Etherna.Beehive.Areas.Api
         }
 
         // Tests.
+
+        [Theory]
+        [InlineData(typeof(KeyNotFoundException), StatusCodes.Status404NotFound, LogEventLevel.Debug)]
+        [InlineData(typeof(BeeNodeUnavailableException), StatusCodes.Status503ServiceUnavailable, LogEventLevel.Warning)]
+        [InlineData(typeof(InvalidOperationException), StatusCodes.Status500InternalServerError, LogEventLevel.Error)]
+        public async Task LogsTheExceptionAtTheLevelOfTheAnsweredStatus(
+            Type exceptionType,
+            int expectedStatusCode,
+            LogEventLevel expectedLevel)
+        {
+            // Setup.
+            //the handler writes on the static Serilog logger: capture it for this test, then restore it
+            var exception = (Exception)Activator.CreateInstance(exceptionType)!;
+            var sink = new ListSink();
+            var originalLogger = Log.Logger;
+            Log.Logger = new LoggerConfiguration().MinimumLevel.Verbose().WriteTo.Sink(sink).CreateLogger();
+            try
+            {
+                // Action.
+                var result = await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+                var (statusCode, _) = await ExecuteResultAsync(result);
+
+                // Assert.
+                Assert.Equal(expectedStatusCode, statusCode);
+                var logEvent = Assert.Single(sink.Events);
+                Assert.Equal(expectedLevel, logEvent.Level);
+                Assert.Same(exception, logEvent.Exception);
+                Assert.Equal(expectedStatusCode, Assert.IsType<ScalarValue>(logEvent.Properties["StatusCode"]).Value);
+            }
+            finally
+            {
+                Log.Logger = originalLogger;
+            }
+        }
 
         [Theory, MemberData(nameof(PostageBatchVerificationTests))]
         public async Task PostageBatchVerificationAnswersBeeStatusAndMessage(
@@ -90,6 +127,13 @@ namespace Etherna.Beehive.Areas.Api
         }
 
         // Helpers.
+        private sealed class ListSink : ILogEventSink
+        {
+            public List<LogEvent> Events { get; } = [];
+
+            public void Emit(LogEvent logEvent) => Events.Add(logEvent);
+        }
+
         private static async Task<(int StatusCode, JsonElement Body)> ExecuteResultAsync(IResult result)
         {
             var httpContext = new DefaultHttpContext
