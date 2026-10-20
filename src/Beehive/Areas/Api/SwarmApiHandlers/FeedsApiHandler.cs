@@ -24,6 +24,7 @@ using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
@@ -38,6 +39,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         IBeehiveDbContext dbContext,
         IFeedService feedService,
         IHttpContextAccessor httpContextAccessor,
+        ILogger<FeedsApiHandler> logger,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IFeedsApiHandler
     {
@@ -112,7 +114,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 
                 // Find feed chunk at given moment.
                 await using var chunkStore =
-                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
                 var feedChunk = await feed.TryFindFeedChunkAtAsync(
                     at.Value,
                     afterFeedIndex,

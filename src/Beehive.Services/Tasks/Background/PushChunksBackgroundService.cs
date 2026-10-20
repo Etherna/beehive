@@ -108,7 +108,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
             // Initialize scope.
             using var scope = serviceScopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
             var postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
 
             // Open the ambient contexts both libraries require outside a request.

@@ -25,6 +25,7 @@ using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Hashing.Pipeline;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using System.IO;
 using System.Threading.Tasks;
@@ -36,6 +37,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         IDataService dataService,
         IBeehiveDbContext dbContext,
         IHttpContextAccessor httpContextAccessor,
+        ILogger<BytesApiHandler> logger,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IBytesApiHandler
     {
@@ -47,7 +49,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
                 await using var chunkStore =
-                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
                 var dataStream = await ChunkDataStream.BuildNewAsync(
                     reference,
                     chunkStore,
@@ -68,7 +70,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
                 await using var chunkStore =
-                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
                 var chunk = await chunkStore.GetAsync(reference.Hash);
                 if (chunk is not SwarmCac cac) //bytes can only read from cac
                     throw new SwarmChunkTypeException(chunk);

@@ -101,6 +101,9 @@ namespace Etherna.Beehive.Services.Tasks.Cron
             if (!isEnabled)
                 return;
 
+            var bzzFundedNodes = 0;
+            var xDaiFundedNodes = 0;
+
             // For each node, even if actually offline.
             foreach (var node in liveManager.AllNodes)
             {
@@ -122,7 +125,10 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                         var plurBalance = await balanceHandler.QueryAsync<BigInteger>(options.BzzContractAddress, balanceOfFunctionMessage);
                         bzzNodeAmount = Web3.Convert.FromWei(plurBalance, BzzDecimalPlaces);
                     }
-                    catch { }
+                    catch (Exception e)
+                    {
+                        logger.FailedToReadNodeBalance(node.Id, "BZZ", e);
+                    }
 
                     // Fund node.
                     if (bzzNodeAmount < options.BzzMinTrigger)
@@ -139,7 +145,10 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                             var tx = await transferHandler.SendRequestAndWaitForReceiptAsync(options.BzzContractAddress, transferFunctionMessage);
 
                             if (tx.Succeeded())
+                            {
+                                bzzFundedNodes++;
                                 logger.SuccededToFundBzzOnNodeAddress(node.Id, bzzFundAmount, bzzNodeAmount.Value + bzzFundAmount, tx.TransactionHash);
+                            }
                             else
                                 logger.FailedToFundBzzOnNodeAddress(node.Id, bzzFundAmount, tx.TransactionHash, null);
                         }
@@ -161,7 +170,10 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                             node.Status.Addresses.Ethereum.ToString());
                         xDaiNodeAmount = Web3.Convert.FromWei(weiBalance);
                     }
-                    catch { }
+                    catch (Exception e)
+                    {
+                        logger.FailedToReadNodeBalance(node.Id, "xDai", e);
+                    }
 
                     // Fund node.
                     if (xDaiNodeAmount < options.XDaiMinTrigger)
@@ -175,7 +187,10 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                                     xDaiFundAmount);
 
                             if (tx.Succeeded())
+                            {
+                                xDaiFundedNodes++;
                                 logger.SuccededToFundXDaiOnNodeAddress(node.Id, xDaiFundAmount, xDaiNodeAmount.Value + xDaiFundAmount, tx.TransactionHash);
+                            }
                             else
                                 logger.FailedToFundXDaiOnNodeAddress(node.Id, xDaiFundAmount, tx.TransactionHash, null);
                         }
@@ -186,6 +201,8 @@ namespace Etherna.Beehive.Services.Tasks.Cron
                     }
                 }
             }
+
+            logger.NodesAddressMaintainerTaskCompleted(bzzFundedNodes, xDaiFundedNodes);
         }
     }
 }

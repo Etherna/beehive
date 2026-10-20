@@ -13,15 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.MongoDB.Driver;
 using Etherna.Scrinium.Core.Repositories;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
-    public sealed class ResourceLockService : IResourceLockService
+    public sealed class ResourceLockService(ILogger<ResourceLockService> logger) : IResourceLockService
     {
         public async Task<ResourceLockHandler<TModel>?> TryAcquireLockAsync<TModel>(
             Func<TModel> buildNewLock,
@@ -51,7 +53,10 @@ namespace Etherna.Beehive.Services.Domain
             // If prev lock exists, verify if is still valid, and if new one or old one are exclusive.
             var prevLock = await repository.TryFindOneAsync(l => l.ResourceId == resourceId);
             if (prevLock?.ExpirationTime > now && (exclusiveAccess || prevLock.ExclusiveAccess))
+            {
+                logger.ResourceLockDenied(resourceId, exclusiveAccess);
                 return null;
+            }
             
             // Delete old expired lock, if exists.
             // Additional check on expiration because concurrent access could have renewed it.
@@ -98,6 +103,7 @@ namespace Etherna.Beehive.Services.Domain
                                         or MongoWriteException)
             {
                 // Catch any unique index collision.
+                logger.ResourceLockDenied(resourceId, exclusiveAccess);
                 return null;
             }
         }

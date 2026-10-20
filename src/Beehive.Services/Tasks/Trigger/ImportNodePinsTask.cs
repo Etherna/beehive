@@ -111,6 +111,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                     await using var chunkStore = new BeehiveChunkStore(
                         beeNodeLiveManager,
                         dbContext,
+                        logger,
                         serializerModifierAccessor,
                         sourceNode: node);
                     result = await pinService.PinChunksAsync(pin.Id, chunkStore);

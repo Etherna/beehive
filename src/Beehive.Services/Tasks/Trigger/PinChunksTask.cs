@@ -16,14 +16,16 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Trigger
 {
     public class PinChunksTask(
         IBeeNodeLiveManager beeNodeLiveManager,
-        IPinService pinService,
         IBeehiveDbContext dbContext,
+        ILogger<PinChunksTask> logger,
+        IPinService pinService,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinChunksTask
     {
@@ -31,7 +33,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         public async Task RunAsync(string chunkPinId)
         {
             await using var chunkStore =
-                new BeehiveChunkStore(beeNodeLiveManager, dbContext, serializerModifierAccessor);
+                new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
             await pinService.PinChunksAsync(chunkPinId, chunkStore);
         }
     }

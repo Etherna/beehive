@@ -15,6 +15,7 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Tasks.Trigger;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
@@ -22,6 +23,7 @@ using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Extensions;
 using Etherna.SwarmSdk.Models;
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,7 +35,8 @@ namespace Etherna.Beehive.Services.Domain
         IBackgroundJobClient backgroundJobClient,
         IBeehiveDbContext dbContext,
         IBeeNodeLiveManager beeNodeLiveManager,
-        IHangfireJobsMonitor hangfireJobsMonitor)
+        IHangfireJobsMonitor hangfireJobsMonitor,
+        ILogger<NodePinsImportService> logger)
         : INodePinsImportService
     {
         // Methods.
@@ -48,6 +51,7 @@ namespace Etherna.Beehive.Services.Domain
                     .ToListAsync());
             foreach (var import in imports)
                 await dbContext.NodePinsImports.DeleteAsync(import);
+            logger.NodePinsImportsDeleted(nodeId, imports.Count);
 
             return imports.Count;
         }
@@ -101,6 +105,7 @@ namespace Etherna.Beehive.Services.Domain
             var jobId = backgroundJobClient.Enqueue<IImportNodePinsTask>(t => t.RunAsync(import.Id));
             import.SetJobId(jobId);
             await dbContext.SaveChangesAsync();
+            logger.NodePinsImportEnqueued(nodeId, jobId, unpinImported, import.RequestedReferences.Count());
 
             return import;
         }
@@ -133,6 +138,7 @@ namespace Etherna.Beehive.Services.Domain
 
             import.Fail("The import job ended before completing the import");
             await dbContext.SaveChangesAsync();
+            logger.NodePinsImportJobGone(import.NodeId, import.Id, import.JobId);
         }
     }
 }

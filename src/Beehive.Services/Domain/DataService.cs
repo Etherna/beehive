@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
@@ -21,6 +22,7 @@ using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Hashing.Signer;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -33,6 +35,7 @@ namespace Etherna.Beehive.Services.Domain
     public sealed class DataService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
+        ILogger<DataService> logger,
         IPostageBatchService postageBatchService,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IDataService
@@ -102,6 +105,7 @@ namespace Etherna.Beehive.Services.Domain
                 var dbChunkStore = new BeehiveChunkStore(
                     beeNodeLiveManager,
                     dbContext,
+                    logger,
                     serializerModifierAccessor,
                     onSavingChunk: c =>
                     {
@@ -131,6 +135,8 @@ namespace Etherna.Beehive.Services.Domain
                 pin.UploadSucceeded(rootReference, chunkRefs.Count);
                 await dbContext.SaveChangesAsync();
             }
+
+            logger.UploadCompleted(rootReference, batchId, chunkRefs.Count, pin != null);
 
             return rootReference;
         }

@@ -23,6 +23,7 @@ using Etherna.Scrinium.Core.Repositories;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -57,9 +58,9 @@ namespace Etherna.Beehive.Services.Domain
         public PostageBatchServiceTest()
         {
             // Two registered nodes, both alive unless a test says otherwise.
-            nodeA = new BeeNodeLiveInstance(NodeAId, nodeAClientMock.Object, true);
+            nodeA = new BeeNodeLiveInstance(NodeAId, nodeAClientMock.Object, true, NullLogger.Instance);
             nodeA.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
-            nodeB = new BeeNodeLiveInstance(NodeBId, nodeBClientMock.Object, true);
+            nodeB = new BeeNodeLiveInstance(NodeBId, nodeBClientMock.Object, true, NullLogger.Instance);
             nodeB.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
             beeNodeLiveManagerMock.Setup(m => m.AllNodes).Returns(() => [nodeA, nodeB]);
 
@@ -81,6 +82,7 @@ namespace Etherna.Beehive.Services.Domain
             service = new PostageBatchService(
                 beeNodeLiveManagerMock.Object,
                 dbContextMock.Object,
+                NullLogger<PostageBatchService>.Instance,
                 new Mock<IResourceLockService>().Object);
         }
 

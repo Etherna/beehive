@@ -58,7 +58,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         public ImportNodePinsTaskTest()
         {
             // The node under import, alive.
-            var node = new BeeNodeLiveInstance(NodeId, nodeClientMock.Object, true);
+            var node = new BeeNodeLiveInstance(NodeId, nodeClientMock.Object, true, NullLogger.Instance);
             node.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
             var beeNodeLiveManagerMock = new Mock<IBeeNodeLiveManager>();
             beeNodeLiveManagerMock.Setup(m => m.GetBeeNodeLiveInstanceAsync(NodeId)).ReturnsAsync(node);
