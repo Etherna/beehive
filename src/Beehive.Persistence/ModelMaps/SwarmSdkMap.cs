@@ -19,7 +19,7 @@ using Etherna.SwarmSdk.Models;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
-    internal sealed class BeeNetMap : IModelMapsCollector
+    internal sealed class SwarmSdkMap : IModelMapsCollector
     {
         public void Register(IDbContextEngine dbContextEngine)
         {
