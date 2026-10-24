@@ -17,6 +17,7 @@ using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using System;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,13 +25,21 @@ namespace Etherna.Beehive.Configs.OpenApi
 {
     public sealed class SwarmModelsSchemaTransformer : IOpenApiSchemaTransformer
     {
-        public Task TransformAsync(
+        public async Task TransformAsync(
             OpenApiSchema schema,
             OpenApiSchemaTransformerContext context,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(schema);
             ArgumentNullException.ThrowIfNull(context);
+
+            /* The json schema exporter describes a type serialized by a custom converter, as the Swarm models, with an
+             * empty schema. A property keeps it as the component of its type, filled in below, but an array drops it
+             * and comes with no items, so that a client generator reads an array of anything. Build the schema of the
+             * element here instead: it goes through this transformer too. */
+            if (context.JsonTypeInfo is { Kind: JsonTypeInfoKind.Enumerable, ElementType: { } elementType } &&
+                schema.Items is null)
+                schema.Items = await context.GetOrCreateSchemaAsync(elementType, null, cancellationToken);
 
             /* Enums are serialized as strings by the global JsonStringEnumConverter, but the
              * JsonSchemaExporter emits their schema with the enum values and no "type". Restore it,
@@ -166,8 +175,6 @@ namespace Etherna.Beehive.Configs.OpenApi
                 schema.Type = JsonSchemaType.String;
                 schema.Format = null;
             }
-
-            return Task.CompletedTask;
         }
     }
 }
