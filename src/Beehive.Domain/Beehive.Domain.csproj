@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Etherna.DomainEvents" Version="1.5.0" />
-    <PackageReference Include="Etherna.Scrinium.Core" Version="0.25.7" />
+    <PackageReference Include="Etherna.Scrinium.Core" Version="0.25.8" />
     <PackageReference Include="Nethereum.Web3" Version="7.0.0" />
     <PackageReference Include="SwarmSdk" Version="0.6.0-alpha.94" />
   </ItemGroup>
