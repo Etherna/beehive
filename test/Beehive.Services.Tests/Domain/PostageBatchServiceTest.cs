@@ -113,7 +113,7 @@ namespace Etherna.Beehive.Services.Domain
             // Setup.
             nodeB.Status.FailedHeartbeatAttempt(["Node is not ready"], DateTime.UtcNow);
             nodeAClientMock.Setup(c => c.GetOwnedPostageBatchesAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync([NewLivePostageBatch(BatchOnNodeAId, isUsable: true)]);
+                .ReturnsAsync([NewLivePostageBatchResponse(BatchOnNodeAId, isUsable: true)]);
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeAId, NodeAId));
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeBId, NodeBId));
 
@@ -137,7 +137,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             nodeAClientMock.Setup(c => c.GetOwnedPostageBatchesAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync([NewLivePostageBatch(BatchOnNodeAId, isUsable: true)]);
+                .ReturnsAsync([NewLivePostageBatchResponse(BatchOnNodeAId, isUsable: true)]);
             nodeBClientMock.Setup(c => c.GetOwnedPostageBatchesAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(exception);
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeAId, NodeAId));
@@ -206,7 +206,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId, isUsable: true));
+                .ReturnsAsync(NewLivePostageBatchResponse(BatchOnNodeBId, isUsable: true));
             postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeBId, NodeBId));
 
             // Action.
@@ -243,7 +243,7 @@ namespace Etherna.Beehive.Services.Domain
             // Setup.
             var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
             nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId, isUsable: true));
+                .ReturnsAsync(NewLivePostageBatchResponse(BatchOnNodeBId, isUsable: true));
 
             // Action.
             await service.VerifyPostageBatchUsableAsync(postageBatchCache);
@@ -285,7 +285,7 @@ namespace Etherna.Beehive.Services.Domain
             // Setup.
             var postageBatchCache = NewPostageBatchCache(BatchOnNodeBId, NodeBId);
             nodeBClientMock.Setup(c => c.GetPostageBatchAsync(BatchOnNodeBId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(NewLivePostageBatch(BatchOnNodeBId, isUsable: false));
+                .ReturnsAsync(NewLivePostageBatchResponse(BatchOnNodeBId, isUsable: false));
 
             // Action & assert.
             await Assert.ThrowsAsync<PostageBatchNotUsableException>(
@@ -331,8 +331,8 @@ namespace Etherna.Beehive.Services.Domain
                 new Dictionary<string, IEnumerable<string>>(),
                 null);
 
-        private static PostageBatch NewLivePostageBatch(PostageBatchId batchId, bool isUsable) =>
-            new(
+        private static PostageBatchResponse NewLivePostageBatchResponse(PostageBatchId batchId, bool isUsable) =>
+            new(new PostageBatch(
                 id: batchId,
                 amount: BzzValue.FromPlurDecimal(1_000_000),
                 blockNumber: 42,
@@ -342,7 +342,7 @@ namespace Etherna.Beehive.Services.Domain
                 isUsable: isUsable,
                 label: "live",
                 ttl: TimeSpan.FromDays(1),
-                utilization: 3);
+                utilization: 3), null);
 
         private static PostageBatchCache NewPostageBatchCache(PostageBatchId batchId, string ownerNodeId)
         {

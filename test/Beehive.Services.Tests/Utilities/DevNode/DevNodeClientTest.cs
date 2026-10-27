@@ -41,7 +41,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             // Assert.
             Assert.Equal(EthTxHash.Zero, txHash);
 
-            var batch = await devNodeClient.GetPostageBatchAsync(batchId);
+            var batch = (await devNodeClient.GetPostageBatchAsync(batchId)).PostageBatch;
             Assert.Equal(batchId, batch.Id);
             Assert.Equal(BzzValue.FromPlurDecimal(10_000_000), batch.Amount);
             Assert.Equal(20, batch.Depth);
@@ -83,7 +83,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             await devNodeClient.DilutePostageBatchAsync(batchId, 22);
 
             // Assert.
-            var batch = await devNodeClient.GetPostageBatchAsync(batchId);
+            var batch = (await devNodeClient.GetPostageBatchAsync(batchId)).PostageBatch;
             Assert.Equal(22, batch.Depth);
         }
 
@@ -270,7 +270,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
 
             // Assert.
             var batch = Assert.Single(batches);
-            Assert.Equal(batchId, batch.Id);
+            Assert.Equal(batchId, batch.PostageBatch.Id);
         }
 
         [Fact]
@@ -309,7 +309,7 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
             await devNodeClient.TopUpPostageBatchAsync(batchId, BzzValue.FromPlurDecimal(500_000));
 
             // Assert.
-            var batch = await devNodeClient.GetPostageBatchAsync(batchId);
+            var batch = (await devNodeClient.GetPostageBatchAsync(batchId)).PostageBatch;
             Assert.Equal(BzzValue.FromPlurDecimal(1_500_000), batch.Amount);
         }
 

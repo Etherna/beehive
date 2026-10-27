@@ -197,8 +197,8 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
                 PublicKey,
                 PssPublicKey));
 
-        public Task<PostageBatch[]> GetOwnedPostageBatchesAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(postageBatches.Values.ToArray());
+        public Task<PostageBatchResponse[]> GetOwnedPostageBatchesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(postageBatches.Values.Select(batch => new PostageBatchResponse(batch, null)).ToArray());
 
         public Task<PinStatus> GetPinStatusAsync(
             SwarmReference reference,
@@ -207,12 +207,12 @@ namespace Etherna.Beehive.Services.Utilities.DevNode
                 ? Task.FromResult(new PinStatus(reference, null, null, null, true, null))
                 : Task.FromException<PinStatus>(NewApiException(404, "Pin not found"));
 
-        public Task<PostageBatch> GetPostageBatchAsync(
+        public Task<PostageBatchResponse> GetPostageBatchAsync(
             PostageBatchId batchId,
             CancellationToken cancellationToken = default) =>
             postageBatches.TryGetValue(batchId, out var batch)
-                ? Task.FromResult(batch)
-                : Task.FromException<PostageBatch>(NewApiException(404, "Postage batch not found"));
+                ? Task.FromResult(new PostageBatchResponse(batch, null))
+                : Task.FromException<PostageBatchResponse>(NewApiException(404, "Postage batch not found"));
 
         public Task<PostageBucketsStatus> GetPostageBatchBucketsAsync(
             PostageBatchId batchId,

@@ -142,7 +142,7 @@ namespace Etherna.Beehive.Services.Domain
             var nodes = beeNodeLiveManager.AllNodes.ToArray();
 
             // Ask the alive nodes for their batches, in parallel. A node that is not alive is not asked.
-            Dictionary<string, Task<PostageBatch[]>> nodeTasks = []; //node id -> owned batches
+            Dictionary<string, Task<PostageBatchResponse[]>> nodeTasks = []; //node id -> owned batches
             Dictionary<string, string> nodeErrors = []; //node id -> reason the node could not answer
             foreach (var node in nodes)
             {
@@ -158,7 +158,7 @@ namespace Etherna.Beehive.Services.Domain
             {
                 try
                 {
-                    postageBatches.AddRange((await task).Select(b => new PostageBatchResult(b)));
+                    postageBatches.AddRange((await task).Select(b => new PostageBatchResult(b.PostageBatch)));
                 }
                 catch (Exception e) when (e.IsBeeNodeCallFailure())
                 {

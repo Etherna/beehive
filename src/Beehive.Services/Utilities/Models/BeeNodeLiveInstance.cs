@@ -77,8 +77,8 @@ namespace Etherna.Beehive.Services.Utilities.Models
             XDaiValue? gasPrice) =>
             Client.DilutePostageBatchAsync(batchId, depth, gasPrice, gasLimit);
 
-        public Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
-            Client.GetPostageBatchAsync(batchId);
+        public async Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
+            (await Client.GetPostageBatchAsync(batchId)).PostageBatch; //a bee node answers no error beside the batch
 
         public async Task<(IEnumerable<uint> collisions, int depth)> GetPostageBatchBucketsCollisionsAsync(
             PostageBatchId batchId)
