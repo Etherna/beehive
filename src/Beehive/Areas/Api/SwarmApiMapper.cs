@@ -424,7 +424,8 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<PostageBatchIdWithTxHashDto>(StatusCodes.Status202Accepted)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status429TooManyRequests);
+                .Produces(StatusCodes.Status429TooManyRequests)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
             
             builder.MapPatch("/stamps/topup/{batchId}/{amount}",
                     (IStampsApiHandler handler,
@@ -438,7 +439,8 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status402PaymentRequired)
                 .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status429TooManyRequests);
+                .Produces(StatusCodes.Status429TooManyRequests)
+                .Produces(StatusCodes.Status503ServiceUnavailable);
             
             builder.MapPost("/stamps/{amount}/{depth}",
                     (IStampsApiHandler handler,
