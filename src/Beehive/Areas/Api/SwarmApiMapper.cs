@@ -318,8 +318,8 @@ namespace Etherna.Beehive.Areas.Api
                     (IPinsApiHandler handler,
                             [FromRoute] SwarmReference reference) =>
                         handler.CreatePinBeeAsync(reference))
-                .Produces(StatusCodes.Status200OK)
-                .Produces(StatusCodes.Status201Created)
+                .Produces<BeeStatusDto>(StatusCodes.Status200OK)
+                .Produces<BeeStatusDto>(StatusCodes.Status201Created)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);
             
