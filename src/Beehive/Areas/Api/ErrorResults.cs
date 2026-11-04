@@ -26,6 +26,8 @@ namespace Etherna.Beehive.Areas.Api
         public const string BatchNotFoundErrorMessage = "batch with id not found";
         public const string BatchNotUsableErrorMessage = "batch not usable";
         public const string BatchNotUsableYetErrorMessage = "batch not usable yet or does not exist";
+        //the answer of the etherna services to a transaction that lost a write conflict after its retries
+        public const string WriteConflictErrorMessage = "Concurrent write conflict, retry the request";
         
         // Methods.
         public static IResult GetBadRequestErrorResult(

@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Services.Extensions;
+using Etherna.MongoDB.Driver;
 using Etherna.Scrinium.Core.Exceptions;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -67,6 +68,13 @@ namespace Etherna.Beehive.Areas.Api
                     ScriniumEntityNotFoundException =>
                         ErrorResults.GetNotFoundErrorResult(apiVersion),
 
+                    // Error code 409.
+                    /* A transaction that lost a write conflict with a concurrent one, after the retries of the
+                     * db context: the request is legitimate and the client can repeat it, so answer a conflict
+                     * instead of a server error. */
+                    MongoException mongoException when mongoException.HasErrorLabel("TransientTransactionError") =>
+                        ErrorResults.GetErrorResult(apiVersion, StatusCodes.Status409Conflict, ErrorResults.WriteConflictErrorMessage),
+
                     // Error code 422.
                     PostageBatchNotUsableException => //bee's upload answer for a batch not usable yet
                         ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, ErrorResults.BatchNotUsableYetErrorMessage),
@@ -103,6 +111,7 @@ namespace Etherna.Beehive.Areas.Api
             statusCode switch
             {
                 StatusCodes.Status401Unauthorized => LogEventLevel.Warning,
+                StatusCodes.Status409Conflict => LogEventLevel.Warning, //a write conflict the db context couldn't retry away
                 StatusCodes.Status503ServiceUnavailable => LogEventLevel.Warning,
                 StatusCodes.Status504GatewayTimeout => LogEventLevel.Warning,
                 >= StatusCodes.Status500InternalServerError => LogEventLevel.Error,

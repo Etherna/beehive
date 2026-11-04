@@ -13,6 +13,11 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Exceptions;
+using Etherna.MongoDB.Bson;
+using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Core.Clusters;
+using Etherna.MongoDB.Driver.Core.Connections;
+using Etherna.MongoDB.Driver.Core.Servers;
 using Etherna.SwarmSdk.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -176,7 +182,84 @@ namespace Etherna.Beehive.Areas.Api
             Assert.Equal("syncing in progress", body.GetProperty("message").GetString());
         }
 
+        [Theory]
+        [InlineData(ApiVersion.BeehiveV04)]
+        [InlineData(ApiVersion.Swarm)]
+        public async Task TransientWriteConflictAnswersConflictOnEveryApi(ApiVersion apiVersion)
+        {
+            // Setup.
+            //a transaction that lost a write conflict with a concurrent one: the server asks the client to retry
+            var exception = BuildWriteConflictException();
+            exception.AddErrorLabel("TransientTransactionError");
+
+            // Action.
+            var result = await ExceptionHandler.RunAsync(apiVersion, () => throw exception);
+            var (statusCode, body) = await ExecuteResultAsync(result);
+
+            // Assert.
+            Assert.Equal(StatusCodes.Status409Conflict, statusCode);
+            if (apiVersion == ApiVersion.Swarm)
+            {
+                Assert.Equal(409, body.GetProperty("code").GetInt32());
+                Assert.Equal("Concurrent write conflict, retry the request", body.GetProperty("message").GetString());
+            }
+        }
+
+        [Fact]
+        public async Task TransientWriteConflictIsLoggedAtWarning()
+        {
+            // Setup.
+            var exception = BuildWriteConflictException();
+            exception.AddErrorLabel("TransientTransactionError");
+            var sink = new ListSink();
+            var originalLogger = Log.Logger;
+            Log.Logger = new LoggerConfiguration().MinimumLevel.Verbose().WriteTo.Sink(sink).CreateLogger();
+            try
+            {
+                // Action.
+                await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+
+                // Assert.
+                var logEvent = Assert.Single(sink.Events);
+                Assert.Equal(LogEventLevel.Warning, logEvent.Level);
+                Assert.Same(exception, logEvent.Exception);
+            }
+            finally
+            {
+                Log.Logger = originalLogger;
+            }
+        }
+
+        [Fact]
+        public async Task UnlabeledDriverExceptionAnswersInternalServerError()
+        {
+            // Setup.
+            //the same driver exception without the transient label is not a retryable conflict
+            var exception = BuildWriteConflictException();
+
+            // Action.
+            var result = await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+            var (statusCode, _) = await ExecuteResultAsync(result);
+
+            // Assert.
+            Assert.Equal(StatusCodes.Status500InternalServerError, statusCode);
+        }
+
         // Helpers.
+        private static MongoCommandException BuildWriteConflictException()
+        {
+            var connectionId = new ConnectionId(new ServerId(new ClusterId(), new DnsEndPoint("localhost", 27017)));
+            var command = new BsonDocument("findAndModify", "chunkPins");
+            var result = new BsonDocument
+            {
+                { "ok", 0 },
+                { "errmsg", "Write conflict during plan execution and yielding is disabled" },
+                { "code", 112 },
+                { "codeName", "WriteConflict" }
+            };
+            return new MongoCommandException(connectionId, "Command findAndModify failed", command, result);
+        }
+
         private sealed class ListSink : ILogEventSink
         {
             public List<LogEvent> Events { get; } = [];
