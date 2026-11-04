@@ -53,8 +53,8 @@ namespace Etherna.Beehive.Areas.Api
                         handler.FindByIdAsync(id))
                 .WithDescription("A bee node registered in beehive, by id, with its live status.")
                 .Produces<BeeNodeDto>()
-                .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces<string>(StatusCodes.Status400BadRequest)
+                .Produces<string>(StatusCodes.Status404NotFound);
 
             builder.MapPost("/nodes",
                     (IBeehiveApiHandler handler,
@@ -62,7 +62,7 @@ namespace Etherna.Beehive.Areas.Api
                         handler.AddBeeNodeAsync(nodeInput))
                 .WithDescription("Registers a bee node by its api url. Beehive starts probing it at once, and buys postage batches on it only when batch creation is enabled.")
                 .Produces(StatusCodes.Status201Created)
-                .Produces(StatusCodes.Status400BadRequest);
+                .Produces<string>(StatusCodes.Status400BadRequest);
 
             builder.MapPut("/nodes/{id}",
                     (IBeehiveApiHandler handler,
@@ -71,8 +71,8 @@ namespace Etherna.Beehive.Areas.Api
                         handler.UpdateBeeNodeAsync(id, nodeInput))
                 .WithDescription("Changes the api url of a registered node, or whether beehive may buy postage batches on it.")
                 .Produces(StatusCodes.Status200OK)
-                .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces<string>(StatusCodes.Status400BadRequest)
+                .Produces<string>(StatusCodes.Status404NotFound);
             
             builder.MapDelete("/nodes/{id}",
                     (IBeehiveApiHandler handler,
@@ -80,8 +80,8 @@ namespace Etherna.Beehive.Areas.Api
                         handler.RemoveBeeNodeAsync(id))
                 .WithDescription("Removes a bee node from beehive. The postage batches it owns stay in the cache, and can't be used until a node owning them is registered again.")
                 .Produces(StatusCodes.Status200OK)
-                .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces<string>(StatusCodes.Status400BadRequest)
+                .Produces<string>(StatusCodes.Status404NotFound);
 
             //nodes pins imports
             builder.MapGet("/nodes/pins/imports",
@@ -109,9 +109,9 @@ namespace Etherna.Beehive.Areas.Api
                         handler.StartNodePinsImportAsync(id, unpin, importInput))
                 .WithDescription("Starts, as a background job, the import into beehive's own pins of the contents pinned on the node: every one of them, or only the references given in the body. The chunks are read from the node itself. A content beehive already holds in full is skipped. With unpin, a content is unpinned on the node once beehive holds it in full, never before. One import at a time per node: 423 while one is running.")
                 .Produces<NodePinsImportDto>(StatusCodes.Status202Accepted)
-                .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status423Locked);
+                .Produces<string>(StatusCodes.Status400BadRequest)
+                .Produces<string>(StatusCodes.Status404NotFound)
+                .Produces<string>(StatusCodes.Status423Locked);
 
             builder.MapGet("/nodes/{id}/pins/imports/{importId}/pins",
                     (IBeehiveApiHandler handler,
@@ -138,8 +138,8 @@ namespace Etherna.Beehive.Areas.Api
                         handler.GetNodeNotImportedPinsAsync(id))
                 .WithDescription("Asks the node for its pinned contents and answers the ones beehive doesn't hold in full yet: what an import of the node would read.")
                 .Produces<IEnumerable<SwarmReference>>()
-                .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status503ServiceUnavailable);
+                .Produces<string>(StatusCodes.Status404NotFound)
+                .Produces<string>(StatusCodes.Status503ServiceUnavailable);
         }
     }
 }

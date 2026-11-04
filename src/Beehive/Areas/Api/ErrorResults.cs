@@ -15,7 +15,6 @@
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using System;
 
 namespace Etherna.Beehive.Areas.Api
@@ -40,9 +39,9 @@ namespace Etherna.Beehive.Areas.Api
             string message) =>
             version switch
             {
+                //the message as a json string, the body every Etherna service answers its own api errors with
                 ApiVersion.BeehiveV04 => Results.Json(
-                    new ObjectResult(message) { StatusCode = statusCode },
-                    CommonConsts.BeehiveV04JsonSerializerOptions,
+                    message,
                     statusCode: statusCode),
                 
                 ApiVersion.Swarm => Results.Json(
