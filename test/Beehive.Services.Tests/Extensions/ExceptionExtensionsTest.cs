@@ -58,7 +58,11 @@ namespace Etherna.Beehive.Services.Extensions
                         "Postage batch not found"),
 
                     //the node did not answer: the exception message
-                    (new HttpRequestException("Connection refused (bee1:1633)"), "Connection refused (bee1:1633)")
+                    (new HttpRequestException("Connection refused (bee1:1633)"), "Connection refused (bee1:1633)"),
+
+                    //the node did not complete the call within the bound of the client: the exception message
+                    (new SwarmClientTimeoutException("SwarmClient.GetHealthAsync", TimeSpan.FromSeconds(5), null),
+                        "SwarmClient.GetHealthAsync did not complete within 5 s")
                 };
 
                 return tests.Select(t => new object[] { t.Exception, t.ExpectedReason });

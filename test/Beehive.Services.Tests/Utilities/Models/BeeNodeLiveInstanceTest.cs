@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Services.Helpers;
 using Etherna.SwarmSdk;
+using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -100,6 +101,26 @@ namespace Etherna.Beehive.Services.Utilities.Models
             Assert.Equal(LogLevel.Warning, logged.Level);
             Assert.Equal("BeeNodeNotAlive", logged.EventName);
             Assert.Contains("Exception invoking node API", logged.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task ReportsNotAliveANodeNotAnsweringWithinItsBound()
+        {
+            // Setup.
+            //the client bounds the call by its operation: a node not answering within the bound throws the timeout
+            clientMock.Setup(c => c.GetHealthAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new SwarmClientTimeoutException("SwarmClient.GetHealthAsync", TimeSpan.FromSeconds(5), null));
+
+            // Action.
+            var isAlive = await instance.TryRefreshStatusAsync();
+
+            // Assert.
+            Assert.False(isAlive);
+            Assert.Equal("SwarmClient.GetHealthAsync did not complete within 5 s", instance.Status.NotAliveReason);
+            var logged = Assert.Single(logger.Events);
+            Assert.Equal(LogLevel.Warning, logged.Level);
+            Assert.Equal("BeeNodeNotAlive", logged.EventName);
+            Assert.Contains("SwarmClient.GetHealthAsync did not complete within 5 s", logged.Message, StringComparison.Ordinal);
         }
     }
 }

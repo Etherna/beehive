@@ -16,15 +16,12 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities.DevNode;
 using Etherna.SwarmSdk;
-using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Http;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Utilities.Models
@@ -106,7 +103,8 @@ namespace Etherna.Beehive.Services.Utilities.Models
             var isFirstHeartbeat = Status.HeartbeatTimeStamp == default;
             var wasAlive = Status.IsAlive;
 
-            // Verify node health and readiness.
+            // Verify node health and readiness: the client bounds each call by its operation, a node not answering within
+            // its bound is not alive.
             string? failureReason = null;
             Exception? failureException = null;
             try
@@ -117,12 +115,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
                 else if (!await Client.GetReadinessAsync()) //readiness
                     failureReason = "Node is not ready";
             }
-            catch (Exception e) when (
-                e is SwarmSdkApiException ||
-                e is HttpRequestException ||
-                e is SocketException)
+            catch (Exception e) when (e.IsBeeNodeCallFailure())
             {
-                failureReason = "Exception invoking node API";
+                failureReason = e is TimeoutException ? e.Message : "Exception invoking node API";
                 failureException = e;
             }
 

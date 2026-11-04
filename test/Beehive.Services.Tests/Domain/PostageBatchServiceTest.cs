@@ -98,7 +98,10 @@ namespace Etherna.Beehive.Services.Domain
                     (NewApiException(500, """{"code":500,"message":"get issuer failed"}"""), "get issuer failed"),
 
                     //the node did not answer
-                    (new HttpRequestException("Connection refused (nodeB:1633)"), "Connection refused (nodeB:1633)")
+                    (new HttpRequestException("Connection refused (nodeB:1633)"), "Connection refused (nodeB:1633)"),
+                    //the node did not complete the read within the bound of the client
+                    (new SwarmClientTimeoutException("SwarmClient.GetPostageBatchAsync", TimeSpan.FromSeconds(5), null),
+                        "SwarmClient.GetPostageBatchAsync did not complete within 5 s")
                 };
 
                 return tests.Select(t => new object[] { t.Exception, t.ExpectedError });
