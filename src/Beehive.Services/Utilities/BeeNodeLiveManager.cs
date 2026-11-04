@@ -19,7 +19,6 @@ using Etherna.Beehive.Services.Options;
 using Etherna.Beehive.Services.Utilities.DevNode;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver.Linq;
-using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,8 +27,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using ChainState = Etherna.Beehive.Services.Utilities.Models.ChainState;
@@ -42,6 +39,8 @@ namespace Etherna.Beehive.Services.Utilities
     /// <remarks>
     /// A singleton: the db context is scoped, so every db access opens a scope of its own
     /// instead of capturing a context for the process lifetime.
+    /// The heartbeat round is the only flow calling the nodes for their status: a node is registered without being
+    /// called, and the round asks every node in parallel, each call within the status call timeout.
     /// </remarks>
     internal sealed class BeeNodeLiveManager(
         IOptions<DevNodeOptions> devNodeOptions,
@@ -78,20 +77,7 @@ namespace Etherna.Beehive.Services.Utilities
             var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
 
             var beeNode = await dbContext.BeeNodes.FindOneAsync(nodeId);
-            return await TryAddBeeNodeAsync(beeNode);
-        }
-
-        public async Task LoadAllNodesAsync()
-        {
-            using var scope = serviceScopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
-
-            var nodes = await dbContext.BeeNodes.QueryElementsAsync(
-                elements => elements.ToListAsync());
-            foreach (var node in nodes)
-                await TryAddBeeNodeAsync(node);
-
-            await TryAddDevNodeInstanceAsync();
+            return TryAddBeeNode(beeNode);
         }
 
         public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
@@ -130,32 +116,19 @@ namespace Etherna.Beehive.Services.Utilities
         public void StopHealthHeartbeat() =>
             heartbeatTimer?.Change(Timeout.Infinite, 0);
         
-        public async Task<BeeNodeLiveInstance> TryAddBeeNodeAsync(BeeNode beeNode)
+        public BeeNodeLiveInstance TryAddBeeNode(BeeNode beeNode)
         {
-            if (beeNodeInstances.TryGetValue(beeNode.Id, out var liveInstance))
-                return liveInstance;
-
-            //remove the dev node when a real node is registered
-            if (beeNodeInstances.TryRemove(DevNodeClient.NodeId, out _))
-                logger.DevNodeDisabled();
-
-            // Try to add node and refresh live status (if necessary).
-            liveInstance = new BeeNodeLiveInstance(beeNode, logger);
-            if (beeNodeInstances.TryAdd(beeNode.Id, liveInstance))
-                await liveInstance.TryRefreshStatusAsync();
-
-            return beeNodeInstances[beeNode.Id];
+            // The node is registered without being called: its status comes from the heartbeat, asked for a round now.
+            if (TryAddBeeNodeInstance(beeNode, out var liveInstance))
+                RequestHeartbeat();
+            return liveInstance;
         }
 
-        public async Task<bool> TryRemoveBeeNodeAsync(string nodeId)
+        public bool TryRemoveBeeNode(string nodeId)
         {
-            var removed = beeNodeInstances.TryRemove(nodeId, out _);
+            var removed = TryRemoveBeeNodeInstance(nodeId);
             if (removed)
-                logger.BeeNodeLiveInstanceRemoved(nodeId);
-
-            //restore the dev node when no more nodes are registered
-            await TryAddDevNodeInstanceAsync();
-
+                RequestHeartbeat(); //restores the dev node when no more nodes are registered
             return removed;
         }
 
@@ -235,8 +208,7 @@ namespace Etherna.Beehive.Services.Utilities
         // Helpers.
         private async Task HeartbeatCallbackAsync()
         {
-            // Update nodes from db.
-            //add new nodes from db
+            // Sync the registered nodes with the db.
             List<BeeNode> dbNodes;
             try
             {
@@ -250,20 +222,20 @@ namespace Etherna.Beehive.Services.Utilities
                 logger.BeeNodesHeartbeatSkipped(e);
                 return;
             }
-            
+
+            //add new nodes from db
             foreach (var dbNode in dbNodes)
-                await TryAddBeeNodeAsync(dbNode);
+                TryAddBeeNodeInstance(dbNode, out _);
             //remove missing nodes from db (dev node is not persisted, skip it)
             foreach (var instance in AllNodes.Where(n =>
                          n.Id != DevNodeClient.NodeId &&
                          !dbNodes.Select(dbN => dbN.Id).Contains(n.Id)).ToArray())
-                await TryRemoveBeeNodeAsync(instance.Id);
+                TryRemoveBeeNodeInstance(instance.Id);
+            //fall back to the dev node when no node is registered
+            TryAddDevNodeInstance();
 
-            // Refresh nodes status.
-            var tasks = new List<Task>();
-            foreach (var instance in beeNodeInstances.Values)
-                tasks.Add(instance.TryRefreshStatusAsync());
-            await Task.WhenAll(tasks);
+            // Refresh nodes status, in parallel: a node not answering holds its own refresh only, within the timeout.
+            await Task.WhenAll(beeNodeInstances.Values.Select(instance => instance.TryRefreshStatusAsync()));
 
             // Update chain state.
             var node = await TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "chainState");
@@ -271,30 +243,59 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 try
                 {
-                    ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
+                    ChainState = new ChainState(node.Id, await node.GetChainStateAsync());
                 }
-                catch (Exception e) when (
-                    e is SwarmSdkApiException ||
-                    e is HttpRequestException ||
-                    e is SocketException)
+                catch (Exception e) when (e.IsBeeNodeCallFailure())
                 {
                     logger.BeeNodeCallFailed(node.Id, "getChainState", e.GetBeeNodeFailureReason(), e);
                 }
             }
         }
 
-        private async Task TryAddDevNodeInstanceAsync()
+        /// <summary>
+        /// Run a heartbeat round now, instead of waiting the next tick: nothing before the heartbeat is started
+        /// </summary>
+        private void RequestHeartbeat() =>
+            heartbeatTimer?.Change(TimeSpan.Zero, HeartbeatPeriod);
+
+        private bool TryAddBeeNodeInstance(BeeNode beeNode, out BeeNodeLiveInstance liveInstance)
+        {
+            if (beeNodeInstances.TryGetValue(beeNode.Id, out var existingInstance))
+            {
+                liveInstance = existingInstance;
+                return false;
+            }
+
+            //remove the dev node when a real node is registered
+            if (beeNodeInstances.TryRemove(DevNodeClient.NodeId, out _))
+                logger.DevNodeDisabled();
+
+            var newInstance = new BeeNodeLiveInstance(beeNode, logger);
+            if (beeNodeInstances.TryAdd(beeNode.Id, newInstance))
+            {
+                liveInstance = newInstance;
+                return true;
+            }
+            liveInstance = beeNodeInstances[beeNode.Id]; //registered meanwhile
+            return false;
+        }
+
+        private void TryAddDevNodeInstance()
         {
             //add dev node only if other real nodes don't exist
             if (!devNodeOptions.Value.Enabled || !beeNodeInstances.IsEmpty)
                 return;
 
-            var devNodeInstance = new BeeNodeLiveInstance(new DevNodeClient(), logger);
-            if (beeNodeInstances.TryAdd(DevNodeClient.NodeId, devNodeInstance))
-            {
+            if (beeNodeInstances.TryAdd(DevNodeClient.NodeId, new BeeNodeLiveInstance(new DevNodeClient(), logger)))
                 logger.DevNodeEnabled();
-                await devNodeInstance.TryRefreshStatusAsync();
-            }
+        }
+
+        private bool TryRemoveBeeNodeInstance(string nodeId)
+        {
+            var removed = beeNodeInstances.TryRemove(nodeId, out _);
+            if (removed)
+                logger.BeeNodeLiveInstanceRemoved(nodeId);
+            return removed;
         }
     }
 }

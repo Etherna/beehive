@@ -25,12 +25,8 @@ namespace Etherna.Beehive.Extensions
         {
             ArgumentNullException.ThrowIfNull(appBuilder);
 
-            var beeNodeLiveManager = appBuilder.ApplicationServices.GetRequiredService<IBeeNodeLiveManager>();
-
-            var task = beeNodeLiveManager.LoadAllNodesAsync();
-            task.Wait();
-
-            beeNodeLiveManager.StartHealthHeartbeat();
+            // The heartbeat registers the nodes of the db and reads their status by itself: the startup waits for no node.
+            appBuilder.ApplicationServices.GetRequiredService<IBeeNodeLiveManager>().StartHealthHeartbeat();
         }
     }
 }

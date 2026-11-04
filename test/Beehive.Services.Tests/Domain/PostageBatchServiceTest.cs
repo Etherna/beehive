@@ -98,7 +98,9 @@ namespace Etherna.Beehive.Services.Domain
                     (NewApiException(500, """{"code":500,"message":"get issuer failed"}"""), "get issuer failed"),
 
                     //the node did not answer
-                    (new HttpRequestException("Connection refused (nodeB:1633)"), "Connection refused (nodeB:1633)")
+                    (new HttpRequestException("Connection refused (nodeB:1633)"), "Connection refused (nodeB:1633)"),
+                    //the node did not answer within the status call timeout
+                    (new TimeoutException("Node did not answer within 5s"), "Node did not answer within 5s")
                 };
 
                 return tests.Select(t => new object[] { t.Exception, t.ExpectedError });

@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Helpers;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Models;
@@ -29,7 +30,9 @@ namespace Etherna.Beehive.Services.Utilities.Models
     public class BeeNodeLiveInstanceTest
     {
         // Consts.
+        private static readonly PostageBatchId BatchId = "aa00000000000000000000000000000000000000000000000000000000000001";
         private const string NodeId = "nodeA";
+        private static readonly TimeSpan StatusCallTimeout = TimeSpan.FromMilliseconds(200);
 
         // Fields.
         private readonly Mock<ISwarmClient> clientMock = new();
@@ -54,10 +57,33 @@ namespace Etherna.Beehive.Services.Utilities.Models
                     "020000000000000000000000000000000000000000000000000000000000000001",
                     "030000000000000000000000000000000000000000000000000000000000000001"));
 
-            instance = new BeeNodeLiveInstance(NodeId, clientMock.Object, true, logger);
+            instance = new BeeNodeLiveInstance(NodeId, clientMock.Object, true, logger, StatusCallTimeout);
         }
 
         // Tests.
+
+        [Fact]
+        public async Task GetPostageBatchFailsWithTheTimeoutReasonOnANodeNotAnswering()
+        {
+            // Setup.
+            //the node accepts the call and never answers: only its token ends it
+            clientMock.Setup(c => c.GetPostageBatchAsync(BatchId, It.IsAny<CancellationToken>()))
+                .Returns(async (PostageBatchId _, CancellationToken cancellationToken) =>
+                {
+                    await Task.Delay(Timeout.Infinite, cancellationToken);
+                    throw new InvalidOperationException();
+                });
+
+            // Action.
+            var read = instance.GetPostageBatchAsync(BatchId);
+            var ended = await Task.WhenAny(read, Task.Delay(TimeSpan.FromSeconds(5)));
+
+            // Assert.
+            Assert.Same(read, ended); //ended by the timeout, not by the node
+            var exception = await Assert.ThrowsAsync<TimeoutException>(() => read);
+            Assert.Equal("Node did not answer within 0.2s", exception.Message);
+            Assert.True(exception.IsBeeNodeCallFailure()); //reported as the node's reason by the callers
+        }
 
         [Fact]
         public async Task LogsTheFirstHeartbeatAndTheAliveTransitionsOnly()
@@ -100,6 +126,32 @@ namespace Etherna.Beehive.Services.Utilities.Models
             Assert.Equal(LogLevel.Warning, logged.Level);
             Assert.Equal("BeeNodeNotAlive", logged.EventName);
             Assert.Contains("Exception invoking node API", logged.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task ReportsNotAliveANodeNotAnsweringWithinTheTimeout()
+        {
+            // Setup.
+            //the node accepts the call and never answers: only its token ends it
+            clientMock.Setup(c => c.GetHealthAsync(It.IsAny<CancellationToken>()))
+                .Returns(async (CancellationToken cancellationToken) =>
+                {
+                    await Task.Delay(Timeout.Infinite, cancellationToken);
+                    return new Health(true, "2.8.1", "7.3.0");
+                });
+
+            // Action.
+            var refresh = instance.TryRefreshStatusAsync();
+            var ended = await Task.WhenAny(refresh, Task.Delay(TimeSpan.FromSeconds(5)));
+
+            // Assert.
+            Assert.Same(refresh, ended); //ended by the timeout, not by the node
+            Assert.False(await refresh);
+            Assert.Equal("Node did not answer within 0.2s", instance.Status.NotAliveReason);
+            var logged = Assert.Single(logger.Events);
+            Assert.Equal(LogLevel.Warning, logged.Level);
+            Assert.Equal("BeeNodeNotAlive", logged.EventName);
+            Assert.Contains("Node did not answer within 0.2s", logged.Message, StringComparison.Ordinal);
         }
     }
 }
