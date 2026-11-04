@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain;
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
@@ -55,8 +56,8 @@ namespace Etherna.Beehive.Services.Domain
             
             // Verify postage batch, load status and build postage stamper.
             var postageBatchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
-            if (postageBatchCache is null)
-                throw new KeyNotFoundException();
+            if (postageBatchCache is null) //a batch beehive doesn't know is not found, as one its owner node reports gone
+                throw new PostageBatchNotFoundException($"Batch {batchId} is not known to beehive");
             await postageBatchService.VerifyPostageBatchUsableAsync(postageBatchCache); //on its owner node, before storing anything
             var postageStampsCache = await dbContext.PostageStamps.QueryElementsAsync(
                 elements => elements.Where(s => s.BatchId == batchId)
