@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
@@ -32,6 +33,25 @@ namespace Etherna.Beehive.Areas.Api
     public class ExceptionHandlerTest
     {
         // Test data.
+        public static IEnumerable<object[]> NodeCallFailureTests
+        {
+            get
+            {
+                var tests = new List<(Exception Exception, int ExpectedStatusCode, string ExpectedMessage)>
+                {
+                    //the node refused the connection
+                    (new HttpRequestException("Connection refused (node:1633)"),
+                        StatusCodes.Status503ServiceUnavailable, "Connection refused (node:1633)"),
+
+                    //the node did not complete the call within the bound of its operation
+                    (new SwarmClientTimeoutException("SwarmClient.GetChunkAsync", TimeSpan.FromSeconds(120), null),
+                        StatusCodes.Status504GatewayTimeout, "SwarmClient.GetChunkAsync did not complete within 120 s")
+                };
+
+                return tests.Select(t => new object[] { t.Exception, t.ExpectedStatusCode, t.ExpectedMessage });
+            }
+        }
+
         public static IEnumerable<object[]> PostageBatchVerificationTests
         {
             get
@@ -82,6 +102,36 @@ namespace Etherna.Beehive.Areas.Api
                 Assert.Equal(expectedLevel, logEvent.Level);
                 Assert.Same(exception, logEvent.Exception);
                 Assert.Equal(expectedStatusCode, Assert.IsType<ScalarValue>(logEvent.Properties["StatusCode"]).Value);
+            }
+            finally
+            {
+                Log.Logger = originalLogger;
+            }
+        }
+
+        [Theory, MemberData(nameof(NodeCallFailureTests))]
+        public async Task NodeCallFailureAnswersNodeFailureStatusWithReasonAtWarning(
+            Exception exception,
+            int expectedStatusCode,
+            string expectedMessage)
+        {
+            // Setup.
+            var sink = new ListSink();
+            var originalLogger = Log.Logger;
+            Log.Logger = new LoggerConfiguration().MinimumLevel.Verbose().WriteTo.Sink(sink).CreateLogger();
+            try
+            {
+                // Action.
+                var result = await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+                var (statusCode, body) = await ExecuteResultAsync(result);
+
+                // Assert.
+                Assert.Equal(expectedStatusCode, statusCode);
+                Assert.Equal(expectedStatusCode, body.GetProperty("code").GetInt32());
+                Assert.Equal(expectedMessage, body.GetProperty("message").GetString());
+                var logEvent = Assert.Single(sink.Events);
+                Assert.Equal(LogEventLevel.Warning, logEvent.Level);
+                Assert.Same(exception, logEvent.Exception);
             }
             finally
             {

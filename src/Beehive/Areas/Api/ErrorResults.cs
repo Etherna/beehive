@@ -53,6 +53,11 @@ namespace Etherna.Beehive.Areas.Api
                 _ => throw new ArgumentOutOfRangeException(nameof(version), version, null)
             };
         
+        public static IResult GetGatewayTimeoutErrorResult(
+            ApiVersion version,
+            string? customMessage = null) =>
+            GetErrorResult(version, StatusCodes.Status504GatewayTimeout, customMessage ?? "Gateway timeout");
+
         public static IResult GetInternalServerErrorResult(
             ApiVersion version,
             string? customMessage = null) =>
