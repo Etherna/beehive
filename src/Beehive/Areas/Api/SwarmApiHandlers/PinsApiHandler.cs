@@ -39,14 +39,20 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         public Task<IResult> CreatePinBeeAsync(SwarmReference reference) =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
-                // Try to create pin.
-                await CreatePinHelperAsync(reference, false);
+                // Try to create pin. A reference already pinned is bee's 200, a new pin its 201: bee's status bodies.
+                if (await CreatePinHelperAsync(reference, false))
+                    return Results.Json(
+                        new BeeStatusDto(StatusCodes.Status200OK, "OK"),
+                        CommonConsts.SwarmJsonSerializerOptions);
             
                 // Verify pin result.
                 var pin = await dbContext.ChunkPins.FindOneAsync(p => p.Reference == reference);
             
                 if (pin.IsSucceeded)
-                    return Results.Created();
+                    return Results.Json(
+                        new BeeStatusDto(StatusCodes.Status201Created, "Created"),
+                        CommonConsts.SwarmJsonSerializerOptions,
+                        statusCode: StatusCodes.Status201Created);
             
                 // If not succeeded, reverse partial pin removing it.
                 await pinService.TryDeletePinAsync(reference);
@@ -129,7 +135,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             });
 
         // Helpers.
-        private async Task CreatePinHelperAsync(SwarmReference chunkRef, bool runBackgroundTask)
+        /// <returns>True when the reference was already pinned, and nothing was done</returns>
+        private async Task<bool> CreatePinHelperAsync(SwarmReference chunkRef, bool runBackgroundTask)
         {
             // Try find pin with this hash.
             var pin = await dbContext.ChunkPins.TryFindOneAsync(p => p.Reference == chunkRef);
@@ -143,7 +150,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             else
             {
                 if (pin.IsSucceeded)
-                    return;
+                    return true;
             }
             
             if (runBackgroundTask)
@@ -155,6 +162,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             {
                 await pinChunksTask.RunAsync(pin.Id);
             }
+
+            return false;
         }
     }
 }
