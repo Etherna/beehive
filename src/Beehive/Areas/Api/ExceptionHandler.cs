@@ -75,11 +75,15 @@ namespace Etherna.Beehive.Areas.Api
                     ResourceLockException =>
                         ErrorResults.GetLockedErrorResult(apiVersion),
                     
+                    // Error code 504. Before the node failures predicate below, which counts a timeout too.
+                    TimeoutException => //the node didn't complete the call within the bound of its operation: the message names the call and the bound
+                        ErrorResults.GetGatewayTimeoutErrorResult(apiVersion, e.Message),
+
                     // Error code 503.
                     BeeNodeUnavailableException => //the message is the node's reason
                         ErrorResults.GetServiceUnavailableErrorResult(apiVersion, e.Message),
-                    SwarmSdkApiException apiException => //the body carries the node's own reason
-                        ErrorResults.GetServiceUnavailableErrorResult(apiVersion, apiException.GetBeeNodeFailureReason()),
+                    _ when e.IsBeeNodeCallFailure() => //a node that answered an error or refused the connection: its reason, never a failure of beehive
+                        ErrorResults.GetServiceUnavailableErrorResult(apiVersion, e.GetBeeNodeFailureReason()),
                         
                     // Error code 500.
                     _ => ErrorResults.GetInternalServerErrorResult(apiVersion)
@@ -100,6 +104,7 @@ namespace Etherna.Beehive.Areas.Api
             {
                 StatusCodes.Status401Unauthorized => LogEventLevel.Warning,
                 StatusCodes.Status503ServiceUnavailable => LogEventLevel.Warning,
+                StatusCodes.Status504GatewayTimeout => LogEventLevel.Warning,
                 >= StatusCodes.Status500InternalServerError => LogEventLevel.Error,
                 _ => LogEventLevel.Debug
             };
