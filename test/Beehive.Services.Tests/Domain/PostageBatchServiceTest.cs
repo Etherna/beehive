@@ -52,6 +52,7 @@ namespace Etherna.Beehive.Services.Domain
         private readonly Mock<ISwarmClient> nodeBClientMock = new();
         private readonly BeeNodeLiveInstance nodeB;
         private readonly List<PostageBatchCache> postageBatchesCache = [];
+        private readonly Mock<IResourceLockService> resourceLockServiceMock = new();
         private readonly PostageBatchService service;
 
         // Constructor.
@@ -79,11 +80,20 @@ namespace Etherna.Beehive.Services.Domain
             var dbContextMock = new Mock<IBeehiveDbContext>();
             dbContextMock.Setup(c => c.PostageBatchesCache).Returns(postageBatchesCacheMock.Object);
 
+            // The batch lock is granted: the operations on a batch run inside it.
+            resourceLockServiceMock.Setup(s => s.TryAcquireLockAsync(
+                    It.IsAny<Func<PostageBatchLock>>(),
+                    It.IsAny<IRepository<PostageBatchLock, string>>(),
+                    It.IsAny<string>(),
+                    It.IsAny<bool>()))
+                .ReturnsAsync((Func<PostageBatchLock> _, IRepository<PostageBatchLock, string> repository, string resourceId, bool exclusiveAccess) =>
+                    new ResourceLockHandler<PostageBatchLock>(repository, resourceLockServiceMock.Object, resourceId, exclusiveAccess));
+
             service = new PostageBatchService(
                 beeNodeLiveManagerMock.Object,
                 dbContextMock.Object,
                 NullLogger<PostageBatchService>.Instance,
-                new Mock<IResourceLockService>().Object);
+                resourceLockServiceMock.Object);
         }
 
         // Test data.
@@ -109,6 +119,34 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         // Tests.
+
+        [Fact]
+        public async Task DilutePostageBatchRefusesBatchWithUnregisteredOwnerNodeAsUnavailable()
+        {
+            // Setup.
+            postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeAId, "nodeGone"));
+
+            // Action.
+            var exception = await Assert.ThrowsAsync<BeeNodeUnavailableException>(() =>
+                service.DilutePostageBatchAsync(BatchOnNodeAId, 21, null, null));
+
+            // Assert.
+            Assert.Contains("nodeGone", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task DilutePostageBatchRefusesUnknownBatchAsBatchNotFound()
+        {
+            // Action.
+            var exception = await Assert.ThrowsAsync<PostageBatchNotFoundException>(() =>
+                service.DilutePostageBatchAsync(BatchOnNodeAId, 21, null, null));
+
+            // Assert.
+            Assert.Contains(BatchOnNodeAId.ToString(), exception.Message, StringComparison.Ordinal);
+            nodeAClientMock.Verify(c => c.DilutePostageBatchAsync(
+                It.IsAny<PostageBatchId>(), It.IsAny<int>(), It.IsAny<XDaiValue?>(), It.IsAny<ulong?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
 
         [Fact]
         public async Task GetOwnedPostageBatchesReportsBatchesOfNotAliveNodeFromCache()
@@ -153,6 +191,34 @@ namespace Etherna.Beehive.Services.Domain
             Assert.Equal(2, result.Length);
             Assert.Null(Assert.Single(result, b => b.BatchId == BatchOnNodeAId).Error);
             AssertDegradedFromCache(Assert.Single(result, b => b.BatchId == BatchOnNodeBId), expectedError);
+        }
+
+        [Fact]
+        public async Task TopUpPostageBatchRefusesBatchWithUnregisteredOwnerNodeAsUnavailable()
+        {
+            // Setup.
+            postageBatchesCache.Add(NewPostageBatchCache(BatchOnNodeAId, "nodeGone"));
+
+            // Action.
+            var exception = await Assert.ThrowsAsync<BeeNodeUnavailableException>(() =>
+                service.TopUpPostageBatchAsync(BatchOnNodeAId, BzzValue.FromPlurDecimal(1), null, null));
+
+            // Assert.
+            Assert.Contains("nodeGone", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task TopUpPostageBatchRefusesUnknownBatchAsBatchNotFound()
+        {
+            // Action.
+            var exception = await Assert.ThrowsAsync<PostageBatchNotFoundException>(() =>
+                service.TopUpPostageBatchAsync(BatchOnNodeAId, BzzValue.FromPlurDecimal(1), null, null));
+
+            // Assert.
+            Assert.Contains(BatchOnNodeAId.ToString(), exception.Message, StringComparison.Ordinal);
+            nodeAClientMock.Verify(c => c.TopUpPostageBatchAsync(
+                It.IsAny<PostageBatchId>(), It.IsAny<BzzValue>(), It.IsAny<XDaiValue?>(), It.IsAny<ulong?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
 
         [Fact]

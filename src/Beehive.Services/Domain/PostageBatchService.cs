@@ -106,13 +106,11 @@ namespace Etherna.Beehive.Services.Domain
             
             // Try get cached postage batch.
             var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
-            if (postageCache is null)
-                throw new KeyNotFoundException();
+            if (postageCache is null) //a batch beehive doesn't know is not found, as one its owner node reports gone
+                throw new PostageBatchNotFoundException($"Batch {batchId} is not known to beehive");
             
             // Dilute on node.
-            var node = await TryGetPostageBatchOwnerNodeAsync(batchId);
-            if (node == null)
-                throw new KeyNotFoundException();
+            var node = GetPostageBatchOwnerNode(postageCache);
             var txHash = await node.DilutePostageBatchAsync(batchId, depth, gasLimit, gasPrice);
             
             // Update cache.
@@ -234,11 +232,13 @@ namespace Etherna.Beehive.Services.Domain
             // Acquire lock on postage batch.
             await using var batchLockHandler = await AcquireLockAsync(batchId, true);
 
+            // Try get cached postage batch.
+            var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
+            if (postageCache is null) //a batch beehive doesn't know is not found, as one its owner node reports gone
+                throw new PostageBatchNotFoundException($"Batch {batchId} is not known to beehive");
+
             // Top up on node.
-            var node = await TryGetPostageBatchOwnerNodeAsync(batchId);
-            if (node == null)
-                throw new KeyNotFoundException();
-            
+            var node = GetPostageBatchOwnerNode(postageCache);
             var txHash = await node.TopUpPostageBatchAsync(
                 batchId,
                 amount,
@@ -345,10 +345,7 @@ namespace Etherna.Beehive.Services.Domain
             ArgumentNullException.ThrowIfNull(postageBatchCache);
 
             // Ask the owner node, unless the heartbeat already knows it can't answer.
-            var ownerNode = TryGetPostageBatchOwnerNode(postageBatchCache);
-            if (ownerNode is null)
-                throw new BeeNodeUnavailableException(
-                    $"Owner node {postageBatchCache.OwnerNodeId} of the batch is not registered");
+            var ownerNode = GetPostageBatchOwnerNode(postageBatchCache);
             var notAliveReason = ownerNode.Status.NotAliveReason;
             if (notAliveReason is not null)
                 throw new BeeNodeUnavailableException(notAliveReason);
@@ -373,5 +370,15 @@ namespace Etherna.Beehive.Services.Domain
                 throw new PostageBatchNotUsableException(
                     $"Batch {postageBatchCache.BatchId} is not usable yet on its owner node {ownerNode.Id}");
         }
+
+        // Helpers.
+        /// <summary>
+        /// The registered owner node of a cached batch: a batch whose owner node is not registered anymore can't be
+        /// operated on, and the reason is the node's
+        /// </summary>
+        private BeeNodeLiveInstance GetPostageBatchOwnerNode(PostageBatchCache postageBatchCache) =>
+            TryGetPostageBatchOwnerNode(postageBatchCache) ??
+            throw new BeeNodeUnavailableException(
+                $"Owner node {postageBatchCache.OwnerNodeId} of the batch is not registered");
     }
 }
