@@ -22,23 +22,14 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Utilities.Models
 {
     public class BeeNodeLiveInstance
     {
-        // Consts.
-        /// <summary>
-        /// The time a node has to answer a call served from its own state (health, readiness, addresses, chain state,
-        /// a batch it owns): a healthy node answers it at once, past it the node is not answering
-        /// </summary>
-        private static readonly TimeSpan DefaultStatusCallTimeout = TimeSpan.FromSeconds(5);
-
         // Fields.
         private readonly ILogger logger;
-        private readonly TimeSpan statusCallTimeout;
 
         // Constructors.
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client lives as long as the node instance")]
@@ -58,15 +49,13 @@ namespace Etherna.Beehive.Services.Utilities.Models
             string id,
             ISwarmClient client,
             bool isBatchCreationEnabled,
-            ILogger logger,
-            TimeSpan? statusCallTimeout = null)
+            ILogger logger)
         {
             Id = id;
             Client = client;
             ChunkStore = new SwarmClientChunkStore(client);
             IsBatchCreationEnabled = isBatchCreationEnabled;
             this.logger = logger;
-            this.statusCallTimeout = statusCallTimeout ?? DefaultStatusCallTimeout;
             Status = new BeeNodeStatus();
         }
 
@@ -85,18 +74,13 @@ namespace Etherna.Beehive.Services.Utilities.Models
             XDaiValue? gasPrice) =>
             Client.DilutePostageBatchAsync(batchId, depth, gasPrice, gasLimit);
 
-        public Task<SwarmSdk.Models.ChainState> GetChainStateAsync() =>
-            CallWithinStatusTimeoutAsync(Client.GetChainStateAsync);
-
-        public Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
-            CallWithinStatusTimeoutAsync(async cancellationToken =>
-                (await Client.GetPostageBatchAsync(batchId, cancellationToken)).PostageBatch); //a bee node answers no error beside the batch
+        public async Task<PostageBatch> GetPostageBatchAsync(PostageBatchId batchId) =>
+            (await Client.GetPostageBatchAsync(batchId)).PostageBatch; //a bee node answers no error beside the batch
 
         public async Task<(IEnumerable<uint> collisions, int depth)> GetPostageBatchBucketsCollisionsAsync(
             PostageBatchId batchId)
         {
-            var buckets = await CallWithinStatusTimeoutAsync(
-                cancellationToken => Client.GetPostageBatchBucketsAsync(batchId, cancellationToken));
+            var buckets = await Client.GetPostageBatchBucketsAsync(batchId);
             return (buckets.Collisions, buckets.Depth);
         }
 
@@ -119,15 +103,16 @@ namespace Etherna.Beehive.Services.Utilities.Models
             var isFirstHeartbeat = Status.HeartbeatTimeStamp == default;
             var wasAlive = Status.IsAlive;
 
-            // Verify node health and readiness, each call within the status call timeout: a node not answering is not alive.
+            // Verify node health and readiness: the client bounds each call by its operation, a node not answering within
+            // its bound is not alive.
             string? failureReason = null;
             Exception? failureException = null;
             try
             {
-                var healthResult = await CallWithinStatusTimeoutAsync(Client.GetHealthAsync); //health
+                var healthResult = await Client.GetHealthAsync(); //health
                 if (!healthResult.IsStatusOk)
                     failureReason = "Node is not healthy";
-                else if (!await CallWithinStatusTimeoutAsync(Client.GetReadinessAsync)) //readiness
+                else if (!await Client.GetReadinessAsync()) //readiness
                     failureReason = "Node is not ready";
             }
             catch (Exception e) when (e.IsBeeNodeCallFailure())
@@ -154,7 +139,7 @@ namespace Etherna.Beehive.Services.Utilities.Models
             {
                 try
                 {
-                    var response = await CallWithinStatusTimeoutAsync(Client.GetNodeAddressesAsync);
+                    var response = await Client.GetNodeAddressesAsync();
                     Status.InitializeAddresses(new BeeNodeAddresses(
                         response.Ethereum,
                         response.Overlay,
@@ -173,25 +158,6 @@ namespace Etherna.Beehive.Services.Utilities.Models
                 logger.BeeNodeAlive(Id);
 
             return true;
-        }
-
-        // Helpers.
-        /// <summary>
-        /// Run a call the node answers from its own state, within the status call timeout
-        /// </summary>
-        /// <exception cref="TimeoutException">The node did not answer within the timeout</exception>
-        private async Task<T> CallWithinStatusTimeoutAsync<T>(Func<CancellationToken, Task<T>> call)
-        {
-            using var timeoutCts = new CancellationTokenSource(statusCallTimeout);
-            try
-            {
-                return await call(timeoutCts.Token);
-            }
-            catch (OperationCanceledException e) when (timeoutCts.IsCancellationRequested)
-            {
-                throw new TimeoutException(
-                    FormattableString.Invariant($"Node did not answer within {statusCallTimeout.TotalSeconds}s"), e);
-            }
         }
     }
 }

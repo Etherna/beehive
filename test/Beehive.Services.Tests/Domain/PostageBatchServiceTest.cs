@@ -99,8 +99,9 @@ namespace Etherna.Beehive.Services.Domain
 
                     //the node did not answer
                     (new HttpRequestException("Connection refused (nodeB:1633)"), "Connection refused (nodeB:1633)"),
-                    //the node did not answer within the status call timeout
-                    (new TimeoutException("Node did not answer within 5s"), "Node did not answer within 5s")
+                    //the node did not complete the read within the bound of the client
+                    (new SwarmClientTimeoutException("SwarmClient.GetPostageBatchAsync", TimeSpan.FromSeconds(5), null),
+                        "SwarmClient.GetPostageBatchAsync did not complete within 5 s")
                 };
 
                 return tests.Select(t => new object[] { t.Exception, t.ExpectedError });

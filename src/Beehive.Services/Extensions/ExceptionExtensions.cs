@@ -59,7 +59,8 @@ namespace Etherna.Beehive.Services.Extensions
 
         /// <summary>
         /// Whether the exception reports a bee node that could not serve a call, instead of a defect of beehive: an
-        /// error answer, a failed connection, or a call not answered within its timeout
+        /// error answer, a failed connection, or a call the node did not complete within the bound of its operation
+        /// (<see cref="SwarmClientTimeoutException"/>, a <see cref="TimeoutException"/>)
         /// </summary>
         public static bool IsBeeNodeCallFailure(this Exception exception) =>
             exception is SwarmSdkApiException or HttpRequestException or SocketException or TaskCanceledException or TimeoutException;

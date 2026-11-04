@@ -40,7 +40,8 @@ namespace Etherna.Beehive.Services.Utilities
     /// A singleton: the db context is scoped, so every db access opens a scope of its own
     /// instead of capturing a context for the process lifetime.
     /// The heartbeat round is the only flow calling the nodes for their status: a node is registered without being
-    /// called, and the round asks every node in parallel, each call within the status call timeout.
+    /// called, and the round asks every node in parallel, each call within the bound the SwarmSdk client sets by its
+    /// operation.
     /// </remarks>
     internal sealed class BeeNodeLiveManager(
         IOptions<DevNodeOptions> devNodeOptions,
@@ -234,7 +235,7 @@ namespace Etherna.Beehive.Services.Utilities
             //fall back to the dev node when no node is registered
             TryAddDevNodeInstance();
 
-            // Refresh nodes status, in parallel: a node not answering holds its own refresh only, within the timeout.
+            // Refresh nodes status, in parallel: a node not answering holds its own refresh only, within the client's bound.
             await Task.WhenAll(beeNodeInstances.Values.Select(instance => instance.TryRefreshStatusAsync()));
 
             // Update chain state.
@@ -243,7 +244,7 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 try
                 {
-                    ChainState = new ChainState(node.Id, await node.GetChainStateAsync());
+                    ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
                 }
                 catch (Exception e) when (e.IsBeeNodeCallFailure())
                 {
