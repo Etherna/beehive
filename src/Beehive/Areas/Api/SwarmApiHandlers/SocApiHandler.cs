@@ -63,10 +63,10 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 response.Headers.ExposeHeaders(SwarmHttpConsts.SwarmSocSignatureHeader);
             
                 // Return content.
-                //if only root, returns chunk's data
+                //if only root, returns the wrapped chunk as it is, span and data, as bee does
                 if (onlyRootChunk)
                     return Results.File(
-                        soc.InnerChunk.Data.ToArray(),
+                        soc.InnerChunk.GetFullPayloadToByteArray(),
                         contentType: BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
                 //else return joined data

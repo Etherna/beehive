@@ -78,6 +78,8 @@ namespace Etherna.Beehive.Areas.Api
                     // Error code 422.
                     PostageBatchNotUsableException => //bee's upload answer for a batch not usable yet
                         ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, ErrorResults.BatchNotUsableYetErrorMessage),
+                    SwarmChunkFormatException => //a chunk that is not well formed, or a tree whose chunks don't agree: bad data stored by a client, the message names the chunk and what is wrong
+                        ErrorResults.GetUnprocessableEntityErrorResult(apiVersion, e.Message),
 
                     // Error code 423.
                     ResourceLockException =>

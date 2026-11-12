@@ -152,10 +152,10 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 response.Headers.SetNoCache(); //disable cache
 
                 // Return content.
-                //if only root, returns chunk's data
+                //if only root, returns the wrapped chunk as it is, span and data, as bee does
                 if (onlyRootChunk)
                     return Results.File(
-                        wrappedChunk.Data.ToArray(),
+                        wrappedChunk.GetFullPayloadToByteArray(),
                         contentType: BeehiveHttpConsts.ApplicationOctetStreamContentType);
 
                 //else return joined data
