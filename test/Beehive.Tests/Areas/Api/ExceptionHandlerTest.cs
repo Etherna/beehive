@@ -19,6 +19,7 @@ using Etherna.MongoDB.Driver.Core.Clusters;
 using Etherna.MongoDB.Driver.Core.Connections;
 using Etherna.MongoDB.Driver.Core.Servers;
 using Etherna.SwarmSdk.Exceptions;
+using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -159,6 +160,23 @@ namespace Etherna.Beehive.Areas.Api
             Assert.Equal(expectedStatusCode, statusCode);
             Assert.Equal(expectedStatusCode, body.GetProperty("code").GetInt32());
             Assert.Equal(expectedMessage, body.GetProperty("message").GetString());
+        }
+
+        [Fact]
+        public async Task SwarmChunkFormatExceptionAnswersUnprocessableEntityWithItsMessage()
+        {
+            // Setup.
+            const string message = "Chunk span of 7237413383168157030 bytes exceeds the content a chunk trie can hold";
+            var exception = new SwarmChunkFormatException(SwarmHash.Zero, message);
+
+            // Action.
+            var result = await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+            var (statusCode, body) = await ExecuteResultAsync(result);
+
+            // Assert.
+            Assert.Equal(StatusCodes.Status422UnprocessableEntity, statusCode);
+            Assert.Equal(422, body.GetProperty("code").GetInt32());
+            Assert.Equal(message, body.GetProperty("message").GetString());
         }
 
         [Fact]

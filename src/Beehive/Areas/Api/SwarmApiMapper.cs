@@ -60,7 +60,8 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<Stream>(StatusCodes.Status206PartialContent, BeehiveHttpConsts.ApplicationOctetStreamContentType)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status416RangeNotSatisfiable);
+                .Produces(StatusCodes.Status416RangeNotSatisfiable)
+                .Produces(StatusCodes.Status422UnprocessableEntity);
             
             builder.MapHead("/bytes/{reference}",
                     (IBytesApiHandler handler,
@@ -104,7 +105,8 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<Stream>(StatusCodes.Status206PartialContent)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status416RangeNotSatisfiable);
+                .Produces(StatusCodes.Status416RangeNotSatisfiable)
+                .Produces(StatusCodes.Status422UnprocessableEntity);
             
             builder.MapHead("/bzz/{**address}",
                     (IBzzApiHandler handler,
@@ -250,7 +252,8 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<Stream>(StatusCodes.Status206PartialContent, BeehiveHttpConsts.ApplicationOctetStreamContentType)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status416RangeNotSatisfiable);
+                .Produces(StatusCodes.Status416RangeNotSatisfiable)
+                .Produces(StatusCodes.Status422UnprocessableEntity);
             
             builder.MapPost("/feeds/{owner}/{topic}",
                 (IFeedsApiHandler handler,
@@ -358,7 +361,8 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<Stream>(StatusCodes.Status206PartialContent, BeehiveHttpConsts.ApplicationOctetStreamContentType)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound)
-                .Produces(StatusCodes.Status416RangeNotSatisfiable);
+                .Produces(StatusCodes.Status416RangeNotSatisfiable)
+                .Produces(StatusCodes.Status422UnprocessableEntity);
             
             builder.MapPost("/soc/{owner}/{id}",
                 (ISocApiHandler handler,
