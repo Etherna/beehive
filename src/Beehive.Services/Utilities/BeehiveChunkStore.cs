@@ -23,6 +23,7 @@ using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
 using Microsoft.Extensions.Logging;
+using System.Runtime.ExceptionServices;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -35,7 +36,10 @@ namespace Etherna.Beehive.Services.Utilities
 {
     /// <summary>
     /// The chunk store over beehive's db, falling back on the bee nodes for the chunks it doesn't hold:
-    /// the nearest healthy node by default, or the given source node only
+    /// the nearest healthy node by default, or the given source node only. A chunk the db refuses fails the
+    /// operation writing it: the write exception propagates, the chunks stay in the saving buffer, readable,
+    /// and the store doesn't write again: every further add or flush throws the same failure at once, without
+    /// a db round trip, and its dispose leaves the buffer alone
     /// </summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
     public sealed class BeehiveChunkStore(
@@ -56,6 +60,7 @@ namespace Etherna.Beehive.Services.Utilities
         private readonly SemaphoreSlim flushSemaphore = new(1, 1);
         
         private bool disposed;
+        private ExceptionDispatchInfo? writeFailure;
         
         // Destructor and dispose.
         ~BeehiveChunkStore() => Dispose(false);
@@ -68,9 +73,12 @@ namespace Etherna.Beehive.Services.Utilities
         {
             if (disposed) return;
         
-            // Force a flush.
-            var flushTask = FlushSaveAsync();
-            flushTask.Wait();
+            // Force a flush, unless a write already failed: the owner's exception stands.
+            if (writeFailure is null)
+            {
+                var flushTask = FlushSaveAsync();
+                flushTask.Wait();
+            }
 
             // Dispose managed resources.
             if (disposing)
@@ -87,8 +95,9 @@ namespace Etherna.Beehive.Services.Utilities
         {
             if (disposed) return;
 
-            // Force a flush.
-            await FlushSaveAsync();
+            // Force a flush, unless a write already failed: the owner's exception stands.
+            if (writeFailure is null)
+                await FlushSaveAsync();
             
             // Dispose managed resources.
             flushSemaphore.Dispose();
@@ -101,30 +110,35 @@ namespace Etherna.Beehive.Services.Utilities
         {
             ArgumentNullException.ThrowIfNull(chunk);
             
-            try
+            // A failure propagates to the writer: a false would read as "already present" in the sdk contract.
+            // Once a write failed, the store throws it again at once: the sdk pipeline observes a failed stage only
+            // at the end of the stream, and every remaining chunk would otherwise retry the failed write.
+            writeFailure?.Throw();
+
+            var domainChunk = new Chunk(chunk.Hash, chunk.GetFullPayload(), chunk is SwarmSoc);
+
+            onSavingChunk?.Invoke(domainChunk);
+
+            if (savingBufferLength > 0)
             {
-                var domainChunk = new Chunk(chunk.Hash, chunk.GetFullPayload(), chunk is SwarmSoc);
-
-                onSavingChunk?.Invoke(domainChunk);
-
-                if (savingBufferLength > 0)
-                {
-                    chunkSavingBuffer.TryAdd(chunk.Hash, domainChunk);
-                    if (chunkSavingBuffer.Count >= savingBufferLength)
-                        await FlushSaveAsync();
-                }
-                else
+                chunkSavingBuffer.TryAdd(chunk.Hash, domainChunk);
+                if (chunkSavingBuffer.Count >= savingBufferLength)
+                    await FlushSaveAsync();
+            }
+            else
+            {
+                try
                 {
                     await dbContext.Chunks.CreateAsync(domainChunk, cancellationToken);
                 }
-                
-                return true;
+                catch (Exception e)
+                {
+                    writeFailure = ExceptionDispatchInfo.Capture(e);
+                    throw;
+                }
             }
-            catch (Exception e)
-            {
-                logger.FailedToStoreChunk(chunk.Hash, e);
-                return false;
-            }
+
+            return true;
         }
         
         public async Task FlushSaveAsync()
@@ -142,13 +156,25 @@ namespace Etherna.Beehive.Services.Utilities
 
             try
             {
+                // A store whose write failed doesn't write again.
+                writeFailure?.Throw();
+
                 // Don't create on db with no chunks.
                 var chunks = chunkSavingBuffer.Values.ToArray();
                 if (chunks.Length == 0)
                     return;
                 
                 // Write on db before to remove from buffer. This permits to have chunks available always.
-                await dbContext.Chunks.CreateAsync(chunks); 
+                // A failed write keeps them in the buffer and marks the store: no further write, not even on dispose.
+                try
+                {
+                    await dbContext.Chunks.CreateAsync(chunks);
+                }
+                catch (Exception e)
+                {
+                    writeFailure = ExceptionDispatchInfo.Capture(e);
+                    throw;
+                }
                 foreach (var chunk in chunks)
                     chunkSavingBuffer.TryRemove(chunk.Hash, out _);
             }
