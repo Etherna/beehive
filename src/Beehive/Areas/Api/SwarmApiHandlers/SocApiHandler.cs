@@ -20,6 +20,7 @@ using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Chunks;
+using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Http;
@@ -54,8 +55,11 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var chunk = await chunkStore.TryGetAsync(
                     SwarmSoc.BuildHash(id, owner, new Hasher())).ConfigureAwait(false);
 
+                // Bee's answers: a chunk nobody wrote is not found, data that isn't a soc at a soc address is a bad request.
+                if (chunk is null)
+                    throw new KeyNotFoundException("Single owner chunk not found");
                 if (chunk is not SwarmSoc soc)
-                    throw new InvalidOperationException("Chunk is not a single owner chunk");
+                    throw new SwarmChunkTypeException(chunk, "Chunk is not a single owner chunk");
             
                 // Build response headers.
                 var response = httpContextAccessor.HttpContext!.Response;
