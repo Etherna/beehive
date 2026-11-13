@@ -51,7 +51,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Exceptions;
+using Serilog.Debugging;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -132,9 +132,13 @@ namespace Etherna.Beehive
             var assemblyName = Assembly.GetExecutingAssembly().GetName().Name!.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
             var envName = environment.ToLower(CultureInfo.InvariantCulture).Replace(".", "-", StringComparison.InvariantCulture);
 
+            // The Elasticsearch sink reports its own failures (export exceptions, documents the cluster rejects)
+            // only to Serilog's self log: show them on the console, or a dropped event leaves no trace.
+            SelfLog.Enable(Console.Error);
+
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .Enrich.WithExceptionDetails()
+                .Enrich.WithBeehiveExceptionDetails()
                 .Enrich.WithMachineName()
                 .WriteTo.Debug(formatProvider: CultureInfo.InvariantCulture)
                 .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
