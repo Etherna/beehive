@@ -97,7 +97,7 @@ namespace Etherna.Beehive.Persistence
                     (Builders<Chunk>.IndexKeys.Ascending(c => c.Hash), new CreateIndexOptions<Chunk>())
                 ]
             });
-        public GridFSBucket ChunksBucket
+        public IGridFSBucket ChunksBucket
         {
             get
             {

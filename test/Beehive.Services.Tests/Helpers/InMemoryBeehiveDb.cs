@@ -15,7 +15,9 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
+using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
 using Etherna.Scrinium.Core.Repositories;
 using Moq;
 using System;
@@ -29,7 +31,9 @@ namespace Etherna.Beehive.Services.Helpers
 {
     /// <summary>
     /// A mocked db context whose chunk and pin repositories run over in-memory lists: the lookups run their
-    /// predicates and queries over the lists, the creations land in them with an id
+    /// predicates and queries over the lists, the creations land in them with an id. The deprecated GridFS bucket
+    /// holds nothing, and the engine carries the real async local execution context, so a chunk store can open its
+    /// db execution context over it
     /// </summary>
     internal sealed class InMemoryBeehiveDb
     {
@@ -87,9 +91,20 @@ namespace Etherna.Beehive.Services.Helpers
                 .ReturnsAsync((Expression<Func<ChunkPin, bool>> predicate, CancellationToken _) =>
                     ChunkPins.FirstOrDefault(predicate.Compile()));
 
+            // Chunks bucket: the deprecated GridFS store holds nothing.
+            ChunksBucketMock.Setup(b => b.DownloadAsBytesByNameAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<GridFSDownloadByNameOptions>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new GridFSFileNotFoundException("chunk", -1));
+
             // Db context.
+            var engineMock = new Mock<IDbContextEngine>();
+            engineMock.Setup(e => e.ExecutionContext).Returns(AsyncLocalContext.Instance);
             DbContextMock.Setup(c => c.ChunkPins).Returns(ChunkPinsMock.Object);
             DbContextMock.Setup(c => c.Chunks).Returns(ChunksMock.Object);
+            DbContextMock.Setup(c => c.ChunksBucket).Returns(ChunksBucketMock.Object);
+            DbContextMock.Setup(c => c.Engine).Returns(engineMock.Object);
             DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
         }
@@ -98,6 +113,7 @@ namespace Etherna.Beehive.Services.Helpers
         public List<ChunkPin> ChunkPins { get; } = [];
         public Mock<IRepository<ChunkPin, string>> ChunkPinsMock { get; } = new();
         public List<Chunk> Chunks { get; } = [];
+        public Mock<IGridFSBucket> ChunksBucketMock { get; } = new();
         public Mock<IRepository<Chunk, string>> ChunksMock { get; } = new();
         public IBeehiveDbContext DbContext => DbContextMock.Object;
         public Mock<IBeehiveDbContext> DbContextMock { get; } = new();
