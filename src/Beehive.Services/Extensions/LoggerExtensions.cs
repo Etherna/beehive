@@ -348,12 +348,6 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(18, nameof(FailedToPushChunk)),
                 "Failed to push chunk with hash {Hash}");
 
-        private static readonly Action<ILogger, SwarmHash, Exception> _failedToStoreChunk =
-            LoggerMessage.Define<SwarmHash>(
-                LogLevel.Error,
-                new EventId(56, nameof(FailedToStoreChunk)),
-                "Failed to store chunk {Hash} in the db");
-
         private static readonly Action<ILogger, string, BzzValue, Exception> _failedToWithdrawBzzOnNodeChequeBook =
             LoggerMessage.Define<string, BzzValue>(
                 LogLevel.Error,
@@ -435,9 +429,6 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void FailedToReadNodeBalance(this ILogger logger, string nodeId, string currency, Exception exception) =>
             _failedToReadNodeBalance(logger, currency, nodeId, exception);
-
-        public static void FailedToStoreChunk(this ILogger logger, SwarmHash hash, Exception exception) =>
-            _failedToStoreChunk(logger, hash, exception);
 
         public static void FailedToWithdrawBzzOnNodeChequeBook(this ILogger logger, string nodeId, BzzValue bzzWithdraw, Exception exception) =>
             _failedToWithdrawBzzOnNodeChequeBook(logger, nodeId, bzzWithdraw, exception);
