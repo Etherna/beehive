@@ -18,7 +18,6 @@ using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
-using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using System;
@@ -32,8 +31,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         ILogger<ImportNodePinsTask> logger,
-        IPinService pinService,
-        ISerializerModifierAccessor serializerModifierAccessor)
+        IPinService pinService)
         : IImportNodePinsTask
     {
         // Methods.
@@ -108,13 +106,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 PinChunksResult result;
                 try
                 {
-                    await using var chunkStore = new BeehiveChunkStore(
-                        beeNodeLiveManager,
-                        dbContext,
-                        logger,
-                        serializerModifierAccessor,
-                        sourceNode: node);
-                    result = await pinService.PinChunksAsync(pin.Id, chunkStore);
+                    result = await pinService.PinChunksAsync(pin.Id, node); //the chunks are read from the node itself
                 }
                 catch (Exception e)
                 {
