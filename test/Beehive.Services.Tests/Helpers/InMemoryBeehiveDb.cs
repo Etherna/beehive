@@ -19,6 +19,8 @@ using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
 using Etherna.Scrinium.Core.Repositories;
+using Etherna.Scrinium.Core.Utility;
+using Etherna.SwarmSdk.Models;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -30,39 +32,48 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Services.Helpers
 {
     /// <summary>
-    /// A mocked db context whose chunk and pin repositories run over in-memory lists: the lookups run their
-    /// predicates and queries over the lists, the creations land in them with an id. The deprecated GridFS bucket
-    /// holds nothing, and the engine carries the real async local execution context, so a chunk store can open its
-    /// db execution context over it
+    /// A db context mock over in-memory lists, for the flows reading and writing chunks and pins: the repository
+    /// lambdas run as they are over the lists, the GridFS bucket holds nothing, the engine opens its execution
+    /// context on demand, and a save of the changes does nothing
     /// </summary>
     internal sealed class InMemoryBeehiveDb
     {
         // Constructor.
         public InMemoryBeehiveDb()
         {
-            // Chunks.
-            ChunksMock.Setup(r => r.CreateAsync(It.IsAny<Chunk>(), It.IsAny<CancellationToken>()))
-                .Callback((Chunk chunk, CancellationToken _) => Add(Chunks, chunk))
-                .Returns(Task.CompletedTask);
-            ChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
-                .Callback((IEnumerable<Chunk> chunks, CancellationToken _) =>
-                {
-                    foreach (var chunk in chunks)
-                        Add(Chunks, chunk);
-                })
-                .Returns(Task.CompletedTask);
+            // Chunks: lookups, queries, creations and the add-to-set of a pin over the list.
+            ChunksMock.Setup(r => r.TryFindOneAsync(
+                    It.IsAny<Expression<Func<Chunk, bool>>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Expression<Func<Chunk, bool>> predicate, CancellationToken _) =>
+                    Chunks.FirstOrDefault(predicate.Compile()));
             ChunksMock.Setup(r => r.QueryElementsAsync(
                     It.IsAny<Func<IQueryable<Chunk>, Task<List<Chunk>>>>(),
                     null))
                 .Returns((Func<IQueryable<Chunk>, Task<List<Chunk>>> query, AggregateOptions? _) =>
                     query(InMemoryQueryable.Of(Chunks)));
+            ChunksMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
+                    null))
+                .Returns((Func<IQueryable<Chunk>, Task<List<SwarmHash>>> query, AggregateOptions? _) =>
+                    query(InMemoryQueryable.Of(Chunks)));
+            ChunksMock.Setup(r => r.CreateAsync(It.IsAny<Chunk>(), It.IsAny<CancellationToken>()))
+                .Callback((Chunk chunk, CancellationToken _) => AddChunk(chunk))
+                .Returns(Task.CompletedTask);
+            ChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
+                .Callback((IEnumerable<Chunk> chunks, CancellationToken _) =>
+                {
+                    foreach (var chunk in chunks.ToArray())
+                        AddChunk(chunk);
+                })
+                .Returns(Task.CompletedTask);
             ChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
                     It.IsAny<FilterDefinition<Chunk>>(),
                     It.IsAny<Expression<Func<Chunk, IEnumerable<ChunkPin>>>>(),
                     It.IsAny<ChunkPin>(),
                     It.IsAny<FindOneAndUpdateOptions<Chunk>>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync((
+                .Returns((
                     FilterDefinition<Chunk> filter,
                     Expression<Func<Chunk, IEnumerable<ChunkPin>>> _,
                     ChunkPin pin,
@@ -70,19 +81,12 @@ namespace Etherna.Beehive.Services.Helpers
                     CancellationToken _) =>
                 {
                     var chunk = Chunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile());
-                    chunk?.AddPin(pin);
-                    return chunk;
+                    if (chunk is not null && chunk.Pins.All(p => p.Id != pin.Id))
+                        chunk.AddPin(pin);
+                    return Task.FromResult(chunk);
                 });
-            ChunksMock.Setup(r => r.TryFindOneAsync(
-                    It.IsAny<Expression<Func<Chunk, bool>>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Expression<Func<Chunk, bool>> predicate, CancellationToken _) =>
-                    Chunks.FirstOrDefault(predicate.Compile()));
 
-            // Chunk pins.
-            ChunkPinsMock.Setup(r => r.CreateAsync(It.IsAny<ChunkPin>(), It.IsAny<CancellationToken>()))
-                .Callback((ChunkPin pin, CancellationToken _) => Add(ChunkPins, pin))
-                .Returns(Task.CompletedTask);
+            // Chunk pins: lookups by id and predicate, creations getting an id.
             ChunkPinsMock.Setup(r => r.FindOneAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((string id, CancellationToken _) => ChunkPins.Single(p => p.Id == id));
             ChunkPinsMock.Setup(r => r.TryFindOneAsync(
@@ -90,17 +94,21 @@ namespace Etherna.Beehive.Services.Helpers
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Expression<Func<ChunkPin, bool>> predicate, CancellationToken _) =>
                     ChunkPins.FirstOrDefault(predicate.Compile()));
+            ChunkPinsMock.Setup(r => r.CreateAsync(It.IsAny<ChunkPin>(), It.IsAny<CancellationToken>()))
+                .Callback((ChunkPin pin, CancellationToken _) => AddPin(pin))
+                .Returns(Task.CompletedTask);
 
-            // Chunks bucket: the deprecated GridFS store holds nothing.
+            // The legacy GridFS bucket holds nothing.
             ChunksBucketMock.Setup(b => b.DownloadAsBytesByNameAsync(
                     It.IsAny<string>(),
                     It.IsAny<GridFSDownloadByNameOptions>(),
                     It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new GridFSFileNotFoundException("chunk", -1));
 
-            // Db context.
+            // The engine, for the db execution context handlers the flows open.
             var engineMock = new Mock<IDbContextEngine>();
             engineMock.Setup(e => e.ExecutionContext).Returns(AsyncLocalContext.Instance);
+
             DbContextMock.Setup(c => c.ChunkPins).Returns(ChunkPinsMock.Object);
             DbContextMock.Setup(c => c.Chunks).Returns(ChunksMock.Object);
             DbContextMock.Setup(c => c.ChunksBucket).Returns(ChunksBucketMock.Object);
@@ -118,12 +126,29 @@ namespace Etherna.Beehive.Services.Helpers
         public IBeehiveDbContext DbContext => DbContextMock.Object;
         public Mock<IBeehiveDbContext> DbContextMock { get; } = new();
 
-        // Helpers.
-        private static void Add<TModel>(List<TModel> models, TModel model)
-            where TModel : EntityModelBase<string>
+        // Methods.
+        /// <summary>
+        /// Add a chunk to the db, with an id when it has none
+        /// </summary>
+        public void AddChunk(Chunk chunk)
         {
-            ReflectionHelper.SetValue(model, m => m.Id, Guid.NewGuid().ToString());
-            models.Add(model);
+            ArgumentNullException.ThrowIfNull(chunk);
+
+            if (chunk.Id is null)
+                ReflectionHelper.SetValue(chunk, c => c.Id, Guid.NewGuid().ToString());
+            Chunks.Add(chunk);
+        }
+
+        /// <summary>
+        /// Add a pin to the db, with an id when it has none
+        /// </summary>
+        public void AddPin(ChunkPin pin)
+        {
+            ArgumentNullException.ThrowIfNull(pin);
+
+            if (pin.Id is null)
+                ReflectionHelper.SetValue(pin, p => p.Id, Guid.NewGuid().ToString());
+            ChunkPins.Add(pin);
         }
     }
 }

@@ -20,7 +20,6 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Repositories;
-using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
@@ -48,6 +47,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
 
         // Fields.
         private readonly List<ChunkPin> chunkPins = [];
+        private readonly BeeNodeLiveInstance node;
         private readonly Mock<ISwarmClient> nodeClientMock = new();
         private readonly List<NodePinImport> pinRecords = [];
         private readonly Mock<IPinService> pinServiceMock = new();
@@ -58,7 +58,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         public ImportNodePinsTaskTest()
         {
             // The node under import, alive.
-            var node = new BeeNodeLiveInstance(NodeId, nodeClientMock.Object, true, NullLogger.Instance);
+            node = new BeeNodeLiveInstance(NodeId, nodeClientMock.Object, true, NullLogger.Instance);
             node.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
             var beeNodeLiveManagerMock = new Mock<IBeeNodeLiveManager>();
             beeNodeLiveManagerMock.Setup(m => m.GetBeeNodeLiveInstanceAsync(NodeId)).ReturnsAsync(node);
@@ -90,8 +90,8 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             dbContextMock.Setup(c => c.NodePinsImports).Returns(nodePinsImportsMock.Object);
 
             // The pinning itself is the pin service's: here it answers per reference.
-            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeehiveChunkStore>()))
-                .Returns((string pinId, BeehiveChunkStore _) =>
+            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _) =>
                 {
                     var pin = chunkPins.Single(p => p.Id == pinId);
                     pin.UpdateProcessed(
@@ -104,8 +104,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 beeNodeLiveManagerMock.Object,
                 dbContextMock.Object,
                 NullLogger<ImportNodePinsTask>.Instance,
-                pinServiceMock.Object,
-                new Mock<ISerializerModifierAccessor>().Object);
+                pinServiceMock.Object);
         }
 
         // Tests.
@@ -118,7 +117,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 .ReturnsAsync([ReferenceIncomplete, ReferenceComplete]);
             pinServiceMock.Setup(s => s.PinChunksAsync(
                     It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceIncomplete),
-                    It.IsAny<BeehiveChunkStore>()))
+                    It.IsAny<BeeNodeLiveInstance?>()))
                 .ThrowsAsync(new ResourceLockException());
 
             // Action.
@@ -186,7 +185,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             Assert.Equal(0, import.UnpinnedPins);
             Assert.True(chunkPins.Single(p => p.Reference == ReferenceComplete).IsSucceeded);
             Assert.False(chunkPins.Single(p => p.Reference == ReferenceIncomplete).IsSucceeded);
-            pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeehiveChunkStore>()), Times.Exactly(2));
+            pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), node), Times.Exactly(2)); //read from the node itself
             nodeClientMock.Verify(c => c.DeletePinAsync(It.IsAny<SwarmReference>(), It.IsAny<CancellationToken>()), Times.Never);
 
             //one record per pin, with its outcome
@@ -254,8 +253,8 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             import = NewImport(unpinImported: true);
             nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync([ReferenceComplete]);
-            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeehiveChunkStore>()))
-                .Returns((string pinId, BeehiveChunkStore _) =>
+            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _) =>
                 {
                     var pin = chunkPins.Single(p => p.Id == pinId);
                     pin.UpdateProcessed([], totPinnedChunks: 3);

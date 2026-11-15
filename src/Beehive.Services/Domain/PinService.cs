@@ -19,17 +19,20 @@ using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
 {
     public sealed class PinService(
+        IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         ILogger<PinService> logger,
         IResourceLockService resourceLockService,
@@ -58,10 +61,8 @@ namespace Etherna.Beehive.Services.Domain
                 dbContext.ChunkPinLocks,
                 chunkPinId);
 
-        public async Task<PinChunksResult> PinChunksAsync(string chunkPinId, BeehiveChunkStore chunkStore)
+        public async Task<PinChunksResult> PinChunksAsync(string chunkPinId, BeeNodeLiveInstance? sourceNode)
         {
-            ArgumentNullException.ThrowIfNull(chunkStore);
-
             // Acquire lock on pin.
             await using var pinLockHandler = await AcquireLockAsync(chunkPinId, true);
 
@@ -71,44 +72,50 @@ namespace Etherna.Beehive.Services.Domain
             if (pin.IsSucceeded)
                 return new PinChunksResult(pin, []);
 
-            // Traverse chunks.
-            var chunkTraverser = new ChunkTraverser(chunkStore);
-
+            // Traverse chunks. The store saves the chunks it reads from the nodes with the pin attached, so a chunk
+            // beehive didn't hold enters the db pinned; a chunk it held takes the pin on its document.
             HashSet<SwarmHash> invalidChunksHash = [];
             HashSet<SwarmHash> missingChunksHash = [];
             HashSet<SwarmHash> pinnedChunksHash = [];
+            await using var chunkStore = new BeehiveChunkStore(
+                beeNodeLiveManager,
+                dbContext,
+                logger,
+                serializerModifierAccessor,
+                onSavingChunk: c => c.AddPin(pin),
+                sourceNode: sourceNode);
+            var chunkTraverser = new ChunkTraverser(chunkStore);
+
             /* The traversal reads back one chunk document per pinned chunk: keep them out of
              * the identity map of this scope, or it grows with the pinned tree. */
             using (serializerModifierAccessor.EnableCacheSerializerModifier(true))
             {
                 await chunkTraverser.TraverseAsync(
                     pin.Reference.Value,
-                    async (foundChunk, _) =>
-                    {
-                        if (!pinnedChunksHash.Add(foundChunk.Hash))
-                            return;
-                        await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                            new ExpressionFilterDefinition<Chunk>(c => c.Hash == foundChunk.Hash),
-                            c => c.Pins,
-                            pin,
-                            new FindOneAndUpdateOptions<Chunk>());
-                    },
-                    async (invalidFoundChunk, _) =>
+                    (foundChunk, _) =>
+                        PinFoundChunkAsync(pin, foundChunk.Hash, pinnedChunksHash, missingChunksHash),
+                    (invalidFoundChunk, _) =>
                     {
                         invalidChunksHash.Add(invalidFoundChunk.Hash);
-                        if (!pinnedChunksHash.Add(invalidFoundChunk.Hash))
-                            return;
-                        await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                            new ExpressionFilterDefinition<Chunk>(c => c.Hash == invalidFoundChunk.Hash),
-                            c => c.Pins,
-                            pin,
-                            new FindOneAndUpdateOptions<Chunk>());
+                        return PinFoundChunkAsync(pin, invalidFoundChunk.Hash, pinnedChunksHash, missingChunksHash);
                     },
                     notFoundReference =>
                     {
                         missingChunksHash.Add(notFoundReference.Reference.Hash);
                         return Task.CompletedTask;
                     });
+            }
+
+            // Verify the pin on the db before declaring it: a chunk is pinned by its document carrying the pin,
+            // not by the traversal having met it.
+            var storedChunksHash = await dbContext.Chunks.QueryElementsAsync(elements =>
+                elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
+                    .Select(c => c.Hash)
+                    .ToListAsync());
+            foreach (var hash in pinnedChunksHash.Except(storedChunksHash).ToArray())
+            {
+                pinnedChunksHash.Remove(hash);
+                missingChunksHash.Add(hash);
             }
 
             // Update pin with result.
@@ -134,6 +141,31 @@ namespace Etherna.Beehive.Services.Domain
             logger.PinDeleted(pinReference);
             
             return true;
+        }
+
+        // Helpers.
+        /// <summary>
+        /// Attach the pin to the document of a chunk the traversal met, once per chunk: the chunk is pinned when a
+        /// document took the pin (saved with it by the store, or held by beehive already), missing otherwise
+        /// </summary>
+        private async Task PinFoundChunkAsync(
+            ChunkPin pin,
+            SwarmHash hash,
+            HashSet<SwarmHash> pinnedChunksHash,
+            HashSet<SwarmHash> missingChunksHash)
+        {
+            if (pinnedChunksHash.Contains(hash) || missingChunksHash.Contains(hash))
+                return;
+
+            var chunkDocument = await dbContext.Chunks.TryFindOneAndAddToSetAsync(
+                new ExpressionFilterDefinition<Chunk>(c => c.Hash == hash),
+                c => c.Pins,
+                pin,
+                new FindOneAndUpdateOptions<Chunk>());
+            if (chunkDocument is not null)
+                pinnedChunksHash.Add(hash);
+            else
+                missingChunksHash.Add(hash);
         }
     }
 }

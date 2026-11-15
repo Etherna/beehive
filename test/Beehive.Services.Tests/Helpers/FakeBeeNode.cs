@@ -16,26 +16,32 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Helpers
 {
     /// <summary>
-    /// An alive bee node serving the chunks it holds and answering bee's 404 for the others
+    /// A bee node alive for the live manager, serving the chunks of its in-memory store and answering bee's
+    /// error for the others: not found by default, or the given status for a node that fails its reads
     /// </summary>
     internal sealed class FakeBeeNode
     {
-        // Constructor.
-        public FakeBeeNode(string nodeId, params SwarmChunk[] chunks)
-        {
-            foreach (var chunk in chunks)
-                Chunks[chunk.Hash] = chunk;
+        // Consts.
+        private const string Ethereum = "0x0000000000000000000000000000000000000001";
+        private const string PublicKey = "02" + "0000000000000000000000000000000000000000000000000000000000000001";
 
+        // Constructor.
+        /// <param name="missingChunkStatusCode">The status the node answers for a chunk it doesn't hold</param>
+        public FakeBeeNode(string nodeId, SwarmOverlayAddress overlay, int missingChunkStatusCode = 404)
+        {
             ClientMock.Setup(c => c.GetChunkAsync(
                     It.IsAny<SwarmHash>(),
                     It.IsAny<SwarmChunkBmt>(),
@@ -44,23 +50,46 @@ namespace Etherna.Beehive.Services.Helpers
                     It.IsAny<string?>(),
                     It.IsAny<string?>(),
                     It.IsAny<CancellationToken>()))
-                .Returns((SwarmHash hash, SwarmChunkBmt _, bool? _, long? _, string? _, string? _, CancellationToken _) =>
-                    Chunks.TryGetValue(hash, out var chunk)
-                        ? Task.FromResult(chunk)
-                        : Task.FromException<SwarmChunk>(new SwarmSdkApiException(
-                            "The HTTP status code of the response was not expected (404).",
-                            404,
-                            """{"code":404,"message":"chunk not found"}""",
+                .Returns(async (
+                    SwarmHash hash,
+                    SwarmChunkBmt _,
+                    bool? _,
+                    long? _,
+                    string? _,
+                    string? _,
+                    CancellationToken cancellationToken) =>
+                {
+                    requestedHashes.Enqueue(hash);
+                    return await Chunks.TryGetAsync(hash, cancellationToken) ??
+                        throw new SwarmSdkApiException(
+                            string.Format(CultureInfo.InvariantCulture,
+                                "The HTTP status code of the response was not expected ({0}).", missingChunkStatusCode),
+                            missingChunkStatusCode,
+                            string.Format(CultureInfo.InvariantCulture,
+                                """{{"code":{0},"message":"chunk {1}"}}""", missingChunkStatusCode, hash),
                             new Dictionary<string, IEnumerable<string>>(),
-                            null)));
+                            null);
+                });
 
-            Node = new BeeNodeLiveInstance(nodeId, ClientMock.Object, true, NullLogger.Instance);
-            Node.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
+            Instance = new BeeNodeLiveInstance(nodeId, ClientMock.Object, true, NullLogger.Instance);
+            Instance.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
+            Instance.Status.InitializeAddresses(new BeeNodeAddresses(Ethereum, overlay, PublicKey, PublicKey));
         }
 
+        // Fields.
+        private readonly ConcurrentQueue<SwarmHash> requestedHashes = new();
+
         // Properties.
-        public Dictionary<SwarmHash, SwarmChunk> Chunks { get; } = [];
+        /// <summary>
+        /// The chunks the node holds
+        /// </summary>
+        public MemoryChunkStore Chunks { get; } = new();
         public Mock<ISwarmClient> ClientMock { get; } = new();
-        public BeeNodeLiveInstance Node { get; }
+        public BeeNodeLiveInstance Instance { get; }
+
+        /// <summary>
+        /// The hashes asked to the node, in order of request
+        /// </summary>
+        public IEnumerable<SwarmHash> RequestedHashes => requestedHashes;
     }
 }

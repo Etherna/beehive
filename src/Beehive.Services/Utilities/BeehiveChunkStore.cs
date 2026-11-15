@@ -36,7 +36,8 @@ namespace Etherna.Beehive.Services.Utilities
 {
     /// <summary>
     /// The chunk store over beehive's db, falling back on the bee nodes for the chunks it doesn't hold:
-    /// the nearest healthy node by default, or the given source node only. A chunk the db refuses fails the
+    /// the nearest healthy node by default, or the given source node only. What a node serves is saved in
+    /// the db at once, with <paramref name="onSavingChunk"/> applied. A chunk the db refuses fails the
     /// operation writing it: the write exception propagates, the chunks stay in the saving buffer, readable,
     /// and the store doesn't write again: every further add or flush throws the same failure at once, without
     /// a db round trip, and its dispose leaves the buffer alone
@@ -356,12 +357,8 @@ namespace Etherna.Beehive.Services.Utilities
             var node = sourceNode ?? beeNodeLiveManager.SelectNearestHealthyNode(hash);
             var chunk = await node.ChunkStore.GetAsync(hash, cancellationToken: cancellationToken);
             logger.ChunkReadFromNode(hash, node.Id);
-            
-            // Save in local db. Force flush on db now.
-            //flush is required by pinning that needs to update chunk's pin reference on db.
-            await AddAsync(chunk, cancellationToken);
-            await FlushSaveAsync();
-            
+
+            await SaveFetchedChunksAsync([chunk], cancellationToken);
             return chunk;
         }
 
@@ -399,6 +396,8 @@ namespace Etherna.Beehive.Services.Utilities
                     .Where(p => p.Value != null)
                     .ToDictionary(p => p.Key, p => p.Value!);
                 logger.ChunksReadFromNode(foundOnSourceNode.Count, hashes.Count, sourceNode.Id);
+
+                await SaveFetchedChunksAsync(foundOnSourceNode.Values, cancellationToken);
                 return foundOnSourceNode;
             }
             
@@ -447,7 +446,19 @@ namespace Etherna.Beehive.Services.Utilities
                 logger.ChunksReadFromNode(foundOnNode, requestedChunks, node.Id);
             }
 
+            await SaveFetchedChunksAsync(found.Values, cancellationToken);
             return found;
+        }
+
+        /// <summary>
+        /// Save in the local db the chunks read from the nodes, flushing them at once: a pinning reading through
+        /// the store attaches its pin to the documents right after, so they must be on the db already
+        /// </summary>
+        private async Task SaveFetchedChunksAsync(IEnumerable<SwarmChunk> chunks, CancellationToken cancellationToken)
+        {
+            foreach (var chunk in chunks)
+                await AddAsync(chunk, cancellationToken);
+            await FlushSaveAsync();
         }
     }
 }

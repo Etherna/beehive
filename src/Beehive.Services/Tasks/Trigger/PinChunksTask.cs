@@ -12,29 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain;
 using Etherna.Beehive.Services.Domain;
-using Etherna.Beehive.Services.Utilities;
-using Etherna.Scrinium.Core.Serialization.Modifiers;
-using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Trigger
 {
-    public class PinChunksTask(
-        IBeeNodeLiveManager beeNodeLiveManager,
-        IBeehiveDbContext dbContext,
-        ILogger<PinChunksTask> logger,
-        IPinService pinService,
-        ISerializerModifierAccessor serializerModifierAccessor)
+    public class PinChunksTask(IPinService pinService)
         : IPinChunksTask
     {
         // Methods.
-        public async Task RunAsync(string chunkPinId)
-        {
-            await using var chunkStore =
-                new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
-            await pinService.PinChunksAsync(chunkPinId, chunkStore);
-        }
+        public Task RunAsync(string chunkPinId) =>
+            pinService.PinChunksAsync(chunkPinId, null); //the chunks are read from the healthy nodes
     }
 }
