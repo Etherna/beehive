@@ -32,6 +32,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
@@ -200,6 +201,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         private static IResult NewPermanentRedirectResult(SwarmAddress address, QueryString queryString) =>
             Results.Redirect("/bzz/" + address + queryString, permanent: true, preserveMethod: true);
         
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The chunk store is disposed with the response, which streams through it")]
         private async Task<IResult> ReplyToBzzReadAsync(
             string strAddress,
             bool onlyHeaders,
@@ -215,8 +217,10 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             if (address.ToString() != strAddress)
                 return NewPermanentRedirectResult(address, httpContext.Request.QueryString);
             
-            // Decode manifest.
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+            // Decode manifest. The store lives as long as the response: the data stream of a full content reads the
+            // chunks through it, and the store saves the ones read from the nodes, while the body is written.
+            var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+            httpContext.Response.RegisterForDisposeAsync(chunkStore);
 #pragma warning disable CA1849
             var manifest = ReferencedMantarayManifest.BuildNew(address.Reference, chunkStore);
 #pragma warning restore CA1849

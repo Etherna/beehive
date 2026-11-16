@@ -35,12 +35,13 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Services.Utilities
 {
     /// <summary>
-    /// The chunk store over beehive's db, falling back on the bee nodes for the chunks it doesn't hold:
-    /// the nearest healthy node by default, or the given source node only. What a node serves is saved in
-    /// the db at once, with <paramref name="onSavingChunk"/> applied. A chunk the db refuses fails the
-    /// operation writing it: the write exception propagates, the chunks stay in the saving buffer, readable,
-    /// and the store doesn't write again: every further add or flush throws the same failure at once, without
-    /// a db round trip, and its dispose leaves the buffer alone
+    /// The chunk store over beehive's db, falling back on the bee nodes for the chunks it doesn't hold: one node
+    /// per chunk among the healthy ones, or the given source node only. A node's not found is final: the node
+    /// already searched the network. What a node serves is saved in the db at once, with
+    /// <paramref name="onSavingChunk"/> applied.
+    /// A chunk the db refuses fails the operation writing it: the write exception propagates, the chunks stay in
+    /// the saving buffer, readable, and the store doesn't write again: every further add or flush throws the same
+    /// failure at once, without a db round trip, and its dispose leaves the buffer alone
     /// </summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
     public sealed class BeehiveChunkStore(
@@ -383,6 +384,10 @@ namespace Etherna.Beehive.Services.Utilities
              *
              * Partitioning is made reading first two bytes, and casting to uint16. The hash.ToBucketId() is a ready
              * and perfect implementation of this.
+             *
+             * Each hash is asked to its node only. A node looks for a chunk in its local store and then retrieves it
+             * from the network, so its not found is final: another node of ours would repeat the same retrieval,
+             * with its timeouts, for a chunk the network doesn't have.
              */
 
             if (hashes.Count == 0)
@@ -391,12 +396,7 @@ namespace Etherna.Beehive.Services.Utilities
             // With a source node, everything is read from it.
             if (sourceNode is not null)
             {
-                var fromSourceNode = await sourceNode.ChunkStore.GetAsync(hashes, cancellationToken: cancellationToken);
-                var foundOnSourceNode = fromSourceNode
-                    .Where(p => p.Value != null)
-                    .ToDictionary(p => p.Key, p => p.Value!);
-                logger.ChunksReadFromNode(foundOnSourceNode.Count, hashes.Count, sourceNode.Id);
-
+                var foundOnSourceNode = await ReadFromNodeAsync(sourceNode, hashes, cancellationToken);
                 await SaveFetchedChunksAsync(foundOnSourceNode.Values, cancellationToken);
                 return foundOnSourceNode;
             }
@@ -407,46 +407,47 @@ namespace Etherna.Beehive.Services.Utilities
 
             if (healthyNodes.Length == 0)
                 return new Dictionary<SwarmHash, SwarmChunk>();
-            
-            var hashesByNode = new List<SwarmHash>[healthyNodes.Length];
-            for (int i = 0; i < hashesByNode.Length; i++)
-                hashesByNode[i] = new List<SwarmHash>();
 
+            // Each node is asked the partition of the hashes nearest to it.
+            var hashesByNode = new Dictionary<BeeNodeLiveInstance, List<SwarmHash>>();
             foreach (var hash in hashes)
             {
                 var hashBucketId = hash.ToBucketId();
                 var nodeIndex = (int)((hashBucketId * (uint)healthyNodes.Length) >> 16);
-                hashesByNode[nodeIndex].Add(hash);
+                hashesByNode.TryAdd(healthyNodes[nodeIndex], []);
+                hashesByNode[healthyNodes[nodeIndex]].Add(hash);
             }
 
-            var getTasks = new List<(BeeNodeLiveInstance Node, int RequestedChunks, Task<IReadOnlyDictionary<SwarmHash, SwarmChunk?>> Task)>();
-            for (int i = 0; i < healthyNodes.Length; i++)
-            {
-                if (hashesByNode[i].Count == 0)
-                    continue;
-                getTasks.Add((
-                    healthyNodes[i],
-                    hashesByNode[i].Count,
-                    healthyNodes[i].ChunkStore.GetAsync(hashesByNode[i], cancellationToken: cancellationToken)));
-            }
-
-            await Task.WhenAll(getTasks.Select(t => t.Task));
+            var reads = hashesByNode
+                .Select(p => ReadFromNodeAsync(p.Key, p.Value, cancellationToken))
+                .ToArray();
+            await Task.WhenAll(reads); //a node failing its read fails the fetch: the failure propagates
 
             var found = new Dictionary<SwarmHash, SwarmChunk>();
-            foreach (var (node, requestedChunks, task) in getTasks)
-            {
-                var foundOnNode = 0;
-                foreach (var (hash, chunk) in await task) //already completed
-                {
-                    if (chunk is null)
-                        continue;
+            foreach (var read in reads)
+                foreach (var (hash, chunk) in await read) //already completed
                     found[hash] = chunk;
-                    foundOnNode++;
-                }
-                logger.ChunksReadFromNode(foundOnNode, requestedChunks, node.Id);
-            }
 
             await SaveFetchedChunksAsync(found.Values, cancellationToken);
+            return found;
+        }
+
+        /// <summary>
+        /// Read a batch of chunks from a node: the chunks it serves. The ones it doesn't hold are logged at Debug
+        /// and left out, a failure of the read propagates
+        /// </summary>
+        private async Task<IReadOnlyDictionary<SwarmHash, SwarmChunk>> ReadFromNodeAsync(
+            BeeNodeLiveInstance node,
+            IReadOnlyCollection<SwarmHash> hashes,
+            CancellationToken cancellationToken)
+        {
+            var result = await node.ChunkStore.GetAsync(hashes, cancellationToken: cancellationToken);
+            var found = result
+                .Where(p => p.Value != null)
+                .ToDictionary(p => p.Key, p => p.Value!);
+            logger.ChunksReadFromNode(found.Count, hashes.Count, node.Id);
+            if (found.Count < hashes.Count)
+                logger.ChunksNotFoundOnNode(node.Id, hashes.Where(h => !found.ContainsKey(h)));
             return found;
         }
 

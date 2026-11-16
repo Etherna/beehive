@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 56
+     * Last event id is: 57
      */
     public static class LoggerExtensions
     {
@@ -44,6 +44,12 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Debug,
                 new EventId(32, nameof(ChunkReadFromNode)),
                 "Chunk {Hash} read from node {NodeId}");
+
+        private static readonly Action<ILogger, string, IEnumerable<SwarmHash>, Exception> _chunksNotFoundOnNode =
+            LoggerMessage.Define<string, IEnumerable<SwarmHash>>(
+                LogLevel.Debug,
+                new EventId(57, nameof(ChunksNotFoundOnNode)),
+                "Node {NodeId} does not hold the chunks {Hashes}");
 
         private static readonly Action<ILogger, int, int, string, Exception> _chunksReadFromNode =
             LoggerMessage.Define<int, int, string>(
@@ -396,6 +402,9 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void ChunkReadFromNode(this ILogger logger, SwarmHash hash, string nodeId) =>
             _chunkReadFromNode(logger, hash, nodeId, null!);
+
+        public static void ChunksNotFoundOnNode(this ILogger logger, string nodeId, IEnumerable<SwarmHash> hashes) =>
+            _chunksNotFoundOnNode(logger, nodeId, hashes, null!);
 
         public static void ChunksReadFromNode(this ILogger logger, int foundChunks, int requestedChunks, string nodeId) =>
             _chunksReadFromNode(logger, foundChunks, requestedChunks, nodeId, null!);

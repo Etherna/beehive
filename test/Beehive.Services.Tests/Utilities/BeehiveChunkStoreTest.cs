@@ -16,8 +16,9 @@ using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Helpers;
 using Etherna.MongoDB.Driver;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -31,18 +32,22 @@ namespace Etherna.Beehive.Services.Utilities
 {
     public class BeehiveChunkStoreTest
     {
+        // Consts.
+        private const string NodeAOverlay = "0000000000000000000000000000000000000000000000000000000000000001";
+        private const string NodeBOverlay = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
         // Fields.
+        private readonly Mock<IBeeNodeLiveManager> beeNodeLiveManagerMock = new();
         private readonly InMemoryBeehiveDb db = new();
         private readonly MongoException dbFailure = new("db down");
+        private readonly CapturingLogger logger = new();
+        private readonly FakeBeeNode nodeA = new("nodeA", NodeAOverlay);
+        private readonly FakeBeeNode nodeB = new("nodeB", NodeBOverlay);
 
         // Constructor.
         public BeehiveChunkStoreTest()
         {
-            // The db refuses every chunk write.
-            db.ChunksMock.Setup(r => r.CreateAsync(It.IsAny<Chunk>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(dbFailure);
-            db.ChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(dbFailure);
+            beeNodeLiveManagerMock.Setup(m => m.HealthyNodes).Returns(() => [nodeA.Instance, nodeB.Instance]);
         }
 
         // Tests.
@@ -53,6 +58,7 @@ namespace Etherna.Beehive.Services.Utilities
         public async Task AddPropagatesTheRefusedWrite(int savingBufferLength)
         {
             // Setup.
+            RefuseEveryWrite();
             await using var store = NewStore(savingBufferLength);
 
             // Action.
@@ -68,6 +74,7 @@ namespace Etherna.Beehive.Services.Utilities
         public async Task AfterARefusedWriteTheStoreThrowsItAgainWithoutWriting(int savingBufferLength)
         {
             // Setup.
+            RefuseEveryWrite();
             await using var store = NewStore(savingBufferLength);
             await Assert.ThrowsAsync<MongoException>(() => store.AddAsync(NewChunk()));
 
@@ -92,6 +99,7 @@ namespace Etherna.Beehive.Services.Utilities
         public async Task AfterARefusedDisposeFlushTheFinalizerDoesNotWriteAgain()
         {
             // Setup.
+            RefuseEveryWrite();
             //a store whose first refused write is the flush of its dispose: the dispose throws before marking the store disposed
             await Assert.ThrowsAsync<MongoException>(() => AddAndDisposeAsync(savingBufferLength: 2));
 
@@ -111,6 +119,7 @@ namespace Etherna.Beehive.Services.Utilities
         public async Task AfterARefusedFlushTheChunkStaysReadableAndTheDisposeDoesNotWriteAgain()
         {
             // Setup.
+            RefuseEveryWrite();
             var chunk = NewChunk();
             var store = NewStore(savingBufferLength: 1);
             await Assert.ThrowsAsync<MongoException>(() => store.AddAsync(chunk));
@@ -128,14 +137,82 @@ namespace Etherna.Beehive.Services.Utilities
                 Times.Once);
         }
 
-        // Helpers.
-        private static SwarmCac NewChunk()
+        [Fact]
+        public async Task DoesNotAskAnotherNodeForAChunkItsPartitionNodeDoesNotHold()
         {
-            var bmt = new SwarmChunkBmt();
-            var spanData = SwarmCac.BuildFromData(SwarmHash.Zero, Enumerable.Range(0, 42).Select(i => (byte)i).ToArray()).SpanData;
-            return new SwarmCac(bmt.Hash(spanData), spanData);
+            // Setup.
+            //the other node holds the chunk, but the partition node already searched the network for it
+            var chunk = NewChunk();
+            await OtherNodeOf(chunk.Hash).Chunks.AddAsync(chunk);
+            await using var store = NewStore();
+
+            // Action.
+            var result = await store.GetAsync([chunk.Hash]);
+
+            // Assert.
+            Assert.Empty(result);
+            Assert.Contains(chunk.Hash, PartitionNodeOf(chunk.Hash).RequestedHashes);
+            Assert.Empty(OtherNodeOf(chunk.Hash).RequestedHashes);
+            Assert.Empty(db.Chunks);
+            var notFound = Assert.Single(logger.Events, e => e.EventName == nameof(Extensions.LoggerExtensions.ChunksNotFoundOnNode));
+            Assert.Equal(LogLevel.Debug, notFound.Level);
+            Assert.Contains(PartitionNodeOf(chunk.Hash).Instance.Id, notFound.Message, StringComparison.Ordinal);
+            Assert.Contains(chunk.Hash.ToString(), notFound.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain(logger.Events, e => e.Level >= LogLevel.Warning);
         }
 
+        [Fact]
+        public async Task PropagatesTheReadFailureOfANode()
+        {
+            // Setup.
+            //the node of the partition fails every read
+            var chunk = NewChunk();
+            PartitionNodeOf(chunk.Hash).MissingChunkStatusCode = 500;
+            await using var store = NewStore();
+
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<SwarmSdkApiException>(() => store.GetAsync([chunk.Hash]));
+            Assert.Equal(500, exception.StatusCode);
+            Assert.Empty(OtherNodeOf(chunk.Hash).RequestedHashes);
+            Assert.DoesNotContain(logger.Events, e => e.Level >= LogLevel.Warning); //logged once, by who answers the failure
+        }
+
+        [Fact]
+        public async Task ReadsAChunkFromItsPartitionNodeAndSavesIt()
+        {
+            // Setup.
+            var chunk = NewChunk();
+            await PartitionNodeOf(chunk.Hash).Chunks.AddAsync(chunk);
+            await using var store = NewStore();
+
+            // Action.
+            var result = await store.GetAsync([chunk.Hash]);
+
+            // Assert.
+            Assert.Equal(chunk.Hash, Assert.Single(result).Value?.Hash);
+            Assert.Empty(OtherNodeOf(chunk.Hash).RequestedHashes);
+            Assert.Equal(chunk.Hash, Assert.Single(db.Chunks).Hash); //saved, as any chunk read from a node
+            Assert.DoesNotContain(logger.Events, e => e.Level >= LogLevel.Warning);
+        }
+
+        [Fact]
+        public async Task ReadsFromTheSourceNodeOnlyWhenOneIsGiven()
+        {
+            // Setup.
+            var chunk = NewChunk();
+            await nodeB.Chunks.AddAsync(chunk);
+            await using var store = NewStore(sourceNode: nodeA);
+
+            // Action.
+            var result = await store.GetAsync([chunk.Hash]);
+
+            // Assert.
+            Assert.Empty(result);
+            Assert.Contains(chunk.Hash, nodeA.RequestedHashes);
+            Assert.Empty(nodeB.RequestedHashes);
+        }
+
+        // Helpers.
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async Task AddAndDisposeAsync(int savingBufferLength)
         {
@@ -144,12 +221,45 @@ namespace Etherna.Beehive.Services.Utilities
             await store.DisposeAsync(); //writes the buffer, refused
         }
 
-        private BeehiveChunkStore NewStore(int savingBufferLength) =>
+        /// <summary>
+        /// A content addressed chunk, as an upload would build it
+        /// </summary>
+        private static SwarmCac NewChunk()
+        {
+            var bmt = new SwarmChunkBmt();
+            var spanData = SwarmCac.BuildFromData(SwarmHash.Zero, Enumerable.Range(0, 42).Select(i => (byte)i).ToArray()).SpanData;
+            return new SwarmCac(bmt.Hash(spanData), spanData);
+        }
+
+        private BeehiveChunkStore NewStore(
+            int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
+            FakeBeeNode? sourceNode = null) =>
             new(
-                new Mock<IBeeNodeLiveManager>().Object,
+                beeNodeLiveManagerMock.Object,
                 db.DbContext,
-                NullLogger.Instance,
+                logger,
                 new Mock<ISerializerModifierAccessor>().Object,
-                savingBufferLength);
+                savingBufferLength,
+                sourceNode: sourceNode?.Instance);
+
+        private FakeBeeNode OtherNodeOf(SwarmHash hash) =>
+            PartitionNodeOf(hash) == nodeA ? nodeB : nodeA;
+
+        /// <summary>
+        /// The node the store asks first: the healthy nodes ordered by overlay, each taking a bucket range
+        /// </summary>
+        private FakeBeeNode PartitionNodeOf(SwarmHash hash) =>
+            (hash.ToBucketId() * 2u) >> 16 == 0 ? nodeA : nodeB;
+
+        /// <summary>
+        /// The db refuses every chunk write
+        /// </summary>
+        private void RefuseEveryWrite()
+        {
+            db.ChunksMock.Setup(r => r.CreateAsync(It.IsAny<Chunk>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(dbFailure);
+            db.ChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(dbFailure);
+        }
     }
 }
