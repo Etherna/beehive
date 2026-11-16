@@ -112,9 +112,12 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         _ => throw new InvalidOperationException(),
                     };
 
-                // Find feed chunk at given moment.
-                await using var chunkStore =
-                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+                // Find feed chunk at given moment. The store lives as long as the response: the data stream of the
+                // wrapped content reads the chunks through it, and the store saves the ones read from the nodes,
+                // while the body is written.
+                var httpContext = httpContextAccessor.HttpContext!;
+                var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+                httpContext.Response.RegisterForDisposeAsync(chunkStore);
                 var feedChunk = await feed.TryFindFeedChunkAtAsync(
                     at.Value,
                     afterFeedIndex,
@@ -138,7 +141,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 var nextIndexBytes = nextFeedIndex?.MarshalBinary();
                 var signature = feedChunk.Signature!.Value;
 
-                var response = httpContextAccessor.HttpContext!.Response;
+                var response = httpContext.Response;
                 response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexHeader, currentIndexBytes.ToHex());
                 if (nextIndexBytes != null)
                     response.Headers.Append(SwarmHttpConsts.SwarmFeedIndexNextHeader, nextIndexBytes.ToHex());

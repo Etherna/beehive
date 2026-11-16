@@ -12,35 +12,17 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain;
-using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Helpers;
 using Etherna.Beehive.Services.Domain;
-using Etherna.Beehive.Services.Utilities;
-using Etherna.Beehive.Services.Utilities.Models;
-using Etherna.MongoDB.Driver;
-using Etherna.MongoDB.Driver.GridFS;
-using Etherna.Scrinium.Core;
-using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
-using Etherna.Scrinium.Core.Repositories;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
-using Etherna.SwarmSdk;
-using Etherna.SwarmSdk.Exceptions;
-using Etherna.SwarmSdk.Hashing.Pipeline;
-using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Models;
 using Etherna.SwarmSdk.Stores;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Cryptography;
-using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -51,122 +33,90 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
         // Tests.
 
         [Fact]
+        public async Task DownloadAnswersNotFoundWhenAChunkIsMissingOnTheFirstRead()
+        {
+            // Setup.
+            //beehive holds the root chunk of a content and none of its data chunks, and no healthy node can be asked
+            var chunks = new MemoryChunkStore();
+            var (reference, _) = await HandlerTestEnvironment.NewContentAsync(10 * 1024, chunks);
+            var dataChunkHashes = HandlerTestEnvironment.ChildHashesOf(reference, chunks);
+            var env = new HandlerTestEnvironment();
+            env.DbChunks.Add(HandlerTestEnvironment.DocumentOf(chunks.AllChunks[reference.Hash]));
+            var handler = NewHandler(env);
+
+            // Action.
+            await env.ExecuteSwarmApiAsync(() => handler.DownloadBytesAsync(reference, RedundancyLevel.None, RedundancyStrategy.None, false));
+
+            // Assert.
+            //the first read of the body fails before any byte is written: answered, naming the root chunk and the child it couldn't fetch
+            Assert.Equal(StatusCodes.Status404NotFound, env.HttpContext.Response.StatusCode);
+            var message = ReadErrorMessage(env);
+            Assert.Contains(reference.Hash.ToString(), message, StringComparison.Ordinal);
+            Assert.Contains(dataChunkHashes[0].ToString(), message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task DownloadOfARangeAnswersNotFoundWhenItsFirstChunkIsMissing()
+        {
+            // Setup.
+            //beehive holds the root chunk and the first two data chunks of a 10 KiB content, not the third, and no healthy node can be asked
+            var chunks = new MemoryChunkStore();
+            var (reference, _) = await HandlerTestEnvironment.NewContentAsync(10 * 1024, chunks);
+            var dataChunkHashes = HandlerTestEnvironment.ChildHashesOf(reference, chunks);
+            var env = new HandlerTestEnvironment();
+            foreach (var hash in new[] { reference.Hash, dataChunkHashes[0], dataChunkHashes[1] })
+                env.DbChunks.Add(HandlerTestEnvironment.DocumentOf(chunks.AllChunks[hash]));
+            env.HttpContext.Request.Headers.Range = "bytes=9000-"; //starts inside the third chunk
+            var handler = NewHandler(env);
+
+            // Action.
+            await env.ExecuteSwarmApiAsync(() => handler.DownloadBytesAsync(reference, RedundancyLevel.None, RedundancyStrategy.None, false));
+
+            // Assert.
+            //the first read of the range fails before any byte is written: answered, naming the root chunk and the missing child only
+            Assert.Equal(StatusCodes.Status404NotFound, env.HttpContext.Response.StatusCode);
+            var message = ReadErrorMessage(env);
+            Assert.Contains(reference.Hash.ToString(), message, StringComparison.Ordinal);
+            Assert.Contains(dataChunkHashes[2].ToString(), message, StringComparison.Ordinal);
+            Assert.DoesNotContain(dataChunkHashes[0].ToString(), message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public async Task DownloadServesTheChunksReadFromTheNodesWhileTheResponseIsWritten()
         {
             // Setup.
             //beehive holds the root chunk of a 600 KiB content and none of its other chunks; a healthy node holds them all
-            var content = new byte[600 * 1024];
-            RandomNumberGenerator.Fill(content);
             var nodeChunks = new MemoryChunkStore();
-            using var hasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
-                nodeChunks,
-                new FakePostageStamper(),
-                RedundancyLevel.None,
-                false,
-                0,
-                null);
-            var reference = await hasherPipeline.HashDataAsync(content);
-            var root = nodeChunks.AllChunks[reference.Hash];
-            var dbChunks = new List<Chunk> { new(root.Hash, root.GetFullPayload(), false) };
-
-            var chunksMock = new Mock<IRepository<Chunk, string>>();
-            chunksMock.Setup(r => r.TryFindOneAsync(
-                    It.IsAny<Expression<Func<Chunk, bool>>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Expression<Func<Chunk, bool>> predicate, CancellationToken _) =>
-                    dbChunks.FirstOrDefault(predicate.Compile()));
-            chunksMock.Setup(r => r.QueryElementsAsync(
-                    It.IsAny<Func<IQueryable<Chunk>, Task<List<Chunk>>>>(),
-                    null))
-                .Returns((Func<IQueryable<Chunk>, Task<List<Chunk>>> query, AggregateOptions? _) =>
-                    query(InMemoryQueryable.Of(dbChunks.ToArray())));
-            chunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
-                .Callback((IEnumerable<Chunk> chunks, CancellationToken _) => dbChunks.AddRange(chunks))
-                .Returns(Task.CompletedTask);
-            var chunksBucketMock = new Mock<IGridFSBucket>();
-            chunksBucketMock.Setup(b => b.DownloadAsBytesByNameAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<GridFSDownloadByNameOptions>(),
-                    It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new GridFSFileNotFoundException("chunk", -1));
-            var engineMock = new Mock<IDbContextEngine>();
-            engineMock.Setup(e => e.ExecutionContext).Returns(AsyncLocalContext.Instance);
-            var dbContextMock = new Mock<IBeehiveDbContext>();
-            dbContextMock.Setup(c => c.Chunks).Returns(chunksMock.Object);
-            dbContextMock.Setup(c => c.ChunksBucket).Returns(chunksBucketMock.Object);
-            dbContextMock.Setup(c => c.Engine).Returns(engineMock.Object);
-
-            var node = NewAliveNode(nodeChunks);
-            var beeNodeLiveManagerMock = new Mock<IBeeNodeLiveManager>();
-            beeNodeLiveManagerMock.Setup(m => m.HealthyNodes).Returns([node]);
-            beeNodeLiveManagerMock.Setup(m => m.SelectNearestHealthyNode(It.IsAny<SwarmHash>())).Returns(node);
-
-            var httpContext = new DefaultHttpContext
-            {
-                RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider()
-            };
-            httpContext.Response.Body = new MemoryStream();
-            var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-            httpContextAccessorMock.Setup(a => a.HttpContext).Returns(httpContext);
-
-            var handler = new BytesApiHandler(
-                beeNodeLiveManagerMock.Object,
-                new Mock<IDataService>().Object,
-                dbContextMock.Object,
-                httpContextAccessorMock.Object,
-                NullLogger<BytesApiHandler>.Instance,
-                new Mock<ISerializerModifierAccessor>().Object);
+            var (reference, content) = await HandlerTestEnvironment.NewContentAsync(600 * 1024, nodeChunks);
+            var env = new HandlerTestEnvironment(HandlerTestEnvironment.NewAliveNode(nodeChunks));
+            env.DbChunks.Add(HandlerTestEnvironment.DocumentOf(nodeChunks.AllChunks[reference.Hash]));
+            var handler = NewHandler(env);
 
             // Action.
             //the handler returns the stream result, then the host writes the body: the chunks are read from the node now
             var result = await handler.DownloadBytesAsync(reference, RedundancyLevel.None, RedundancyStrategy.None, false);
-            await result.ExecuteAsync(httpContext);
+            await result.ExecuteAsync(env.HttpContext);
 
             // Assert.
-            Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
-            Assert.Equal(content, ((MemoryStream)httpContext.Response.Body).ToArray());
-            Assert.Equal(nodeChunks.AllChunks.Count, dbChunks.Count); //every chunk read from the node was saved
+            Assert.Equal(StatusCodes.Status200OK, env.HttpContext.Response.StatusCode);
+            Assert.Equal(content, env.GetResponseBody());
+            Assert.All(nodeChunks.AllChunks.Keys, h => Assert.Contains(env.DbChunks, d => d.Hash == h)); //every chunk read from the node was saved
         }
 
         // Helpers.
-        /// <summary>
-        /// A bee node alive for the live manager, serving the chunks of the given store and bee's 404 for the others
-        /// </summary>
-        private static BeeNodeLiveInstance NewAliveNode(MemoryChunkStore chunks)
-        {
-            var clientMock = new Mock<ISwarmClient>();
-            clientMock.Setup(c => c.GetChunkAsync(
-                    It.IsAny<SwarmHash>(),
-                    It.IsAny<SwarmChunkBmt>(),
-                    It.IsAny<bool?>(),
-                    It.IsAny<long?>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<CancellationToken>()))
-                .Returns(async (
-                    SwarmHash hash,
-                    SwarmChunkBmt _,
-                    bool? _,
-                    long? _,
-                    string? _,
-                    string? _,
-                    CancellationToken cancellationToken) =>
-                    await chunks.TryGetAsync(hash, cancellationToken) ??
-                    throw new SwarmSdkApiException(
-                        "The HTTP status code of the response was not expected (404).",
-                        404,
-                        $$$"""{"code":404,"message":"chunk {{{hash}}}"}""",
-                        new Dictionary<string, IEnumerable<string>>(),
-                        null));
+        private static BytesApiHandler NewHandler(HandlerTestEnvironment env) =>
+            new(
+                env.BeeNodeLiveManager,
+                new Mock<IDataService>().Object,
+                env.DbContext,
+                env.HttpContextAccessor,
+                NullLogger<BytesApiHandler>.Instance,
+                new Mock<ISerializerModifierAccessor>().Object);
 
-            var node = new BeeNodeLiveInstance("node", clientMock.Object, true, NullLogger.Instance);
-            node.Status.SucceededHeartbeatAttempt(DateTime.UtcNow);
-            node.Status.InitializeAddresses(new BeeNodeAddresses(
-                "0x0000000000000000000000000000000000000001",
-                "0000000000000000000000000000000000000000000000000000000000000001",
-                "020000000000000000000000000000000000000000000000000000000000000001",
-                "020000000000000000000000000000000000000000000000000000000000000001"));
-            return node;
-        }
+        /// <summary>
+        /// The message of the error body answered
+        /// </summary>
+        private static string ReadErrorMessage(HandlerTestEnvironment env) =>
+            JsonDocument.Parse(env.GetResponseBody()).RootElement.GetProperty("message").GetString()!;
     }
 }

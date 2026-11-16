@@ -344,6 +344,9 @@ namespace Etherna.Beehive
 
             app.UseAuthorization();
 
+            // Answer the exceptions of the api results, which execute after their handlers returned.
+            app.UseMiddleware<ApiExceptionMiddleware>();
+
             // Add api and pages.
             app.UseMiddleware<CaseInsensitiveEnumBindingMiddleware>(); //swarm compatibility
 

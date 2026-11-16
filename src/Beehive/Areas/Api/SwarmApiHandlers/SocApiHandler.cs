@@ -50,8 +50,12 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             bool redundancyStrategyFallback) =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
-                // Try find soc.
-                await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+                var httpContext = httpContextAccessor.HttpContext!;
+
+                // Try find soc. The store lives as long as the response: the data stream of the wrapped content reads
+                // the chunks through it, and the store saves the ones read from the nodes, while the body is written.
+                var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+                httpContext.Response.RegisterForDisposeAsync(chunkStore);
                 var chunk = await chunkStore.TryGetAsync(
                     SwarmSoc.BuildHash(id, owner, new Hasher())).ConfigureAwait(false);
 
@@ -62,7 +66,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     throw new SwarmChunkTypeException(chunk, "Chunk is not a single owner chunk");
             
                 // Build response headers.
-                var response = httpContextAccessor.HttpContext!.Response;
+                var response = httpContext.Response;
                 response.Headers.Append(SwarmHttpConsts.SwarmSocSignatureHeader, soc.Signature.ToString());
                 response.Headers.ExposeHeaders(SwarmHttpConsts.SwarmSocSignatureHeader);
             
