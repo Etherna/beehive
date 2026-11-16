@@ -48,8 +48,12 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             bool redundancyStrategyFallback) =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
-                await using var chunkStore =
-                    new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+                var httpContext = httpContextAccessor.HttpContext!;
+
+                //the store lives as long as the response: the data stream reads the chunks through it, and the store
+                //saves the ones read from the nodes, while the body is written, after this handler returned.
+                var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+                httpContext.Response.RegisterForDisposeAsync(chunkStore);
                 var dataStream = await ChunkDataStream.BuildNewAsync(
                     reference,
                     chunkStore,
@@ -58,8 +62,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                     redundancyStrategyFallback);
 
                 //range processing emits non-safelisted Accept-Ranges (and Content-Range on partial responses).
-                httpContextAccessor.HttpContext!.Response.Headers.ExposeHeaders(
-                    HeaderNames.AcceptRanges, HeaderNames.ContentRange);
+                httpContext.Response.Headers.ExposeHeaders(HeaderNames.AcceptRanges, HeaderNames.ContentRange);
                 return Results.Stream(
                     dataStream,
                     BeehiveHttpConsts.ApplicationOctetStreamContentType,

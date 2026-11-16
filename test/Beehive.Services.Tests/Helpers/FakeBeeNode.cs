@@ -39,8 +39,7 @@ namespace Etherna.Beehive.Services.Helpers
         private const string PublicKey = "02" + "0000000000000000000000000000000000000000000000000000000000000001";
 
         // Constructor.
-        /// <param name="missingChunkStatusCode">The status the node answers for a chunk it doesn't hold</param>
-        public FakeBeeNode(string nodeId, SwarmOverlayAddress overlay, int missingChunkStatusCode = 404)
+        public FakeBeeNode(string nodeId, SwarmOverlayAddress overlay)
         {
             ClientMock.Setup(c => c.GetChunkAsync(
                     It.IsAny<SwarmHash>(),
@@ -63,10 +62,10 @@ namespace Etherna.Beehive.Services.Helpers
                     return await Chunks.TryGetAsync(hash, cancellationToken) ??
                         throw new SwarmSdkApiException(
                             string.Format(CultureInfo.InvariantCulture,
-                                "The HTTP status code of the response was not expected ({0}).", missingChunkStatusCode),
-                            missingChunkStatusCode,
+                                "The HTTP status code of the response was not expected ({0}).", MissingChunkStatusCode),
+                            MissingChunkStatusCode,
                             string.Format(CultureInfo.InvariantCulture,
-                                """{{"code":{0},"message":"chunk {1}"}}""", missingChunkStatusCode, hash),
+                                """{{"code":{0},"message":"chunk {1}"}}""", MissingChunkStatusCode, hash),
                             new Dictionary<string, IEnumerable<string>>(),
                             null);
                 });
@@ -86,6 +85,11 @@ namespace Etherna.Beehive.Services.Helpers
         public MemoryChunkStore Chunks { get; } = new();
         public Mock<ISwarmClient> ClientMock { get; } = new();
         public BeeNodeLiveInstance Instance { get; }
+
+        /// <summary>
+        /// The status the node answers for a chunk it doesn't hold: bee's not found, or an error of a failing node
+        /// </summary>
+        public int MissingChunkStatusCode { get; set; } = 404;
 
         /// <summary>
         /// The hashes asked to the node, in order of request

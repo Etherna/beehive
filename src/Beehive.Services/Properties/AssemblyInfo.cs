@@ -17,3 +17,4 @@ using System.Runtime.CompilerServices;
 
 [assembly: CLSCompliant(false)]
 [assembly: InternalsVisibleTo("Beehive.Services.Tests")]
+[assembly: InternalsVisibleTo("Beehive.Tests")] //the host tests build alive bee nodes over a mocked client
