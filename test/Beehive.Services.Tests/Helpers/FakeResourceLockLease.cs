@@ -11,19 +11,28 @@
 // 
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
+using Etherna.Scrinium.Core.Utility;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-using Etherna.SwarmSdk.Models;
-
-namespace Etherna.Beehive.Domain.Models
+namespace Etherna.Beehive.Services.Helpers
 {
-    public class PostageBatchLock : ResourceLockBase
+    /// <summary>
+    /// A granted resource lock lease: never lost, released by its dispose
+    /// </summary>
+    internal sealed class FakeResourceLockLease : IResourceLockLease
     {
-        // Constructors.
-        public PostageBatchLock(PostageBatchId batchId, bool exclusiveAccess)
-            : base(batchId.ToString(), exclusiveAccess)
-        { }
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        protected PostageBatchLock() { }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        // Properties.
+        public bool IsReleased { get; private set; }
+        public CancellationToken LeaseLostToken => CancellationToken.None;
+        public string OwnerId { get; } = Guid.NewGuid().ToString();
+
+        // Methods.
+        public ValueTask DisposeAsync()
+        {
+            IsReleased = true;
+            return ValueTask.CompletedTask;
+        }
     }
 }

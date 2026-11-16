@@ -15,6 +15,7 @@
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities.Models;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Models;
 using System.Collections.Generic;
@@ -24,7 +25,7 @@ namespace Etherna.Beehive.Services.Domain
 {
     public interface IPostageBatchService
     {
-        Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
+        Task<IResourceLockLease> AcquireLockAsync(
             PostageBatchId batchId,
             bool exclusiveAccess);
 
@@ -59,7 +60,7 @@ namespace Etherna.Beehive.Services.Domain
             ulong? gasLimit,
             XDaiValue? gasPrice);
 
-        Task<ResourceLockHandler<ChunkPushLock>?> TryAcquireChunkPushLockAsync(
+        Task<IResourceLockLease?> TryAcquireChunkPushLockAsync(
             PostageBatchId batchId);
 
         Task<PostageBatchResult?> TryGetPostageBatchDetailsAsync(PostageBatchId batchId);

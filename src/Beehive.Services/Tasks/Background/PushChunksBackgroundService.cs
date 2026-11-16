@@ -32,7 +32,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DomainEventsAsyncLocalContext = Etherna.ExecContext.AsyncLocal.AsyncLocalContext;
 
 namespace Etherna.Beehive.Services.Tasks.Background
 {
@@ -111,17 +110,14 @@ namespace Etherna.Beehive.Services.Tasks.Background
             await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
             var postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
 
-            // Open the ambient contexts both libraries require outside a request.
-            //scrinium: the db operations of this cycle
+            // Open the ambient context scrinium requires outside a request: the db operations of this cycle.
             using var dbExecutionContext = new DbExecutionContextHandler(dbContext);
-            //domain events: the lock creation dispatches the created entity event
-            using var domainEventsExecutionContext = DomainEventsAsyncLocalContext.Instance.InitAsyncLocalContext();
             
             // Search chunk to push and lock its postage batch.
-            ResourceLockHandler<ChunkPushLock>? lockHandler = null;
+            IResourceLockLease? lockLease = null;
             PushingChunkRef? chunkRef = null;
             List<PostageBatchId> skipBatchIds = [];
-            while (lockHandler == null)
+            while (lockLease == null)
             {
                 // Get the initial chunk ref.
                 chunkRef = await TryFindNextChunkRefAsync(null, skipBatchIds, dbContext, cancellationToken);
@@ -132,14 +128,14 @@ namespace Etherna.Beehive.Services.Tasks.Background
                 }
             
                 // Try to lock on postage batch to push chunks.
-                lockHandler = await postageBatchService.TryAcquireChunkPushLockAsync(chunkRef.BatchId);
-                if (lockHandler is null)
+                lockLease = await postageBatchService.TryAcquireChunkPushLockAsync(chunkRef.BatchId);
+                if (lockLease is null)
                     skipBatchIds.Add(chunkRef.BatchId);
             }
             if (chunkRef is null)
                 throw new InvalidOperationException();
 
-            await using (lockHandler)
+            await using (lockLease)
             {
                 // Identify the node owner of the postage batch.
                 var ownerNode = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(chunkRef.BatchId);

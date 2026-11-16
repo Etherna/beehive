@@ -51,15 +51,6 @@ namespace Etherna.Beehive.Persistence
                     (Builders<BeeNode>.IndexKeys.Ascending(n => n.ConnectionString), new CreateIndexOptions<BeeNode> { Unique = true })
                 ]
             });
-        public IRepository<ChunkPinLock, string> ChunkPinLocks { get; } = new DomainRepository<ChunkPinLock, string>(
-            new RepositoryOptions<ChunkPinLock>("chunkPinLocks")
-            {
-                IndexBuilders =
-                [
-                    (Builders<ChunkPinLock>.IndexKeys.Ascending(l => l.ResourceId),
-                        new CreateIndexOptions<ChunkPinLock> { Unique = true })
-                ]
-            });
         public IRepository<ChunkPin, string> ChunkPins { get; } = new DomainRepository<ChunkPin, string>(
             new RepositoryOptions<ChunkPin>("chunkPins")
             {
@@ -67,15 +58,6 @@ namespace Etherna.Beehive.Persistence
                 [
                     (Builders<ChunkPin>.IndexKeys.Ascending(p => p.Reference),
                         new CreateIndexOptions<ChunkPin>())
-                ]
-            });
-        public IRepository<ChunkPushLock, string> ChunkPushLocks { get; } = new DomainRepository<ChunkPushLock, string>(
-            new RepositoryOptions<ChunkPushLock>("chunkPushLocks")
-            {
-                IndexBuilders =
-                [
-                    (Builders<ChunkPushLock>.IndexKeys.Ascending(l => l.ResourceId),
-                        new CreateIndexOptions<ChunkPushLock> { Unique = true })
                 ]
             });
         public IRepository<PushingChunkRef, string> ChunkPushQueue { get; } =
@@ -131,15 +113,6 @@ namespace Etherna.Beehive.Persistence
                             .Ascending(i => i.NodeId)
                             .Descending(i => i.CreationDateTime),
                         new CreateIndexOptions<NodePinsImport>())
-                ]
-            });
-        public IRepository<PostageBatchLock, string> PostageBatchLocks { get; } = new DomainRepository<PostageBatchLock, string>(
-            new RepositoryOptions<PostageBatchLock>("postageBatchLocks")
-            {
-                IndexBuilders =
-                [
-                    (Builders<PostageBatchLock>.IndexKeys.Ascending(l => l.ResourceId),
-                        new CreateIndexOptions<PostageBatchLock> { Unique = true })
                 ]
             });
         public IRepository<PostageBatchCache, string> PostageBatchesCache { get; } = new Repository<PostageBatchCache, string>(

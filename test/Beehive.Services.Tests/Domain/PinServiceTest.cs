@@ -12,12 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Helpers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver;
-using Etherna.Scrinium.Core.Repositories;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Hashing;
 using Etherna.SwarmSdk.Hashing.Pipeline;
 using Etherna.SwarmSdk.Hashing.Postage;
@@ -48,6 +49,7 @@ namespace Etherna.Beehive.Services.Domain
         // Fields.
         private readonly InMemoryBeehiveDb db = new();
         private readonly FakeBeeNode node = new(NodeId, NodeOverlay);
+        private readonly List<FakeResourceLockLease> pinLeases = [];
         private readonly PinService service;
 
         // Constructor.
@@ -58,26 +60,43 @@ namespace Etherna.Beehive.Services.Domain
             beeNodeLiveManagerMock.Setup(m => m.HealthyNodes).Returns(() => [node.Instance]);
             beeNodeLiveManagerMock.Setup(m => m.SelectNearestHealthyNode(It.IsAny<SwarmHash>())).Returns(node.Instance);
 
-            // Every lock is granted.
-            var resourceLockServiceMock = new Mock<IResourceLockService>();
-            resourceLockServiceMock.Setup(s => s.TryAcquireLockAsync(
-                    It.IsAny<Func<ChunkPinLock>>(),
-                    It.IsAny<IRepository<ChunkPinLock, string>>(),
+            // Every lock is granted, unless a test holds one.
+            db.DbContextMock.Setup(c => c.TryAcquireResourceLockAsync(
                     It.IsAny<string>(),
-                    It.IsAny<bool>()))
-                .Returns((Func<ChunkPinLock> _, IRepository<ChunkPinLock, string> repository, string resourceId, bool exclusiveAccess) =>
-                    Task.FromResult<ResourceLockHandler<ChunkPinLock>?>(
-                        new ResourceLockHandler<ChunkPinLock>(repository, resourceLockServiceMock.Object, resourceId, exclusiveAccess)));
+                    It.IsAny<string>(),
+                    It.IsAny<ResourceLockMode>(),
+                    It.IsAny<TimeSpan?>()))
+                .ReturnsAsync(() =>
+                {
+                    var lease = new FakeResourceLockLease();
+                    pinLeases.Add(lease);
+                    return lease;
+                });
 
             service = new PinService(
                 beeNodeLiveManagerMock.Object,
                 db.DbContext,
                 NullLogger<PinService>.Instance,
-                resourceLockServiceMock.Object,
                 new Mock<ISerializerModifierAccessor>().Object);
         }
 
         // Tests.
+
+        [Fact]
+        public async Task AcquireLockThrowsResourceLockExceptionWhenThePinIsHeld()
+        {
+            // Setup.
+            //the exclusive lease of the pin is held by another operation: the db context denies it
+            db.DbContextMock.Setup(c => c.TryAcquireResourceLockAsync(
+                    ResourceLockNamespaces.ChunkPins,
+                    "heldPin",
+                    ResourceLockMode.Exclusive,
+                    null))
+                .ReturnsAsync((IResourceLockLease?)null);
+
+            // Action & assert.
+            await Assert.ThrowsAsync<ResourceLockException>(() => service.AcquireLockAsync("heldPin", true));
+        }
 
         [Fact]
         public async Task CountsAsMissingAChunkWhoseDocumentIsGoneWhenThePinIsAttached()
@@ -155,6 +174,17 @@ namespace Etherna.Beehive.Services.Domain
             Assert.Equal(0, result.Pin.TotPinnedChunks);
             Assert.Equal(node.Chunks.AllChunks.Count, result.Pin.MissingChunks.Count());
             Assert.Empty(node.RequestedHashes); //nothing was read from the node
+        }
+
+        [Fact]
+        public async Task PinChunksReleasesThePinLockWhenItFails()
+        {
+            // Action.
+            //a pin that can't be loaded fails after its lock was taken
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.PinChunksAsync("missingPin", null));
+
+            // Assert.
+            Assert.True(Assert.Single(pinLeases).IsReleased);
         }
 
         [Fact]
