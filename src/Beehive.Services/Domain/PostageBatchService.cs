@@ -20,6 +20,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongoDB.Driver.Linq;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Hashing.Postage;
 using Etherna.SwarmSdk.Models;
@@ -35,25 +36,23 @@ namespace Etherna.Beehive.Services.Domain
     public sealed class PostageBatchService(
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
-        ILogger<PostageBatchService> logger,
-        IResourceLockService resourceLockService)
+        ILogger<PostageBatchService> logger)
         : IPostageBatchService
     {
         // Methods.
-        public async Task<ResourceLockHandler<PostageBatchLock>> AcquireLockAsync(
+        public async Task<IResourceLockLease> AcquireLockAsync(
             PostageBatchId batchId,
             bool exclusiveAccess)
         {
-            var handler = await resourceLockService.TryAcquireLockAsync(
-                () => new PostageBatchLock(batchId, exclusiveAccess),
-                dbContext.PostageBatchLocks,
+            var lease = await dbContext.TryAcquireResourceLockAsync(
+                ResourceLockNamespaces.PostageBatches,
                 batchId.ToString(),
-                exclusiveAccess);
+                exclusiveAccess ? ResourceLockMode.Exclusive : ResourceLockMode.Shared);
             
-            if (handler is null)
+            if (lease is null)
                 throw new ResourceLockException($"Failed to lock batch Id '{batchId}'");
 
-            return handler;
+            return lease;
         }
 
         public async Task<(PostageBatchId BatchId, EthTxHash TxHash)> BuyPostageBatchAsync(
@@ -102,7 +101,7 @@ namespace Etherna.Beehive.Services.Domain
             XDaiValue? gasPrice)
         {
             // Acquire lock on postage batch.
-            await using var batchLockHandler = await AcquireLockAsync(batchId, true);
+            await using var batchLockLease = await AcquireLockAsync(batchId, true);
             
             // Try get cached postage batch.
             var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
@@ -180,9 +179,7 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         public Task<bool> IsLockedAsync(PostageBatchId batchId) =>
-            resourceLockService.IsLockedAsync(
-                dbContext.PostageBatchLocks,
-                batchId.ToString());
+            dbContext.IsResourceLockedAsync(ResourceLockNamespaces.PostageBatches, batchId.ToString());
 
         public async Task StoreStampedChunksAsync(
             PostageBatchCache postageBatchCache,
@@ -230,7 +227,7 @@ namespace Etherna.Beehive.Services.Domain
             XDaiValue? gasPrice)
         {
             // Acquire lock on postage batch.
-            await using var batchLockHandler = await AcquireLockAsync(batchId, true);
+            await using var batchLockLease = await AcquireLockAsync(batchId, true);
 
             // Try get cached postage batch.
             var postageCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);
@@ -249,13 +246,9 @@ namespace Etherna.Beehive.Services.Domain
             return txHash;
         }
         
-        public Task<ResourceLockHandler<ChunkPushLock>?> TryAcquireChunkPushLockAsync(
+        public Task<IResourceLockLease?> TryAcquireChunkPushLockAsync(
             PostageBatchId batchId) =>
-            resourceLockService.TryAcquireLockAsync(
-                () => new ChunkPushLock(batchId),
-                dbContext.ChunkPushLocks,
-                batchId.ToString(),
-                true);
+            dbContext.TryAcquireResourceLockAsync(ResourceLockNamespaces.ChunkPushes, batchId.ToString());
 
         //*** OLD code to receive postage batch cache from node. See: https://etherna.atlassian.net/browse/BHM-198
         // public async Task<PostageBatchCache?> TryGetPostageBatchCacheAsync(

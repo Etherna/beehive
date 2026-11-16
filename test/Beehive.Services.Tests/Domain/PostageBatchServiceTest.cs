@@ -20,6 +20,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.Scrinium.Core.Repositories;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
@@ -51,8 +52,8 @@ namespace Etherna.Beehive.Services.Domain
         private readonly BeeNodeLiveInstance nodeA;
         private readonly Mock<ISwarmClient> nodeBClientMock = new();
         private readonly BeeNodeLiveInstance nodeB;
+        private readonly Mock<IBeehiveDbContext> dbContextMock = new();
         private readonly List<PostageBatchCache> postageBatchesCache = [];
-        private readonly Mock<IResourceLockService> resourceLockServiceMock = new();
         private readonly PostageBatchService service;
 
         // Constructor.
@@ -77,23 +78,20 @@ namespace Etherna.Beehive.Services.Domain
                     null))
                 .Returns((Func<IQueryable<PostageBatchCache>, Task<List<PostageBatchCache>>> query, AggregateOptions? _) =>
                     query(InMemoryQueryable.Of(postageBatchesCache)));
-            var dbContextMock = new Mock<IBeehiveDbContext>();
             dbContextMock.Setup(c => c.PostageBatchesCache).Returns(postageBatchesCacheMock.Object);
 
-            // The batch lock is granted: the operations on a batch run inside it.
-            resourceLockServiceMock.Setup(s => s.TryAcquireLockAsync(
-                    It.IsAny<Func<PostageBatchLock>>(),
-                    It.IsAny<IRepository<PostageBatchLock, string>>(),
+            // The batch lock is granted, unless a test holds it: the operations on a batch run inside it.
+            dbContextMock.Setup(c => c.TryAcquireResourceLockAsync(
                     It.IsAny<string>(),
-                    It.IsAny<bool>()))
-                .ReturnsAsync((Func<PostageBatchLock> _, IRepository<PostageBatchLock, string> repository, string resourceId, bool exclusiveAccess) =>
-                    new ResourceLockHandler<PostageBatchLock>(repository, resourceLockServiceMock.Object, resourceId, exclusiveAccess));
+                    It.IsAny<string>(),
+                    It.IsAny<ResourceLockMode>(),
+                    It.IsAny<TimeSpan?>()))
+                .ReturnsAsync(() => new FakeResourceLockLease());
 
             service = new PostageBatchService(
                 beeNodeLiveManagerMock.Object,
                 dbContextMock.Object,
-                NullLogger<PostageBatchService>.Instance,
-                resourceLockServiceMock.Object);
+                NullLogger<PostageBatchService>.Instance);
         }
 
         // Test data.
@@ -119,6 +117,27 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         // Tests.
+
+        [Theory]
+        [InlineData(true, ResourceLockMode.Exclusive)]
+        [InlineData(false, ResourceLockMode.Shared)]
+        public async Task AcquireLockThrowsResourceLockExceptionWhenTheBatchIsHeldInTheModeAsked(
+            bool exclusiveAccess,
+            ResourceLockMode mode)
+        {
+            // Setup.
+            //the lease of the batch in that mode is denied by the db context: a live lease of another holder
+            dbContextMock.Setup(c => c.TryAcquireResourceLockAsync(
+                    ResourceLockNamespaces.PostageBatches,
+                    BatchOnNodeAId.ToString(),
+                    mode,
+                    null))
+                .ReturnsAsync((IResourceLockLease?)null);
+
+            // Action & assert.
+            var exception = await Assert.ThrowsAsync<ResourceLockException>(() => service.AcquireLockAsync(BatchOnNodeAId, exclusiveAccess));
+            Assert.Contains(BatchOnNodeAId.ToString(), exception.Message, StringComparison.Ordinal);
+        }
 
         [Fact]
         public async Task DilutePostageBatchRefusesBatchWithUnregisteredOwnerNodeAsUnavailable()

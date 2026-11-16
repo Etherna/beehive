@@ -228,42 +228,6 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             }
         }
 
-        public static IEnumerable<object[]> ChunkPinLockDeserializationTests
-        {
-            get
-            {
-                var tests = new List<DeserializationTestElement<ChunkPinLock>>();
-
-                // "a73d46c1-b548-4461-b4d3-b947de2f97e9" - v0.4.0
-                {
-                    var sourceDocument =
-                        """
-                        {
-                            "_id" : ObjectId("683868e863614b9c605374f1"),
-                            "_m" : "a73d46c1-b548-4461-b4d3-b947de2f97e9",
-                            "CreationDateTime" : ISODate("2025-05-29T14:02:16.555+0000"),
-                            "ExclusiveAccess" : true,
-                            "ExpirationTime" : ISODate("2025-05-29T15:02:16.555+0000"),
-                            "LockedAt" : ISODate("2025-05-29T14:02:16.555+0000"),
-                            "ResourceId" : "683834b4fd678b310f161d22"
-                        }
-                        """;
-                
-                    var expectedNodeMock = new Mock<ChunkPinLock>();
-                    expectedNodeMock.Setup(n => n.Id).Returns("683868e863614b9c605374f1");
-                    expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 14, 02, 16, 555));
-                    expectedNodeMock.Setup(n => n.ExclusiveAccess).Returns(true);
-                    expectedNodeMock.Setup(n => n.ExpirationTime).Returns(new DateTime(2025, 05, 29, 15, 02, 16, 555));
-                    expectedNodeMock.Setup(n => n.LockedAt).Returns(new DateTime(2025, 05, 29, 14, 02, 16, 555));
-                    expectedNodeMock.Setup(n => n.ResourceId).Returns("683834b4fd678b310f161d22");
-                    
-                    tests.Add(new DeserializationTestElement<ChunkPinLock>(sourceDocument, expectedNodeMock.Object));
-                }
-
-                return tests.Select(t => new object[] { t });
-            }
-        }
-
         public static IEnumerable<object[]> NodePinImportDeserializationTests
         {
             get
@@ -486,44 +450,6 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             }
         }
 
-        public static IEnumerable<object[]> PostageBatchLockDeserializationTests
-        {
-            get
-            {
-                var tests = new List<DeserializationTestElement<PostageBatchLock>>();
-
-                // "e26fdf55-0245-4ead-b20a-13296e69d61d" - v0.4.0
-                {
-                    var sourceDocument =
-                        """
-                        {
-                            "_id" : ObjectId("683835b9cacad22df40bdff7"),
-                            "ExclusiveAccess" : false,
-                            "ResourceId" : "c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f",
-                            "Counter" : NumberInt(1),
-                            "CreationDateTime" : ISODate("2025-05-29T10:23:53.887+0000"),
-                            "ExpirationTime" : ISODate("2025-05-29T11:23:53.838+0000"),
-                            "LockedAt" : ISODate("2025-05-29T10:23:53.887+0000"),
-                            "_m" : "e26fdf55-0245-4ead-b20a-13296e69d61d"
-                        }
-                        """;
-                
-                    var expectedNodeMock = new Mock<PostageBatchLock>();
-                    expectedNodeMock.Setup(n => n.Id).Returns("683835b9cacad22df40bdff7");
-                    expectedNodeMock.Setup(n => n.ExclusiveAccess).Returns(false);
-                    expectedNodeMock.Setup(n => n.ResourceId).Returns("c1845f41a7935a0366c6475974f8875ea569ade8aec5d34e856f2c88c0b0695f");
-                    expectedNodeMock.Setup(n => n.Counter).Returns(1);
-                    expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 23, 53, 887));
-                    expectedNodeMock.Setup(n => n.ExpirationTime).Returns(new DateTime(2025, 05, 29, 11, 23, 53, 838));
-                    expectedNodeMock.Setup(n => n.LockedAt).Returns(new DateTime(2025, 05, 29, 10, 23, 53, 887));
-                
-                    tests.Add(new DeserializationTestElement<PostageBatchLock>(sourceDocument, expectedNodeMock.Object));
-                }
-
-                return tests.Select(t => new object[] { t });
-            }
-        }
-
         public static IEnumerable<object[]> PostageStampDeserializationTests
         {
             get
@@ -671,31 +597,6 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             Assert.NotNull(result.Id);
         }
         
-        [Theory, MemberData(nameof(ChunkPinLockDeserializationTests))]
-        public void ChunkPinLockDeserialization(DeserializationTestElement<ChunkPinLock> testElement)
-        {
-            ArgumentNullException.ThrowIfNull(testElement);
-
-            // Setup.
-            using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<ChunkPinLock>(dbContext.Engine);
-            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
-            testElement.SetupAction(mongoDatabaseMock, dbContext);
-
-            // Action.
-            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
-            var result = modelMapSerializer.Deserialize(deserializationContext);
-
-            // Assert.
-            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
-            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
-            Assert.Equal(testElement.ExpectedModel.ExclusiveAccess, result.ExclusiveAccess);
-            Assert.Equal(testElement.ExpectedModel.ExpirationTime, result.ExpirationTime);
-            Assert.Equal(testElement.ExpectedModel.LockedAt, result.LockedAt);
-            Assert.Equal(testElement.ExpectedModel.ResourceId, result.ResourceId);
-            Assert.NotNull(result.Id);
-        }
-        
         [Theory, MemberData(nameof(NodePinImportDeserializationTests))]
         public void NodePinImportDeserialization(DeserializationTestElement<NodePinImport> testElement)
         {
@@ -783,31 +684,6 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             Assert.Equal(testElement.ExpectedModel.Depth, result.Depth);
             Assert.Equal(testElement.ExpectedModel.IsImmutable, result.IsImmutable);
             Assert.Equal(testElement.ExpectedModel.OwnerNodeId, result.OwnerNodeId);
-            Assert.NotNull(result.Id);
-        }
-        
-        [Theory, MemberData(nameof(PostageBatchLockDeserializationTests))]
-        public void PostageBatchLockDeserialization(DeserializationTestElement<PostageBatchLock> testElement)
-        {
-            ArgumentNullException.ThrowIfNull(testElement);
-
-            // Setup.
-            using var documentReader = new JsonReader(testElement.SourceDocument);
-            var modelMapSerializer = new ModelMapSerializer<PostageBatchLock>(dbContext.Engine);
-            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
-            testElement.SetupAction(mongoDatabaseMock, dbContext);
-
-            // Action.
-            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
-            var result = modelMapSerializer.Deserialize(deserializationContext);
-
-            // Assert.
-            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
-            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
-            Assert.Equal(testElement.ExpectedModel.ExclusiveAccess, result.ExclusiveAccess);
-            Assert.Equal(testElement.ExpectedModel.ExpirationTime, result.ExpirationTime);
-            Assert.Equal(testElement.ExpectedModel.LockedAt, result.LockedAt);
-            Assert.Equal(testElement.ExpectedModel.ResourceId, result.ResourceId);
             Assert.NotNull(result.Id);
         }
         

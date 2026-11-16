@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Utilities.Models;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using System.Threading.Tasks;
 
@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Domain
 {
     public interface IPinService
     {
-        Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
+        Task<IResourceLockLease> AcquireLockAsync(
             string chunkPinId,
             bool exclusiveAccess);
 

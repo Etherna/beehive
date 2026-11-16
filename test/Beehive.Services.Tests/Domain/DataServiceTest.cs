@@ -42,6 +42,7 @@ namespace Etherna.Beehive.Services.Domain
         private static readonly PostageBatchId UnknownBatchId = "aa00000000000000000000000000000000000000000000000000000000000002";
 
         // Fields.
+        private readonly List<FakeResourceLockLease> batchLeases = [];
         private readonly Mock<IRepository<PushingChunkRef, string>> chunkPushQueueMock = new();
         private readonly InMemoryBeehiveDb db = new();
         private readonly Mock<IPostageBatchService> postageBatchServiceMock = new();
@@ -73,11 +74,12 @@ namespace Etherna.Beehive.Services.Domain
 
             // The batch lock is granted: the lookup runs inside it.
             postageBatchServiceMock.Setup(s => s.AcquireLockAsync(It.IsAny<PostageBatchId>(), It.IsAny<bool>()))
-                .ReturnsAsync((PostageBatchId batchId, bool exclusiveAccess) => new ResourceLockHandler<PostageBatchLock>( //disposed by the upload
-                    new Mock<IRepository<PostageBatchLock, string>>().Object,
-                    new Mock<IResourceLockService>().Object,
-                    batchId.ToString(),
-                    exclusiveAccess));
+                .ReturnsAsync(() =>
+                {
+                    var lease = new FakeResourceLockLease();
+                    batchLeases.Add(lease);
+                    return lease;
+                });
 
             service = new DataService(
                 new Mock<IBeeNodeLiveManager>().Object,
@@ -132,6 +134,8 @@ namespace Etherna.Beehive.Services.Domain
             var pin = Assert.Single(db.ChunkPins);
             Assert.False(pin.IsProcessed);
             db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            //the batch lock taken by the upload is released with its failure
+            Assert.True(Assert.Single(batchLeases).IsReleased);
         }
 
         [Fact]

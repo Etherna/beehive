@@ -52,7 +52,7 @@ namespace Etherna.Beehive.Services.Domain
             ArgumentNullException.ThrowIfNull(chunkingFuncAsync);
             
             // Acquire lock on postage batch.
-            await using var batchLockHandler = await postageBatchService.AcquireLockAsync(batchId, useChunkCompaction);
+            await using var batchLockLease = await postageBatchService.AcquireLockAsync(batchId, useChunkCompaction);
             
             // Verify postage batch, load status and build postage stamper.
             var postageBatchCache = await dbContext.PostageBatchesCache.TryFindOneAsync(b => b.BatchId == batchId);

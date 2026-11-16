@@ -21,6 +21,7 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
@@ -35,36 +36,32 @@ namespace Etherna.Beehive.Services.Domain
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         ILogger<PinService> logger,
-        IResourceLockService resourceLockService,
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinService
     {
         // Methods.
-        public async Task<ResourceLockHandler<ChunkPinLock>> AcquireLockAsync(
+        public async Task<IResourceLockLease> AcquireLockAsync(
             string chunkPinId,
             bool exclusiveAccess)
         {
-            var handler = await resourceLockService.TryAcquireLockAsync(
-                () => new ChunkPinLock(chunkPinId, exclusiveAccess),
-                dbContext.ChunkPinLocks,
+            var lease = await dbContext.TryAcquireResourceLockAsync(
+                ResourceLockNamespaces.ChunkPins,
                 chunkPinId,
-                exclusiveAccess);
+                exclusiveAccess ? ResourceLockMode.Exclusive : ResourceLockMode.Shared);
             
-            if (handler is null)
+            if (lease is null)
                 throw new ResourceLockException();
 
-            return handler;
+            return lease;
         }
 
         public Task<bool> IsLockedAsync(string chunkPinId) =>
-            resourceLockService.IsLockedAsync(
-                dbContext.ChunkPinLocks,
-                chunkPinId);
+            dbContext.IsResourceLockedAsync(ResourceLockNamespaces.ChunkPins, chunkPinId);
 
         public async Task<PinChunksResult> PinChunksAsync(string chunkPinId, BeeNodeLiveInstance? sourceNode)
         {
             // Acquire lock on pin.
-            await using var pinLockHandler = await AcquireLockAsync(chunkPinId, true);
+            await using var pinLockLease = await AcquireLockAsync(chunkPinId, true);
 
             var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
             if (!pin.Reference.HasValue)
@@ -133,7 +130,7 @@ namespace Etherna.Beehive.Services.Domain
             if (pin is null)
                 return false;
             
-            await using var pinLockHandler = await AcquireLockAsync(pin.Id, true);
+            await using var pinLockLease = await AcquireLockAsync(pin.Id, true);
             
             // Delete it. Its references are pulled from the chunks in background, by the delete
             // policy declared on the chunk pins reference serializer.

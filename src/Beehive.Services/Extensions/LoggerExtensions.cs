@@ -63,12 +63,6 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(19, nameof(NoChunksToPush)),
                 "No chunks to push");
 
-        private static readonly Action<ILogger, string, bool, Exception> _resourceLockDenied =
-            LoggerMessage.Define<string, bool>(
-                LogLevel.Debug,
-                new EventId(34, nameof(ResourceLockDenied)),
-                "Lock on resource {ResourceId} denied, exclusive access: {ExclusiveAccess}");
-        
         private static readonly Action<ILogger, SwarmHash, Exception> _succededToPushCac =
             LoggerMessage.Define<SwarmHash>(
                 LogLevel.Debug,
@@ -93,12 +87,6 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Information,
                 new EventId(36, nameof(CashoutAllNodesChequesTaskCompleted)),
                 "Cashout all nodes cheques task completed on {NodesCount} nodes, {BzzCashedOut} BZZ cashed out");
-
-        private static readonly Action<ILogger, int, Exception> _cleanupExpiredLocksTaskCompleted =
-            LoggerMessage.Define<int>(
-                LogLevel.Information,
-                new EventId(37, nameof(CleanupExpiredLocksTaskCompleted)),
-                "Clean up expired locks task completed removing {RemovedLocks} locks");
 
         private static readonly Action<ILogger, long, Exception> _cleanupOldFailedTasksTaskCompleted =
             LoggerMessage.Define<long>(
@@ -409,9 +397,6 @@ namespace Etherna.Beehive.Services.Extensions
         public static void ChunksReadFromNode(this ILogger logger, int foundChunks, int requestedChunks, string nodeId) =>
             _chunksReadFromNode(logger, foundChunks, requestedChunks, nodeId, null!);
 
-        public static void CleanupExpiredLocksTaskCompleted(this ILogger logger, int removedLocks) =>
-            _cleanupExpiredLocksTaskCompleted(logger, removedLocks, null!);
-
         public static void CleanupOldFailedTasksTaskCompleted(this ILogger logger, long deletedTasks) =>
             _cleanupOldFailedTasksTaskCompleted(logger, deletedTasks, null!);
         
@@ -516,9 +501,6 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void PushChunksBackgroundServiceStopped(this ILogger logger) =>
             _pushChunksBackgroundServiceStopped(logger, null!);
-
-        public static void ResourceLockDenied(this ILogger logger, string resourceId, bool exclusiveAccess) =>
-            _resourceLockDenied(logger, resourceId, exclusiveAccess, null!);
 
         public static void SuccededToDepositBzzOnNodeChequeBook(this ILogger logger, string nodeId, BzzValue bzzDeposit, EthTxHash txHash) =>
             _succededToDepositBzzOnNodeChequeBook(logger, nodeId, bzzDeposit, txHash, null!);
