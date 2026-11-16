@@ -37,6 +37,7 @@ using Xunit;
 
 namespace Etherna.Beehive.Areas.Api
 {
+    [Collection("Static Serilog logger")] //both classes swap Log.Logger: run them one at a time
     public class ExceptionHandlerTest
     {
         // Test data.
@@ -81,6 +82,29 @@ namespace Etherna.Beehive.Areas.Api
         }
 
         // Tests.
+
+        [Fact]
+        public async Task ChunksNotFoundAnswersNotFoundWithTheChunksAndTheirParent()
+        {
+            // Setup.
+            //a read of a content that couldn't fetch a child of one of its chunks: the sdk names both
+            SwarmHash parentHash = "1111111111111111111111111111111111111111111111111111111111111111";
+            SwarmHash childHash = "2222222222222222222222222222222222222222222222222222222222222222";
+            var exception = new SwarmChunkChildrenNotFoundException(
+                new SwarmReference(parentHash, null),
+                new SwarmChunksNotFoundException([new SwarmShardReference(new SwarmReference(childHash, null), false)]));
+
+            // Action.
+            var result = await ExceptionHandler.RunAsync(ApiVersion.Swarm, () => throw exception);
+            var (statusCode, body) = await ExecuteResultAsync(result);
+
+            // Assert.
+            Assert.Equal(StatusCodes.Status404NotFound, statusCode);
+            Assert.Equal(404, body.GetProperty("code").GetInt32());
+            Assert.Equal(exception.Message, body.GetProperty("message").GetString());
+            Assert.Contains(parentHash.ToString(), exception.Message, StringComparison.Ordinal);
+            Assert.Contains(childHash.ToString(), exception.Message, StringComparison.Ordinal);
+        }
 
         [Theory]
         [InlineData(typeof(KeyNotFoundException), StatusCodes.Status404NotFound, LogEventLevel.Debug)]
