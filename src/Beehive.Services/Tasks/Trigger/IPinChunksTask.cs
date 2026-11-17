@@ -20,9 +20,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
 {
     public interface IPinChunksTask
     {
-        /* The cancellation token is Hangfire's shutdown token (the enqueue call passes
-         * CancellationToken.None): a cancelled pinning releases the pin lock and leaves the pin not
-         * processed, for the re-queued job. */
+        /* The cancellation token is Hangfire's (the enqueue call passes CancellationToken.None),
+         * cancelled by a shutdown and when another worker takes the job: a cancelled pinning releases
+         * the pin lock and leaves the pin not processed, for the next run of the job. */
         [Queue(Queues.PIN_CONTENTS)]
         Task RunAsync(string chunkPinId, CancellationToken cancellationToken);
     }

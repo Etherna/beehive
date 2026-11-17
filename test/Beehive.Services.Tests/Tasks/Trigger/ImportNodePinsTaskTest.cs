@@ -16,10 +16,12 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Domain;
+using Etherna.Beehive.Services.Helpers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Repositories;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
@@ -47,12 +49,16 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
 
         // Fields.
         private readonly List<ChunkPin> chunkPins = [];
+        private readonly Mock<IBeehiveDbContext> dbContextMock = new();
+        private readonly List<FakeResourceLockLease> importLeases = [];
         private readonly BeeNodeLiveInstance node;
         private readonly Mock<ISwarmClient> nodeClientMock = new();
         private readonly List<NodePinImport> pinRecords = [];
         private readonly Mock<IPinService> pinServiceMock = new();
         private readonly ImportNodePinsTask task;
         private NodePinsImport import = NewImport(unpinImported: false);
+        private int importLeaseDenials;
+        private Action? onImportLeaseDenied;
 
         // Constructor.
         public ImportNodePinsTaskTest()
@@ -84,10 +90,29 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             nodePinImportsMock.Setup(r => r.CreateAsync(It.IsAny<NodePinImport>(), It.IsAny<CancellationToken>()))
                 .Callback((NodePinImport record, CancellationToken _) => pinRecords.Add(record))
                 .Returns(Task.CompletedTask);
-            var dbContextMock = new Mock<IBeehiveDbContext>();
             dbContextMock.Setup(c => c.ChunkPins).Returns(chunkPinsMock.Object);
             dbContextMock.Setup(c => c.NodePinImports).Returns(nodePinImportsMock.Object);
             dbContextMock.Setup(c => c.NodePinsImports).Returns(nodePinsImportsMock.Object);
+
+            // The lease of the import is granted, unless a test has another run hold it for some attempts.
+            dbContextMock.Setup(c => c.TryAcquireResourceLockAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<ResourceLockMode>(),
+                    It.IsAny<TimeSpan?>()))
+                .ReturnsAsync(() =>
+                {
+                    if (importLeaseDenials > 0)
+                    {
+                        importLeaseDenials--;
+                        onImportLeaseDenied?.Invoke();
+                        return null;
+                    }
+
+                    var lease = new FakeResourceLockLease();
+                    importLeases.Add(lease);
+                    return lease;
+                });
 
             // The pinning itself is the pin service's: here it answers per reference.
             pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()))
@@ -104,7 +129,10 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 beeNodeLiveManagerMock.Object,
                 dbContextMock.Object,
                 NullLogger<ImportNodePinsTask>.Instance,
-                pinServiceMock.Object);
+                pinServiceMock.Object)
+            {
+                ImportLeaseRetryPeriod = TimeSpan.FromMilliseconds(1)
+            };
         }
 
         // Tests.
@@ -250,6 +278,82 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         }
 
         [Fact]
+        public async Task LeavesTheImportUntouchedWhenCancelledWhileWaitingForItsLease()
+        {
+            // Setup.
+            //another run holds the import, and the job of this one is cancelled while it waits
+            using var shutdown = new CancellationTokenSource();
+            importLeaseDenials = 1;
+            onImportLeaseDenied = shutdown.Cancel;
+
+            // Action.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task.RunAsync(ImportId, shutdown.Token));
+
+            // Assert.
+            Assert.Null(import.StartedDateTime);
+            Assert.Empty(importLeases);
+            dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task StopsARunWhoseImportLeaseIsLostWithoutWritingTheImport()
+        {
+            // Setup.
+            //the lease of the import is lost while the first pin is being pinned: its token reaches the pinning
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete, ReferenceIncomplete]);
+            pinServiceMock.Setup(s => s.PinChunksAsync(
+                    It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceComplete),
+                    It.IsAny<BeeNodeLiveInstance?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((string _, BeeNodeLiveInstance? _, CancellationToken cancellationToken) =>
+                {
+                    importLeases.Single().Lose();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw new InvalidOperationException("Unreachable");
+                });
+
+            // Action.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task.RunAsync(ImportId, CancellationToken.None));
+
+            // Assert.
+            //the import is neither completed nor failed, and nothing is written of it after the loss
+            Assert.Equal(NodePinsImportState.Running, import.State);
+            Assert.Null(import.FailureReason);
+            Assert.Empty(pinRecords);
+            pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()), Times.Once);
+            dbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2)); //the start and the total, before the loss
+            Assert.True(Assert.Single(importLeases).IsReleased);
+        }
+
+        [Fact]
+        public async Task WaitsForAnImportHeldByAnotherRunAndRunsItOnceReleased()
+        {
+            // Setup.
+            //the job was handed to this worker while another one still performs it: its lease is denied twice
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete]);
+            var startedWhileHeld = false;
+            importLeaseDenials = 2;
+            onImportLeaseDenied = () => startedWhileHeld |= import.StartedDateTime.HasValue;
+
+            // Action.
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            Assert.False(startedWhileHeld); //the import is the other run's until its lease is granted
+            Assert.Equal(NodePinsImportState.Completed, import.State);
+            Assert.Equal(1, import.ImportedPins);
+            dbContextMock.Verify(c => c.TryAcquireResourceLockAsync(
+                    ResourceLockNamespaces.NodePinsImports,
+                    ImportId,
+                    ResourceLockMode.Exclusive,
+                    null),
+                Times.Exactly(3));
+            Assert.True(Assert.Single(importLeases).IsReleased);
+        }
+
+        [Fact]
         public async Task DoesNothingOnACompletedImport()
         {
             // Setup.
@@ -280,6 +384,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             Assert.Equal(NodePinsImportState.Failed, import.State);
             Assert.NotNull(import.FailureReason);
             Assert.Null(import.TotalPins);
+            Assert.True(Assert.Single(importLeases).IsReleased); //the lease of the import is released with the failure
         }
 
         [Fact]

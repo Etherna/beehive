@@ -18,6 +18,7 @@ using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using System;
@@ -36,15 +37,41 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         IPinService pinService)
         : IImportNodePinsTask
     {
+        // Properties.
+        /// <summary>
+        /// How long a run waits before asking again for an import held by another run
+        /// </summary>
+        internal TimeSpan ImportLeaseRetryPeriod { get; init; } = TimeSpan.FromSeconds(5);
+
         // Methods.
         public async Task RunAsync(string nodePinsImportId, CancellationToken cancellationToken)
         {
-            var import = await dbContext.NodePinsImports.FindOneAsync(nodePinsImportId, cancellationToken);
+            // One run at a time works on an import, under its exclusive lease. Hangfire can hand the job to a second
+            // worker while the first is still performing it, and cancels the first only afterwards: the new run
+            // waits for the other one to leave, or for its lease to expire when it is dead.
+            IResourceLockLease? acquiredLease;
+            var isWaiting = false;
+            while ((acquiredLease = await dbContext.TryAcquireResourceLockAsync(
+                       ResourceLockNamespaces.NodePinsImports,
+                       nodePinsImportId)) is null)
+            {
+                if (!isWaiting)
+                    logger.NodePinsImportHeldByAnotherRun(nodePinsImportId);
+                isWaiting = true;
+                await Task.Delay(ImportLeaseRetryPeriod, cancellationToken);
+            }
+            await using var importLease = acquiredLease;
+            using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                importLease.LeaseLostToken);
+            var runToken = runCancellation.Token;
+
+            var import = await dbContext.NodePinsImports.FindOneAsync(nodePinsImportId, runToken);
             if (import.IsCompleted) //a re-run of the job
                 return;
 
             import.Start();
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(runToken);
             logger.NodePinsImportStarted(import.NodeId, import.UnpinImported);
 
             try
@@ -52,32 +79,39 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 var node = await beeNodeLiveManager.GetBeeNodeLiveInstanceAsync(import.NodeId);
 
                 var references = import.ImportsEveryPin ?
-                    await node.Client.GetAllPinsAsync(cancellationToken) :
+                    await node.Client.GetAllPinsAsync(runToken) :
                     [.. import.RequestedReferences];
                 import.SetTotalPins(references.Length);
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(runToken);
 
                 // First pass: a pin locked by another operation is deferred to the end of the run.
                 List<SwarmReference> deferredReferences = [];
                 foreach (var reference in references)
                 {
-                    if (!await TryImportPinAsync(import, node, reference, deferOnLock: true, cancellationToken))
+                    if (!await TryImportPinAsync(import, node, reference, deferOnLock: true, runToken))
                         deferredReferences.Add(reference);
-                    await dbContext.SaveChangesAsync(cancellationToken); //the progress is readable while the import runs
+                    await dbContext.SaveChangesAsync(runToken); //the progress is readable while the import runs
                 }
 
                 // Second pass: a pin still locked fails with that reason.
                 foreach (var reference in deferredReferences)
                 {
-                    await TryImportPinAsync(import, node, reference, deferOnLock: false, cancellationToken);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await TryImportPinAsync(import, node, reference, deferOnLock: false, runToken);
+                    await dbContext.SaveChangesAsync(runToken);
                 }
 
                 import.Complete();
             }
+            catch (OperationCanceledException) when (importLease.LeaseLostToken.IsCancellationRequested)
+            {
+                // The lease is lost: the import is not this run's to write anymore.
+                logger.NodePinsImportLeaseLost(import.NodeId, import.Id);
+                throw;
+            }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // A shutdown: the import stays running, and the re-queued job starts it again.
+                // The job is cancelled, by a shutdown or because another worker took it: the import stays running,
+                // and the next run of the job starts it again.
                 logger.NodePinsImportInterrupted(import.NodeId, import.ImportedPins, import.FailedPins);
                 await dbContext.SaveChangesAsync(CancellationToken.None);
                 throw;
