@@ -64,68 +64,81 @@ namespace Etherna.Beehive.Services.Domain
             BeeNodeLiveInstance? sourceNode,
             CancellationToken cancellationToken = default)
         {
-            // Acquire lock on pin. A cancellation releases it with the lease.
+            // Acquire lock on pin. A cancellation releases it with the lease, and the work stops when the lease is
+            // lost: the pin is not this operation's anymore.
             await using var pinLockLease = await AcquireLockAsync(chunkPinId, true);
+            using var workCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                pinLockLease.LeaseLostToken);
+            var workToken = workCancellation.Token;
 
-            var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId, cancellationToken);
-            if (!pin.Reference.HasValue)
-                throw new InvalidOperationException("Pin doesn't have an hash");
-            if (pin.IsSucceeded)
-                return new PinChunksResult(pin, []);
-
-            // Traverse chunks. The store saves the chunks it reads from the nodes with the pin attached, so a chunk
-            // beehive didn't hold enters the db pinned; a chunk it held takes the pin on its document.
-            HashSet<SwarmHash> invalidChunksHash = [];
-            HashSet<SwarmHash> missingChunksHash = [];
-            HashSet<SwarmHash> pinnedChunksHash = [];
-            await using var chunkStore = new BeehiveChunkStore(
-                beeNodeLiveManager,
-                dbContext,
-                logger,
-                serializerModifierAccessor,
-                onSavingChunk: c => c.AddPin(pin),
-                sourceNode: sourceNode);
-            var chunkTraverser = new ChunkTraverser(chunkStore);
-
-            /* The traversal reads back one chunk document per pinned chunk: keep them out of
-             * the identity map of this scope, or it grows with the pinned tree. */
-            using (serializerModifierAccessor.EnableCacheSerializerModifier(true))
+            try
             {
-                await chunkTraverser.TraverseAsync(
-                    pin.Reference.Value,
-                    (foundChunk, _) =>
-                        PinFoundChunkAsync(pin, foundChunk.Hash, pinnedChunksHash, missingChunksHash, cancellationToken),
-                    (invalidFoundChunk, _) =>
-                    {
-                        invalidChunksHash.Add(invalidFoundChunk.Hash);
-                        return PinFoundChunkAsync(pin, invalidFoundChunk.Hash, pinnedChunksHash, missingChunksHash, cancellationToken);
-                    },
-                    notFoundReference =>
-                    {
-                        missingChunksHash.Add(notFoundReference.Reference.Hash);
-                        return Task.CompletedTask;
-                    },
-                    cancellationToken: cancellationToken);
-            }
+                var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId, workToken);
+                if (!pin.Reference.HasValue)
+                    throw new InvalidOperationException("Pin doesn't have an hash");
+                if (pin.IsSucceeded)
+                    return new PinChunksResult(pin, []);
 
-            // Verify the pin on the db before declaring it: a chunk is pinned by its document carrying the pin,
-            // not by the traversal having met it.
-            var storedChunksHash = await dbContext.Chunks.QueryElementsAsync(elements =>
-                elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
-                    .Select(c => c.Hash)
-                    .ToListAsync());
-            foreach (var hash in pinnedChunksHash.Except(storedChunksHash).ToArray())
+                // Traverse chunks. The store saves the chunks it reads from the nodes with the pin attached, so a chunk
+                // beehive didn't hold enters the db pinned; a chunk it held takes the pin on its document.
+                HashSet<SwarmHash> invalidChunksHash = [];
+                HashSet<SwarmHash> missingChunksHash = [];
+                HashSet<SwarmHash> pinnedChunksHash = [];
+                await using var chunkStore = new BeehiveChunkStore(
+                    beeNodeLiveManager,
+                    dbContext,
+                    logger,
+                    serializerModifierAccessor,
+                    onSavingChunk: c => c.AddPin(pin),
+                    sourceNode: sourceNode);
+                var chunkTraverser = new ChunkTraverser(chunkStore);
+
+                /* The traversal reads back one chunk document per pinned chunk: keep them out of
+                 * the identity map of this scope, or it grows with the pinned tree. */
+                using (serializerModifierAccessor.EnableCacheSerializerModifier(true))
+                {
+                    await chunkTraverser.TraverseAsync(
+                        pin.Reference.Value,
+                        (foundChunk, _) =>
+                            PinFoundChunkAsync(pin, foundChunk.Hash, pinnedChunksHash, missingChunksHash, workToken),
+                        (invalidFoundChunk, _) =>
+                        {
+                            invalidChunksHash.Add(invalidFoundChunk.Hash);
+                            return PinFoundChunkAsync(pin, invalidFoundChunk.Hash, pinnedChunksHash, missingChunksHash, workToken);
+                        },
+                        notFoundReference =>
+                        {
+                            missingChunksHash.Add(notFoundReference.Reference.Hash);
+                            return Task.CompletedTask;
+                        },
+                        cancellationToken: workToken);
+                }
+
+                // Verify the pin on the db before declaring it: a chunk is pinned by its document carrying the pin,
+                // not by the traversal having met it.
+                var storedChunksHash = await dbContext.Chunks.QueryElementsAsync(elements =>
+                    elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
+                        .Select(c => c.Hash)
+                        .ToListAsync());
+                foreach (var hash in pinnedChunksHash.Except(storedChunksHash).ToArray())
+                {
+                    pinnedChunksHash.Remove(hash);
+                    missingChunksHash.Add(hash);
+                }
+
+                // Update pin with result, never under a lease lost meanwhile.
+                pinLockLease.LeaseLostToken.ThrowIfCancellationRequested();
+                pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
+                await dbContext.SaveChangesAsync(workToken);
+                logger.PinProcessed(pin.Reference.Value, pinnedChunksHash.Count, missingChunksHash.Count, invalidChunksHash.Count);
+
+                return new PinChunksResult(pin, invalidChunksHash);
+            }
+            catch (OperationCanceledException e) when (pinLockLease.LeaseLostToken.IsCancellationRequested)
             {
-                pinnedChunksHash.Remove(hash);
-                missingChunksHash.Add(hash);
+                throw new ResourceLockException($"Pin {chunkPinId} lost its lock while it was being pinned", e);
             }
-
-            // Update pin with result.
-            pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            logger.PinProcessed(pin.Reference.Value, pinnedChunksHash.Count, missingChunksHash.Count, invalidChunksHash.Count);
-
-            return new PinChunksResult(pin, invalidChunksHash);
         }
 
         public async Task<bool> TryDeletePinAsync(SwarmReference pinReference)
