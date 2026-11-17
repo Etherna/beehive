@@ -28,6 +28,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
@@ -50,7 +51,7 @@ namespace Etherna.Beehive.Services.Domain
                 exclusiveAccess ? ResourceLockMode.Exclusive : ResourceLockMode.Shared);
             
             if (lease is null)
-                throw new ResourceLockException();
+                throw new ResourceLockException($"Pin {chunkPinId} is locked by another operation");
 
             return lease;
         }
@@ -58,12 +59,15 @@ namespace Etherna.Beehive.Services.Domain
         public Task<bool> IsLockedAsync(string chunkPinId) =>
             dbContext.IsResourceLockedAsync(ResourceLockNamespaces.ChunkPins, chunkPinId);
 
-        public async Task<PinChunksResult> PinChunksAsync(string chunkPinId, BeeNodeLiveInstance? sourceNode)
+        public async Task<PinChunksResult> PinChunksAsync(
+            string chunkPinId,
+            BeeNodeLiveInstance? sourceNode,
+            CancellationToken cancellationToken = default)
         {
-            // Acquire lock on pin.
+            // Acquire lock on pin. A cancellation releases it with the lease.
             await using var pinLockLease = await AcquireLockAsync(chunkPinId, true);
 
-            var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId);
+            var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId, cancellationToken);
             if (!pin.Reference.HasValue)
                 throw new InvalidOperationException("Pin doesn't have an hash");
             if (pin.IsSucceeded)
@@ -90,17 +94,18 @@ namespace Etherna.Beehive.Services.Domain
                 await chunkTraverser.TraverseAsync(
                     pin.Reference.Value,
                     (foundChunk, _) =>
-                        PinFoundChunkAsync(pin, foundChunk.Hash, pinnedChunksHash, missingChunksHash),
+                        PinFoundChunkAsync(pin, foundChunk.Hash, pinnedChunksHash, missingChunksHash, cancellationToken),
                     (invalidFoundChunk, _) =>
                     {
                         invalidChunksHash.Add(invalidFoundChunk.Hash);
-                        return PinFoundChunkAsync(pin, invalidFoundChunk.Hash, pinnedChunksHash, missingChunksHash);
+                        return PinFoundChunkAsync(pin, invalidFoundChunk.Hash, pinnedChunksHash, missingChunksHash, cancellationToken);
                     },
                     notFoundReference =>
                     {
                         missingChunksHash.Add(notFoundReference.Reference.Hash);
                         return Task.CompletedTask;
-                    });
+                    },
+                    cancellationToken: cancellationToken);
             }
 
             // Verify the pin on the db before declaring it: a chunk is pinned by its document carrying the pin,
@@ -117,7 +122,7 @@ namespace Etherna.Beehive.Services.Domain
 
             // Update pin with result.
             pin.UpdateProcessed(missingChunksHash, pinnedChunksHash.Count);
-            await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync(cancellationToken);
             logger.PinProcessed(pin.Reference.Value, pinnedChunksHash.Count, missingChunksHash.Count, invalidChunksHash.Count);
 
             return new PinChunksResult(pin, invalidChunksHash);
@@ -149,7 +154,8 @@ namespace Etherna.Beehive.Services.Domain
             ChunkPin pin,
             SwarmHash hash,
             HashSet<SwarmHash> pinnedChunksHash,
-            HashSet<SwarmHash> missingChunksHash)
+            HashSet<SwarmHash> missingChunksHash,
+            CancellationToken cancellationToken)
         {
             if (pinnedChunksHash.Contains(hash) || missingChunksHash.Contains(hash))
                 return;
@@ -158,7 +164,8 @@ namespace Etherna.Beehive.Services.Domain
                 new ExpressionFilterDefinition<Chunk>(c => c.Hash == hash),
                 c => c.Pins,
                 pin,
-                new FindOneAndUpdateOptions<Chunk>());
+                new FindOneAndUpdateOptions<Chunk>(),
+                cancellationToken);
             if (chunkDocument is not null)
                 pinnedChunksHash.Add(hash);
             else

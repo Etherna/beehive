@@ -95,7 +95,8 @@ namespace Etherna.Beehive.Services.Domain
                 .ReturnsAsync((IResourceLockLease?)null);
 
             // Action & assert.
-            await Assert.ThrowsAsync<ResourceLockException>(() => service.AcquireLockAsync("heldPin", true));
+            var exception = await Assert.ThrowsAsync<ResourceLockException>(() => service.AcquireLockAsync("heldPin", true));
+            Assert.Contains("heldPin", exception.Message, StringComparison.Ordinal); //the resource locked is named
         }
 
         [Fact]
@@ -174,6 +175,25 @@ namespace Etherna.Beehive.Services.Domain
             Assert.Equal(0, result.Pin.TotPinnedChunks);
             Assert.Equal(node.Chunks.AllChunks.Count, result.Pin.MissingChunks.Count());
             Assert.Empty(node.RequestedHashes); //nothing was read from the node
+        }
+
+        [Fact]
+        public async Task PinChunksCancelledReleasesThePinLockAndLeavesThePinNotProcessed()
+        {
+            // Setup.
+            //the shutdown arrives while the chunks are read from the node: the token reaches the reads, which stop
+            var reference = await UploadContentAsync(node.Chunks);
+            var pin = NewPin(reference);
+            using var shutdown = new CancellationTokenSource();
+            await shutdown.CancelAsync();
+
+            // Action.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.PinChunksAsync(pin.Id, node.Instance, shutdown.Token));
+
+            // Assert.
+            Assert.True(Assert.Single(pinLeases).IsReleased);
+            Assert.False(pin.IsProcessed);
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]

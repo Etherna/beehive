@@ -58,6 +58,7 @@ namespace Etherna.Beehive.Services.Helpers
                     string? _,
                     CancellationToken cancellationToken) =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested(); //as the sdk client, whose request is cancelled
                     requestedHashes.Enqueue(hash);
                     return await Chunks.TryGetAsync(hash, cancellationToken) ??
                         throw new SwarmSdkApiException(

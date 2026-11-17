@@ -90,8 +90,8 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             dbContextMock.Setup(c => c.NodePinsImports).Returns(nodePinsImportsMock.Object);
 
             // The pinning itself is the pin service's: here it answers per reference.
-            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>()))
-                .Returns((string pinId, BeeNodeLiveInstance? _) =>
+            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
                 {
                     var pin = chunkPins.Single(p => p.Id == pinId);
                     pin.UpdateProcessed(
@@ -117,11 +117,12 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 .ReturnsAsync([ReferenceIncomplete, ReferenceComplete]);
             pinServiceMock.Setup(s => s.PinChunksAsync(
                     It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceIncomplete),
-                    It.IsAny<BeeNodeLiveInstance?>()))
-                .ThrowsAsync(new ResourceLockException());
+                    It.IsAny<BeeNodeLiveInstance?>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Pin doesn't have an hash"));
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(NodePinsImportState.Completed, import.State);
@@ -129,7 +130,123 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             Assert.Equal(1, import.ImportedPins);
             var failedRecord = Assert.Single(pinRecords, r => r.Reference == ReferenceIncomplete);
             Assert.Equal(NodePinImportOutcome.Failed, failedRecord.Outcome);
-            Assert.Equal(new ResourceLockException().Message, failedRecord.FailureReason);
+            Assert.Equal("Pin doesn't have an hash", failedRecord.FailureReason);
+        }
+
+        [Fact]
+        public async Task DefersAPinLockedByAnotherOperationAndImportsItWhenReleased()
+        {
+            // Setup.
+            //the pin is locked at the first pass and free at the second one
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete, ReferencePinned]);
+            AddSucceededPin(ReferencePinned);
+            var pinningAttempts = 0;
+            pinServiceMock.Setup(s => s.PinChunksAsync(
+                    It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceComplete),
+                    It.IsAny<BeeNodeLiveInstance?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
+                {
+                    if (++pinningAttempts == 1)
+                        throw new ResourceLockException($"Pin {pinId} is locked by another operation");
+                    var pin = chunkPins.Single(p => p.Id == pinId);
+                    pin.UpdateProcessed([], totPinnedChunks: 3);
+                    return Task.FromResult(new PinChunksResult(pin, []));
+                });
+
+            // Action.
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            Assert.Equal(NodePinsImportState.Completed, import.State);
+            Assert.Equal(2, pinningAttempts);
+            Assert.Equal(1, import.ImportedPins);
+            Assert.Equal(1, import.SkippedPins);
+            Assert.Equal(0, import.FailedPins);
+            //one record per pin, the deferred one written at its outcome, after the other ones
+            Assert.Equal([ReferencePinned, ReferenceComplete], pinRecords.Select(r => r.Reference));
+            Assert.Equal(NodePinImportOutcome.Imported, pinRecords[1].Outcome);
+        }
+
+        [Fact]
+        public async Task FailsAPinStillLockedAtTheEndOfTheImportWithTheLockReason()
+        {
+            // Setup.
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete, ReferenceIncomplete]);
+            var pinningAttempts = 0;
+            pinServiceMock.Setup(s => s.PinChunksAsync(
+                    It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceComplete),
+                    It.IsAny<BeeNodeLiveInstance?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
+                {
+                    pinningAttempts++;
+                    throw new ResourceLockException($"Pin {pinId} is locked by another operation");
+                });
+
+            // Action.
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            Assert.Equal(NodePinsImportState.Completed, import.State);
+            Assert.Equal(2, pinningAttempts); //the first pass and the final one
+            Assert.Equal(2, import.FailedPins);
+            var lockedRecord = Assert.Single(pinRecords, r => r.Reference == ReferenceComplete);
+            Assert.Equal(NodePinImportOutcome.Failed, lockedRecord.Outcome);
+            Assert.Equal(
+                $"Pin {chunkPins.Single(p => p.Reference == ReferenceComplete).Id} is locked by another operation",
+                lockedRecord.FailureReason);
+        }
+
+        [Fact]
+        public async Task LeavesAnImportCancelledByAShutdownRunningForItsRequeuedJob()
+        {
+            // Setup.
+            //the shutdown arrives while the first pin is being pinned
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete, ReferenceIncomplete]);
+            using var shutdown = new CancellationTokenSource();
+            pinServiceMock.Setup(s => s.PinChunksAsync(
+                    It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceComplete),
+                    It.IsAny<BeeNodeLiveInstance?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(async (string _, BeeNodeLiveInstance? _, CancellationToken cancellationToken) =>
+                {
+                    await shutdown.CancelAsync();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw new InvalidOperationException("Unreachable");
+                });
+
+            // Action.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task.RunAsync(ImportId, shutdown.Token));
+
+            // Assert.
+            //the import is neither completed nor failed, nothing is recorded of the interrupted pin
+            Assert.Equal(NodePinsImportState.Running, import.State);
+            Assert.Null(import.FailureReason);
+            Assert.Empty(pinRecords);
+            pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()), Times.Once);
+
+            // Action: the re-queued job runs the import again.
+            pinServiceMock.Setup(s => s.PinChunksAsync(
+                    It.Is<string>(id => chunkPins.Single(p => p.Id == id).Reference == ReferenceComplete),
+                    It.IsAny<BeeNodeLiveInstance?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
+                {
+                    var pin = chunkPins.Single(p => p.Id == pinId);
+                    pin.UpdateProcessed([], totPinnedChunks: 3);
+                    return Task.FromResult(new PinChunksResult(pin, []));
+                });
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            Assert.Equal(NodePinsImportState.Completed, import.State);
+            Assert.Equal(1, import.ImportedPins);
+            Assert.Equal(1, import.FailedPins);
+            Assert.Equal(2, pinRecords.Count);
         }
 
         [Fact]
@@ -140,7 +257,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             import.Complete();
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             nodeClientMock.Verify(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -159,7 +276,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                     null));
 
             // Action & assert.
-            await Assert.ThrowsAsync<SwarmSdkApiException>(() => task.RunAsync(ImportId));
+            await Assert.ThrowsAsync<SwarmSdkApiException>(() => task.RunAsync(ImportId, CancellationToken.None));
             Assert.Equal(NodePinsImportState.Failed, import.State);
             Assert.NotNull(import.FailureReason);
             Assert.Null(import.TotalPins);
@@ -174,7 +291,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             AddSucceededPin(ReferencePinned);
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(NodePinsImportState.Completed, import.State);
@@ -185,7 +302,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             Assert.Equal(0, import.UnpinnedPins);
             Assert.True(chunkPins.Single(p => p.Reference == ReferenceComplete).IsSucceeded);
             Assert.False(chunkPins.Single(p => p.Reference == ReferenceIncomplete).IsSucceeded);
-            pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), node), Times.Exactly(2)); //read from the node itself
+            pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), node, It.IsAny<CancellationToken>()), Times.Exactly(2)); //read from the node itself
             nodeClientMock.Verify(c => c.DeletePinAsync(It.IsAny<SwarmReference>(), It.IsAny<CancellationToken>()), Times.Never);
 
             //one record per pin, with its outcome
@@ -216,7 +333,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 .ReturnsAsync([ReferenceComplete]);
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(NodePinsImportState.Completed, import.State);
@@ -234,7 +351,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             AddSucceededPin(ReferencePinned);
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(2, import.UnpinnedPins);
@@ -253,8 +370,8 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             import = NewImport(unpinImported: true);
             nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync([ReferenceComplete]);
-            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>()))
-                .Returns((string pinId, BeeNodeLiveInstance? _) =>
+            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
                 {
                     var pin = chunkPins.Single(p => p.Id == pinId);
                     pin.UpdateProcessed([], totPinnedChunks: 3);
@@ -262,7 +379,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 });
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(1, import.FailedPins);
@@ -290,7 +407,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                     null));
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(NodePinsImportState.Completed, import.State);
@@ -311,7 +428,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 .ReturnsAsync([ReferenceComplete, ReferencePinned, ReferenceIncomplete]);
 
             // Action.
-            await task.RunAsync(ImportId);
+            await task.RunAsync(ImportId, CancellationToken.None);
 
             // Assert.
             Assert.Equal(NodePinsImportState.Completed, import.State);

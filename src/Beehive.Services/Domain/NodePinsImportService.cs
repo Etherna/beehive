@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
@@ -102,7 +103,7 @@ namespace Etherna.Beehive.Services.Domain
             var import = new NodePinsImport(nodeId, unpinImported, references);
             await dbContext.NodePinsImports.CreateAsync(import);
 
-            var jobId = backgroundJobClient.Enqueue<IImportNodePinsTask>(t => t.RunAsync(import.Id));
+            var jobId = backgroundJobClient.Enqueue<IImportNodePinsTask>(t => t.RunAsync(import.Id, CancellationToken.None));
             import.SetJobId(jobId);
             await dbContext.SaveChangesAsync();
             logger.NodePinsImportEnqueued(nodeId, jobId, unpinImported, import.RequestedReferences.Count());

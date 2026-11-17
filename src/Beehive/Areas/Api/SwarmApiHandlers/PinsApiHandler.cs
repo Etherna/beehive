@@ -25,6 +25,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
@@ -156,11 +157,11 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             if (runBackgroundTask)
             {
                 backgroundJobClient.Enqueue<IPinChunksTask>(
-                    t => t.RunAsync(pin.Id));
+                    t => t.RunAsync(pin.Id, CancellationToken.None));
             }
             else
             {
-                await pinChunksTask.RunAsync(pin.Id);
+                await pinChunksTask.RunAsync(pin.Id, CancellationToken.None);
             }
 
             return false;
