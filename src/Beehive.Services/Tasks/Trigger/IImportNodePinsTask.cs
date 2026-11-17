@@ -21,9 +21,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
     public interface IImportNodePinsTask
     {
         /* No automatic retry: the task records its own failure on the import, and a job re-run
-         * would find the import already failed. The cancellation token is Hangfire's shutdown token
-         * (the enqueue call passes CancellationToken.None): an interrupted import stays running, and
-         * the re-queued job resumes it. */
+         * would find the import already failed. The cancellation token is Hangfire's (the enqueue
+         * call passes CancellationToken.None), cancelled by a shutdown and when another worker takes
+         * the job: an interrupted import stays running, and the next run of the job starts it again. */
         [AutomaticRetry(Attempts = 0)]
         [Queue(Queues.PIN_CONTENTS)]
         Task RunAsync(string nodePinsImportId, CancellationToken cancellationToken);

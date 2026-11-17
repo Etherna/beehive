@@ -261,8 +261,22 @@ namespace Etherna.Beehive
 
             services.AddScriniumWithHangfire(configureHangfireOptions: options =>
             {
-                options.ConnectionString = config["ConnectionStrings:HangfireDb"] ??
-                                           throw new ServiceConfigurationException("Hangfire connection string is not defined");
+                var hangfireConnectionString =
+                    config["ConnectionStrings:HangfireDb"] ??
+                    throw new ServiceConfigurationException("Hangfire connection string is not defined");
+
+                /* Hangfire.Mongo keeps a fetched job with its worker by a heartbeat written every minute, one write
+                 * after the other, and hands the job to another worker when 5 minutes pass without one, whatever
+                 * the state of the worker performing it. The driver waits for an answer forever by default: a write
+                 * on a connection a network event left dead stopped the heartbeat with no error, and a pins import
+                 * ran twice at once. With a socket timeout the write fails and is retried on another connection.
+                 * A connection string declaring its own socketTimeoutMS keeps it. */
+                if (!hangfireConnectionString.Contains("socketTimeoutMS", StringComparison.OrdinalIgnoreCase))
+                    hangfireConnectionString +=
+                        (hangfireConnectionString.Contains('?', StringComparison.Ordinal) ? '&' : '?') +
+                        "socketTimeoutMS=30000";
+
+                options.ConnectionString = hangfireConnectionString;
                 options.StorageOptions = new MongoStorageOptions
                 {
                     MigrationOptions = new MongoMigrationOptions //don't remove, could throw exception

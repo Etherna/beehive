@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 59
+     * Last event id is: 61
      */
     public static class LoggerExtensions
     {
@@ -299,17 +299,29 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(27, nameof(NodePinImportIncomplete)),
                 "Node {NodeId}: import of pin {Reference} is incomplete, {MissingChunks} chunks missing and {InvalidChunks} invalid on the node");
 
+        private static readonly Action<ILogger, string, Exception> _nodePinsImportHeldByAnotherRun =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(60, nameof(NodePinsImportHeldByAnotherRun)),
+                "Pins import {ImportId} is held by another run of its job: this one waits for it to leave");
+
         private static readonly Action<ILogger, string, long, long, Exception> _nodePinsImportInterrupted =
             LoggerMessage.Define<string, long, long>(
                 LogLevel.Warning,
                 new EventId(59, nameof(NodePinsImportInterrupted)),
-                "Pins import of node {NodeId} interrupted by a shutdown after {ImportedPins} imported and {FailedPins} failed pins, it resumes at the next run");
+                "Pins import of node {NodeId} interrupted after {ImportedPins} imported and {FailedPins} failed pins: its job was cancelled, by a shutdown or because another worker took it. It starts again at the next run");
 
         private static readonly Action<ILogger, string, string, string, Exception> _nodePinsImportJobGone =
             LoggerMessage.Define<string, string, string>(
                 LogLevel.Warning,
                 new EventId(55, nameof(NodePinsImportJobGone)),
                 "Node {NodeId}: pins import {ImportId} failed, its job {JobId} ended before completing it");
+
+        private static readonly Action<ILogger, string, string, Exception> _nodePinsImportLeaseLost =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(61, nameof(NodePinsImportLeaseLost)),
+                "Node {NodeId}: the run of pins import {ImportId} lost its lease and stops without writing the import");
 
         private static readonly Action<ILogger, string, SwarmReference, Exception> _nodePinUnpinFailed =
             LoggerMessage.Define<string, SwarmReference>(
@@ -466,11 +478,17 @@ namespace Etherna.Beehive.Services.Extensions
         public static void NodePinsImportFailed(this ILogger logger, string nodeId, Exception exception) =>
             _nodePinsImportFailed(logger, nodeId, exception);
 
+        public static void NodePinsImportHeldByAnotherRun(this ILogger logger, string importId) =>
+            _nodePinsImportHeldByAnotherRun(logger, importId, null!);
+
         public static void NodePinsImportInterrupted(this ILogger logger, string nodeId, long importedPins, long failedPins) =>
             _nodePinsImportInterrupted(logger, nodeId, importedPins, failedPins, null!);
 
         public static void NodePinsImportJobGone(this ILogger logger, string nodeId, string importId, string jobId) =>
             _nodePinsImportJobGone(logger, nodeId, importId, jobId, null!);
+
+        public static void NodePinsImportLeaseLost(this ILogger logger, string nodeId, string importId) =>
+            _nodePinsImportLeaseLost(logger, nodeId, importId, null!);
 
         public static void NodePinsImportsDeleted(this ILogger logger, string nodeId, int deletedImports) =>
             _nodePinsImportsDeleted(logger, nodeId, deletedImports, null!);
