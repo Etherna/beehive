@@ -160,5 +160,36 @@ namespace Etherna.Beehive.Services.Domain
             Assert.Contains(UnknownBatchId.ToString(), exception.Message, StringComparison.Ordinal);
             Assert.False(chunkingInvoked); //refused before anything is stored
         }
+
+        [Fact]
+        public async Task UploadOnABatchWhoseLockWasLostMeanwhileRecordsNothing()
+        {
+            // Action.
+            //the lease of the batch is lost while the content is chunked
+            var exception = await Assert.ThrowsAsync<ResourceLockException>(() => service.UploadAsync(
+                BatchId,
+                null,
+                false,
+                true,
+                (_, _) =>
+                {
+                    batchLeases.Single().Lose();
+                    return Task.FromResult(new SwarmReference(SwarmHash.Zero, null));
+                }));
+
+            // Assert.
+            Assert.Contains(BatchId.ToString(), exception.Message, StringComparison.Ordinal);
+            //nothing recorded on the batch: no stamps, no push, the pin still provisional
+            postageBatchServiceMock.Verify(
+                s => s.StoreStampedChunksAsync(It.IsAny<PostageBatchCache>(), It.IsAny<HashSet<SwarmHash>>(), It.IsAny<IPostageStamper>()),
+                Times.Never);
+            chunkPushQueueMock.Verify(
+                r => r.CreateAsync(It.IsAny<IEnumerable<PushingChunkRef>>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            var pin = Assert.Single(db.ChunkPins);
+            Assert.False(pin.IsProcessed);
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            Assert.True(Assert.Single(batchLeases).IsReleased);
+        }
     }
 }

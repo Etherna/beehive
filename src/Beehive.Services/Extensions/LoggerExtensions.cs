@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 57
+     * Last event id is: 59
      */
     public static class LoggerExtensions
     {
@@ -62,6 +62,12 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Debug,
                 new EventId(19, nameof(NoChunksToPush)),
                 "No chunks to push");
+
+        private static readonly Action<ILogger, string, SwarmReference, Exception> _nodePinImportDeferred =
+            LoggerMessage.Define<string, SwarmReference>(
+                LogLevel.Debug,
+                new EventId(58, nameof(NodePinImportDeferred)),
+                "Pins import of node {NodeId}: pin {Reference} is locked by another operation, deferred to the end of the import");
 
         private static readonly Action<ILogger, SwarmHash, Exception> _succededToPushCac =
             LoggerMessage.Define<SwarmHash>(
@@ -293,6 +299,12 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(27, nameof(NodePinImportIncomplete)),
                 "Node {NodeId}: import of pin {Reference} is incomplete, {MissingChunks} chunks missing and {InvalidChunks} invalid on the node");
 
+        private static readonly Action<ILogger, string, long, long, Exception> _nodePinsImportInterrupted =
+            LoggerMessage.Define<string, long, long>(
+                LogLevel.Warning,
+                new EventId(59, nameof(NodePinsImportInterrupted)),
+                "Pins import of node {NodeId} interrupted by a shutdown after {ImportedPins} imported and {FailedPins} failed pins, it resumes at the next run");
+
         private static readonly Action<ILogger, string, string, string, Exception> _nodePinsImportJobGone =
             LoggerMessage.Define<string, string, string>(
                 LogLevel.Warning,
@@ -436,6 +448,9 @@ namespace Etherna.Beehive.Services.Extensions
         public static void NodeConfigurationUpdated(this ILogger logger, string beeNodeid) =>
             _nodeConfigurationUpdated(logger, beeNodeid, null!);
 
+        public static void NodePinImportDeferred(this ILogger logger, string nodeId, SwarmReference reference) =>
+            _nodePinImportDeferred(logger, nodeId, reference, null!);
+
         public static void NodePinImportFailed(this ILogger logger, string nodeId, SwarmReference reference, Exception exception) =>
             _nodePinImportFailed(logger, nodeId, reference, exception);
 
@@ -450,6 +465,9 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void NodePinsImportFailed(this ILogger logger, string nodeId, Exception exception) =>
             _nodePinsImportFailed(logger, nodeId, exception);
+
+        public static void NodePinsImportInterrupted(this ILogger logger, string nodeId, long importedPins, long failedPins) =>
+            _nodePinsImportInterrupted(logger, nodeId, importedPins, failedPins, null!);
 
         public static void NodePinsImportJobGone(this ILogger logger, string nodeId, string importId, string jobId) =>
             _nodePinsImportJobGone(logger, nodeId, importId, jobId, null!);

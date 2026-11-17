@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Hangfire;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Trigger
@@ -20,9 +21,11 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
     public interface IImportNodePinsTask
     {
         /* No automatic retry: the task records its own failure on the import, and a job re-run
-         * would find the import already failed. */
+         * would find the import already failed. The cancellation token is Hangfire's shutdown token
+         * (the enqueue call passes CancellationToken.None): an interrupted import stays running, and
+         * the re-queued job resumes it. */
         [AutomaticRetry(Attempts = 0)]
         [Queue(Queues.PIN_CONTENTS)]
-        Task RunAsync(string nodePinsImportId);
+        Task RunAsync(string nodePinsImportId, CancellationToken cancellationToken);
     }
 }

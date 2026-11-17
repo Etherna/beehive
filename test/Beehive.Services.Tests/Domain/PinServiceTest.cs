@@ -95,7 +95,8 @@ namespace Etherna.Beehive.Services.Domain
                 .ReturnsAsync((IResourceLockLease?)null);
 
             // Action & assert.
-            await Assert.ThrowsAsync<ResourceLockException>(() => service.AcquireLockAsync("heldPin", true));
+            var exception = await Assert.ThrowsAsync<ResourceLockException>(() => service.AcquireLockAsync("heldPin", true));
+            Assert.Contains("heldPin", exception.Message, StringComparison.Ordinal); //the resource locked is named
         }
 
         [Fact]
@@ -177,6 +178,51 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         [Fact]
+        public async Task PinChunksCancelledReleasesThePinLockAndLeavesThePinNotProcessed()
+        {
+            // Setup.
+            //the shutdown arrives while the chunks are read from the node: the token reaches the reads, which stop
+            var reference = await UploadContentAsync(node.Chunks);
+            var pin = NewPin(reference);
+            using var shutdown = new CancellationTokenSource();
+            await shutdown.CancelAsync();
+
+            // Action.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.PinChunksAsync(pin.Id, node.Instance, shutdown.Token));
+
+            // Assert.
+            Assert.True(Assert.Single(pinLeases).IsReleased);
+            Assert.False(pin.IsProcessed);
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task PinChunksDoesNotDeclareAPinWhoseLockWasLostBeforeItsResult()
+        {
+            // Setup.
+            //the lease is lost when the traversal is over, while the pinned documents are read back
+            var reference = await UploadContentAsync(node.Chunks);
+            var pin = NewPin(reference);
+            db.ChunksMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
+                    null))
+                .Returns((Func<IQueryable<Chunk>, Task<List<SwarmHash>>> query, AggregateOptions? _) =>
+                {
+                    pinLeases.Single().Lose();
+                    return query(InMemoryQueryable.Of(db.Chunks));
+                });
+
+            // Action.
+            var exception = await Assert.ThrowsAsync<ResourceLockException>(() => service.PinChunksAsync(pin.Id, node.Instance));
+
+            // Assert.
+            Assert.Contains(pin.Id, exception.Message, StringComparison.Ordinal);
+            Assert.True(Assert.Single(pinLeases).IsReleased);
+            Assert.False(pin.IsProcessed);
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task PinChunksReleasesThePinLockWhenItFails()
         {
             // Action.
@@ -185,6 +231,32 @@ namespace Etherna.Beehive.Services.Domain
 
             // Assert.
             Assert.True(Assert.Single(pinLeases).IsReleased);
+        }
+
+        [Fact]
+        public async Task PinChunksStopsReadingTheNodeWhenThePinLockIsLost()
+        {
+            // Setup.
+            //the lease is lost once the pin is loaded: its token reaches the reads of the node, which stop
+            var reference = await UploadContentAsync(node.Chunks);
+            var pin = NewPin(reference);
+            db.ChunkPinsMock.Setup(r => r.FindOneAsync(pin.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    pinLeases.Single().Lose();
+                    return pin;
+                });
+
+            // Action.
+            var exception = await Assert.ThrowsAsync<ResourceLockException>(() => service.PinChunksAsync(pin.Id, node.Instance));
+
+            // Assert.
+            Assert.Contains(pin.Id, exception.Message, StringComparison.Ordinal);
+            Assert.True(Assert.Single(pinLeases).IsReleased);
+            Assert.False(pin.IsProcessed);
+            Assert.Empty(node.RequestedHashes); //no read was sent after the loss
+            Assert.Empty(db.Chunks);
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]

@@ -15,6 +15,7 @@
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Domain
@@ -30,10 +31,14 @@ namespace Etherna.Beehive.Services.Domain
         /// <summary>
         /// Pin the chunks of a pin's reference, under the pin's exclusive lock. The chunks beehive doesn't hold are
         /// read from the source node, or from the healthy nodes when none is given, and saved with the pin attached;
-        /// the pin is succeeded only when every chunk met carries it on the db
+        /// the pin is succeeded only when every chunk met carries it on the db. A cancellation releases the lock
+        /// and leaves the pin not processed; so does a lock lost while pinning, thrown as a ResourceLockException
         /// </summary>
         /// <returns>The pin, processed: succeeded, or with its missing chunks; and the invalid chunks met</returns>
-        Task<PinChunksResult> PinChunksAsync(string chunkPinId, BeeNodeLiveInstance? sourceNode);
+        Task<PinChunksResult> PinChunksAsync(
+            string chunkPinId,
+            BeeNodeLiveInstance? sourceNode,
+            CancellationToken cancellationToken = default);
         
         Task<bool> TryDeletePinAsync(SwarmReference pinReference);
     }

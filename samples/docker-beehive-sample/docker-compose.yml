@@ -3,6 +3,7 @@ services:
 
   beehive:
     image: etherna/beehive:latest
+    stop_grace_period: 60s   # beehive cancels its running jobs on stop: let its shutdown (up to 30s) finish before the kill, docker's default is 10s
     environment:
       - ConnectionStrings__BeehiveDb=mongodb://mongo/beehive                        # application db
       - ConnectionStrings__DataProtectionDb=mongodb://mongo/beehiveDataProtection   # system db

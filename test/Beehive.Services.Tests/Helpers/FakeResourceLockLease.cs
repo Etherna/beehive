@@ -19,20 +19,29 @@ using System.Threading.Tasks;
 namespace Etherna.Beehive.Services.Helpers
 {
     /// <summary>
-    /// A granted resource lock lease: never lost, released by its dispose
+    /// A granted resource lock lease: lost only when a test loses it, released by its dispose
     /// </summary>
     internal sealed class FakeResourceLockLease : IResourceLockLease
     {
+        // Fields.
+        private readonly CancellationTokenSource leaseLostTokenSource = new();
+
         // Properties.
         public bool IsReleased { get; private set; }
-        public CancellationToken LeaseLostToken => CancellationToken.None;
+        public CancellationToken LeaseLostToken => leaseLostTokenSource.Token;
         public string OwnerId { get; } = Guid.NewGuid().ToString();
 
         // Methods.
         public ValueTask DisposeAsync()
         {
             IsReleased = true;
+            leaseLostTokenSource.Dispose(); //as Scrinium's lease: its token is not readable once released
             return ValueTask.CompletedTask;
         }
+
+        /// <summary>
+        /// Lose the lease, as when a renewal finds the lock taken over
+        /// </summary>
+        public void Lose() => leaseLostTokenSource.Cancel();
     }
 }

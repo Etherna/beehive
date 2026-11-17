@@ -13,13 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Hangfire;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Trigger
 {
     public interface IPinChunksTask
     {
+        /* The cancellation token is Hangfire's shutdown token (the enqueue call passes
+         * CancellationToken.None): a cancelled pinning releases the pin lock and leaves the pin not
+         * processed, for the re-queued job. */
         [Queue(Queues.PIN_CONTENTS)]
-        Task RunAsync(string chunkPinId);
+        Task RunAsync(string chunkPinId, CancellationToken cancellationToken);
     }
 }

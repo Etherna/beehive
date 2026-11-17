@@ -120,7 +120,12 @@ namespace Etherna.Beehive.Services.Domain
 
                 await dbChunkStore.FlushSaveAsync();
             }
-            
+
+            // A lease lost during the upload leaves the batch to whoever holds it now: nothing is recorded on it.
+            // The upload can't stop earlier, its chunking takes no cancellation token.
+            if (batchLockLease.LeaseLostToken.IsCancellationRequested)
+                throw new ResourceLockException($"Lock on batch Id '{batchId}' lost during the upload");
+
             // Add new stamped chunks to postage batch cache.
             await postageBatchService.StoreStampedChunksAsync(
                 postageBatchCache,

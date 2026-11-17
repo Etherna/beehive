@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Services.Domain;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Services.Tasks.Trigger
@@ -21,7 +22,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         : IPinChunksTask
     {
         // Methods.
-        public Task RunAsync(string chunkPinId) =>
-            pinService.PinChunksAsync(chunkPinId, null); //the chunks are read from the healthy nodes
+        public Task RunAsync(string chunkPinId, CancellationToken cancellationToken) =>
+            pinService.PinChunksAsync(chunkPinId, null, cancellationToken); //the chunks are read from the healthy nodes
     }
 }

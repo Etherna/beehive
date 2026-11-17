@@ -71,8 +71,8 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             dbContextMock.Setup(c => c.ChunkPins).Returns(chunkPinsMock.Object);
 
             // The pinning itself is the task's: here every pin succeeds.
-            pinChunksTaskMock.Setup(t => t.RunAsync(It.IsAny<string>()))
-                .Callback((string pinId) => chunkPins.Single(p => p.Id == pinId).UpdateProcessed([], 3))
+            pinChunksTaskMock.Setup(t => t.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback((string pinId, CancellationToken _) => chunkPins.Single(p => p.Id == pinId).UpdateProcessed([], 3))
                 .Returns(Task.CompletedTask);
 
             handler = new PinsApiHandler(
@@ -113,7 +113,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             Assert.Equal(StatusCodes.Status200OK, statusCode);
             Assert.Equal("application/json; charset=utf-8", contentType);
             Assert.Equal("""{"code":200,"message":"OK"}""", body);
-            pinChunksTaskMock.Verify(t => t.RunAsync(It.IsAny<string>()), Times.Never); //nothing to pin again
+            pinChunksTaskMock.Verify(t => t.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never); //nothing to pin again
         }
 
         // Helpers.
