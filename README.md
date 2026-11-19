@@ -9,6 +9,11 @@ It runs also an async task engine that can run cron operations, like automatic s
 
 It uses a MongoDB instance for keep cluster configuration.
 
+## Documentation
+
+The complete documentation lives in the **[Beehive wiki](https://github.com/Etherna/beehive/wiki)**:
+deployment, configuration, the APIs and the operation of a running instance.
+
 ## Docker images
 
 You can get latest stable and unstable releases from our [Docker Hub repository](https://hub.docker.com/r/etherna/beehive).
