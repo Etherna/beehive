@@ -1,0 +1,33 @@
+@using Microsoft.AspNetCore.Http
+@model HttpRequest
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Request</title>
+</head>
+<body>
+
+    <h2>Headers</h2>
+    <ul>
+        @foreach (var header in Model.Headers)
+        {
+            <li>
+                @header.Key|@header.Value
+            </li>
+        }
+    </ul>
+
+    <h2>Values</h2>
+    <ul>
+        <li>Protocol: @Model.Protocol</li>
+        <li>Method: @Model.Method</li>
+        <li>Scheme: @Model.Scheme</li>
+        <li>Host: @Model.Host</li>
+        <li>Path: @Model.Path</li>
+        <li>Query: @Model.QueryString</li>
+    </ul>
+
+</body>
+</html>

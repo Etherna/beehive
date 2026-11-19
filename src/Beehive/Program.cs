@@ -16,10 +16,10 @@ using Elastic.Ingest.Elasticsearch;
 using Elastic.Ingest.Elasticsearch.DataStreams;
 using Elastic.Serilog.Sinks;
 using Elastic.Transport;
-using Etherna.ACR.Middlewares.DebugPages;
 using Etherna.Beehive.Areas.Api;
 using Etherna.Beehive.Areas.Api.SwarmApiHandlers;
 using Etherna.Beehive.Configs;
+using Etherna.Beehive.Configs.DebugPages;
 using Etherna.Beehive.Configs.OpenApi;
 using Etherna.Beehive.Configs.Scrinium;
 using Etherna.Beehive.Domain;
@@ -350,7 +350,7 @@ namespace Etherna.Beehive
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseEthernaAcrDebugPages();
+                app.UseMiddleware<DebugPagesMiddleware>();
             }
 
             app.UseStaticFiles();
