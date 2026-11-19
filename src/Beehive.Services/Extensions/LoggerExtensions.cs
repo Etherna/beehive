@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 64
+     * Last event id is: 65
      */
     public static class LoggerExtensions
     {
@@ -354,6 +354,12 @@ namespace Etherna.Beehive.Services.Extensions
                 "Pushes of Postage Batch with Id {PostageBatchId} deferred: its owner node {NodeId} failed the push of chunk {Hash}");
 
         //*** ERROR LOGS ***
+        private static readonly Action<ILogger, Exception> _beeNodesHeartbeatFailed =
+            LoggerMessage.Define(
+                LogLevel.Error,
+                new EventId(65, nameof(BeeNodesHeartbeatFailed)),
+                "Bee nodes heartbeat round failed: the next round runs at its time");
+
         private static readonly Action<ILogger, SwarmHash, PostageBatchId, int, Exception> _chunkPushAbandoned =
             LoggerMessage.Define<SwarmHash, PostageBatchId, int>(
                 LogLevel.Error,
@@ -420,6 +426,9 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void BeeNodeNotAlive(this ILogger logger, string nodeId, string reason, Exception? exception) =>
             _beeNodeNotAlive(logger, nodeId, reason, exception!);
+
+        public static void BeeNodesHeartbeatFailed(this ILogger logger, Exception exception) =>
+            _beeNodesHeartbeatFailed(logger, exception);
 
         public static void BeeNodesHeartbeatSkipped(this ILogger logger, Exception exception) =>
             _beeNodesHeartbeatSkipped(logger, exception);

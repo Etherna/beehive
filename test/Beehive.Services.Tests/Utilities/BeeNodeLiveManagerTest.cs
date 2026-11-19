@@ -13,14 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Services.Helpers;
 using Etherna.Beehive.Services.Options;
 using Etherna.Scrinium.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -57,6 +60,33 @@ namespace Etherna.Beehive.Services.Utilities
         }
 
         // Tests.
+        [Fact]
+        public async Task HeartbeatRoundLogsAnyExceptionAndKeepsTheTimerAlive()
+        {
+            // Setup: the db sync throws what its own catch doesn't expect, as a Mongo timeout does.
+            var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+            scopeFactoryMock.Setup(f => f.CreateScope())
+                .Throws(new InvalidOperationException("Waiting for suitable server to become available"));
+            var logger = new CapturingLogger<BeeNodeLiveManager>();
+            using var failingManager = new BeeNodeLiveManager(
+                new OptionsWrapper<DevNodeOptions>(new DevNodeOptions()),
+                logger,
+                scopeFactoryMock.Object);
+
+            // Action: a round run directly, then the rounds of the timer. An exception escaping the async void
+            // callback of the timer would terminate the test host.
+            var round = Record.ExceptionAsync(failingManager.HeartbeatCallbackAsync);
+            failingManager.StartHealthHeartbeat();
+            for (var i = 0; i < 30 && logger.Events.ToArray().Count(e => e.EventName == "BeeNodesHeartbeatFailed") < 2; i++)
+                await Task.Delay(100);
+            failingManager.StopHealthHeartbeat();
+
+            // Assert.
+            Assert.Null(await round);
+            var failures = logger.Events.ToArray().Where(e => e.EventName == "BeeNodesHeartbeatFailed").ToArray();
+            Assert.Equal(2, failures.Length); //the direct round and the first tick of the timer
+            Assert.All(failures, e => Assert.Equal(LogLevel.Error, e.Level));
+        }
 
         [Fact]
         public async Task TryAddBeeNodeRegistersTheNodeWithoutCallingIt()
