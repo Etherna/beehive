@@ -166,6 +166,32 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         [Fact]
+        public async Task GetImportsOfANodeListsItsImportsOnlyAndFailsItsOrphanOnes()
+        {
+            // Setup.
+            var oldImport = await service.StartImportAsync(NodeId, unpinImported: false);
+            ReflectionHelper.SetValue(oldImport, i => i.CreationDateTime, new DateTime(2026, 10, 18, 10, 00, 00));
+            oldImport.Start();
+            oldImport.Complete();
+            var otherNodeImport = await service.StartImportAsync("nodeB", unpinImported: false);
+            ReflectionHelper.SetValue(otherNodeImport, i => i.CreationDateTime, new DateTime(2026, 10, 18, 11, 00, 00));
+            otherNodeImport.Start();
+            var orphanImport = await service.StartImportAsync(NodeId, unpinImported: false);
+            ReflectionHelper.SetValue(orphanImport, i => i.CreationDateTime, new DateTime(2026, 10, 18, 12, 00, 00));
+            orphanImport.Start();
+            hangfireJobsMonitorMock.Setup(m => m.IsJobActive(JobId)).Returns(false); //every job gone
+
+            // Action.
+            var imports = await service.GetImportsAsync(0, 10, NodeId);
+
+            // Assert.
+            Assert.Equal([orphanImport, oldImport], imports);
+            Assert.Equal(NodePinsImportState.Failed, orphanImport.State);
+            Assert.Equal(NodePinsImportState.Completed, oldImport.State);
+            Assert.Equal(NodePinsImportState.Running, otherNodeImport.State); //not listed, left alone
+        }
+
+        [Fact]
         public async Task GetPinsSnapshotTellsTheContentsBeehiveDoesNotHoldInFull()
         {
             // Setup.

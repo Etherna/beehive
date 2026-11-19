@@ -31,9 +31,10 @@ namespace Etherna.Beehive.Services.Domain
         Task<long> DeleteImportsAsync(string nodeId, bool? failed);
 
         /// <summary>
-        /// Every import of every node, newest first. An import whose job is gone without completing it is failed
+        /// The imports of a node, or of every node when none is given, newest first. An import whose job is gone
+        /// without completing it is failed
         /// </summary>
-        Task<IReadOnlyList<NodePinsImport>> GetImportsAsync(int page, int take);
+        Task<IReadOnlyList<NodePinsImport>> GetImportsAsync(int page, int take, string? nodeId = null);
 
         /// <summary>
         /// The contents pinned on a node right now, and the ones among them that beehive doesn't hold in full yet

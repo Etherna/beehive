@@ -57,11 +57,15 @@ namespace Etherna.Beehive.Services.Domain
             return imports.Count;
         }
 
-        public async Task<IReadOnlyList<NodePinsImport>> GetImportsAsync(int page, int take)
+        public async Task<IReadOnlyList<NodePinsImport>> GetImportsAsync(int page, int take, string? nodeId = null)
         {
             var imports = await dbContext.NodePinsImports.QueryElementsAsync(elements =>
-                elements.PaginateDescending(i => i.CreationDateTime, page, take)
-                    .ToListAsync());
+            {
+                if (nodeId is not null)
+                    elements = elements.Where(i => i.NodeId == nodeId);
+                return elements.PaginateDescending(i => i.CreationDateTime, page, take)
+                    .ToListAsync();
+            });
 
             foreach (var import in imports)
                 await FailIfJobIsGoneAsync(import);
