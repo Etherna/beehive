@@ -91,6 +91,7 @@ Releases follow git flow: `dev` is merged into `main` with a merge commit, the m
 ## General Principles
 
 - Keep commits clean: only include changes strictly necessary for the task at hand.
+- A security fix keeps its commit message and PR title neutral: the Jira key and what changes, never the vulnerability. The write-up stays in the Jira work item, hidden until the fixed version is released; outside reporters are directed to [SECURITY.md](SECURITY.md).
 - Never reference AI agents or assistants in commits or code — no agent names, no `Co-Authored-By` agent trailers, no "generated/assisted by" notes. Commit messages and code must read as the team's own work.
 - Exceptions to these conventions are accepted when strictly necessary or when they significantly improve code quality. Justify with a comment where needed.
 - All elements (usings, properties, methods, fields, enum members, etc.) are always alphabetically ordered within their respective sections.
