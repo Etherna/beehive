@@ -157,10 +157,7 @@ namespace Etherna.Beehive.Areas.Api
             {
                 ArgumentNullException.ThrowIfNull(id);
 
-                var imports = await beehiveDbContext.NodePinsImports.QueryElementsAsync(elements =>
-                    elements.Where(i => i.NodeId == id)
-                        .PaginateDescending(i => i.CreationDateTime, page, take)
-                        .ToListAsync());
+                var imports = await nodePinsImportService.GetImportsAsync(page, take, id);
 
                 return Results.Json(
                     imports.Select(BuildNodePinsImportDto),

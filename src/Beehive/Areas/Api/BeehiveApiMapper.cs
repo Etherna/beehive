@@ -98,7 +98,7 @@ namespace Etherna.Beehive.Areas.Api
                             [Range(0, int.MaxValue)] int page = 0,
                             [Range(1, 10000)] int take = 100) =>
                         handler.GetNodePinsImportsAsync(id, page, take))
-                .WithDescription("The imports of the pinned contents of a node, newest first, with their counters: the first one is the running or last import.")
+                .WithDescription("The imports of the pinned contents of a node, newest first, with their counters: the first one is the running or last import. An import whose background job ended without completing it is reported as failed.")
                 .Produces<IEnumerable<NodePinsImportDto>>();
 
             builder.MapPost("/nodes/{id}/pins/imports",
