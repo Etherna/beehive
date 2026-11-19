@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Helpers
     /// <summary>
     /// A logger keeping the events it receives, to assert what a flow logged
     /// </summary>
-    internal sealed class CapturingLogger : ILogger
+    internal class CapturingLogger : ILogger
     {
         // Properties.
         public List<(LogLevel Level, string EventName, string Message)> Events { get; } = [];
@@ -43,4 +43,9 @@ namespace Etherna.Beehive.Services.Helpers
             Events.Add((logLevel, eventId.Name ?? "", formatter(state, exception)));
         }
     }
+
+    /// <summary>
+    /// The capturing logger of a category, for the flows asking a typed one
+    /// </summary>
+    internal sealed class CapturingLogger<T> : CapturingLogger, ILogger<T>;
 }

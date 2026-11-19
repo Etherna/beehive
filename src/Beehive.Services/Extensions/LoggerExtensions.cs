@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 61
+     * Last event id is: 64
      */
     public static class LoggerExtensions
     {
@@ -68,6 +68,12 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Debug,
                 new EventId(58, nameof(NodePinImportDeferred)),
                 "Pins import of node {NodeId}: pin {Reference} is locked by another operation, deferred to the end of the import");
+
+        private static readonly Action<ILogger, PostageBatchId, string, Exception> _postageBatchPushesDeferredOnNodeNotAlive =
+            LoggerMessage.Define<PostageBatchId, string>(
+                LogLevel.Debug,
+                new EventId(64, nameof(PostageBatchPushesDeferredOnNodeNotAlive)),
+                "Pushes of Postage Batch with Id {PostageBatchId} deferred: its owner node {NodeId} is not alive");
 
         private static readonly Action<ILogger, SwarmHash, Exception> _succededToPushCac =
             LoggerMessage.Define<SwarmHash>(
@@ -339,9 +345,21 @@ namespace Etherna.Beehive.Services.Extensions
             LoggerMessage.Define<PostageBatchId>(
                 LogLevel.Warning,
                 new EventId(17, nameof(PostageBatchOwnerNodeNotFound)),
-                "Owner node of Postage Batch with Id {PostageBatchId} not found");
+                "Owner node of Postage Batch with Id {PostageBatchId} not found: its pushes are deferred");
+
+        private static readonly Action<ILogger, PostageBatchId, string, SwarmHash, Exception> _postageBatchPushesDeferredOnNodeFailure =
+            LoggerMessage.Define<PostageBatchId, string, SwarmHash>(
+                LogLevel.Warning,
+                new EventId(63, nameof(PostageBatchPushesDeferredOnNodeFailure)),
+                "Pushes of Postage Batch with Id {PostageBatchId} deferred: its owner node {NodeId} failed the push of chunk {Hash}");
 
         //*** ERROR LOGS ***
+        private static readonly Action<ILogger, SwarmHash, PostageBatchId, int, Exception> _chunkPushAbandoned =
+            LoggerMessage.Define<SwarmHash, PostageBatchId, int>(
+                LogLevel.Error,
+                new EventId(62, nameof(ChunkPushAbandoned)),
+                "Chunk with hash {Hash} of Postage Batch with Id {PostageBatchId} abandoned after {FailedAttempts} failed pushes: it stays in queue, never pushed again");
+
         private static readonly Action<ILogger, string, BzzValue, Exception> _failedToDepositBzzOnNodeChequeBook =
             LoggerMessage.Define<string, BzzValue>(
                 LogLevel.Error,
@@ -411,6 +429,9 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void ChequeCashoutFailed(this ILogger logger, string nodeId, string peer, Exception exception) =>
             _chequeCashoutFailed(logger, nodeId, peer, exception);
+
+        public static void ChunkPushAbandoned(this ILogger logger, SwarmHash hash, PostageBatchId batchId, int failedAttempts) =>
+            _chunkPushAbandoned(logger, hash, batchId, failedAttempts, null!);
 
         public static void ChunkReadFromNode(this ILogger logger, SwarmHash hash, string nodeId) =>
             _chunkReadFromNode(logger, hash, nodeId, null!);
@@ -528,6 +549,12 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void PostageBatchOwnerNodeNotFound(this ILogger logger, PostageBatchId batchId) =>
             _postageBatchOwnerNodeNotFound(logger, batchId, null!);
+
+        public static void PostageBatchPushesDeferredOnNodeFailure(this ILogger logger, PostageBatchId batchId, string nodeId, SwarmHash hash, Exception exception) =>
+            _postageBatchPushesDeferredOnNodeFailure(logger, batchId, nodeId, hash, exception);
+
+        public static void PostageBatchPushesDeferredOnNodeNotAlive(this ILogger logger, PostageBatchId batchId, string nodeId) =>
+            _postageBatchPushesDeferredOnNodeNotAlive(logger, batchId, nodeId, null!);
 
         public static void PostageBatchToppedUp(this ILogger logger, PostageBatchId batchId, string nodeId, BzzValue amount, EthTxHash txHash) =>
             _postageBatchToppedUp(logger, batchId, nodeId, amount, txHash, null!);
