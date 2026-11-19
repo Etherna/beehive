@@ -92,6 +92,7 @@ Releases follow git flow: `dev` is merged into `main` with a merge commit, the m
 
 - Keep commits clean: only include changes strictly necessary for the task at hand.
 - A security fix keeps its commit message and PR title neutral: the Jira key and what changes, never the vulnerability. The write-up stays in the Jira work item, hidden until the fixed version is released; outside reporters are directed to [SECURITY.md](SECURITY.md).
+- Keep the documentation wiki aligned: user-facing docs live in the sibling `beehive.wiki` repo (published at https://github.com/Etherna/beehive/wiki, checked out next to this one). Every change to the API, configuration, features, operations or architecture must be reported there in the same work line, on the wiki branch named like the code line (`dev`, `hotfix/X.Y.Z`); see its own `AGENTS.md` for its conventions.
 - Never reference AI agents or assistants in commits or code — no agent names, no `Co-Authored-By` agent trailers, no "generated/assisted by" notes. Commit messages and code must read as the team's own work.
 - Exceptions to these conventions are accepted when strictly necessary or when they significantly improve code quality. Justify with a comment where needed.
 - All elements (usings, properties, methods, fields, enum members, etc.) are always alphabetically ordered within their respective sections.

@@ -78,7 +78,7 @@ namespace Etherna.Beehive.Areas.Api
                     (IBeehiveApiHandler handler,
                             [FromRoute] string id) =>
                         handler.RemoveBeeNodeAsync(id))
-                .WithDescription("Removes a bee node from beehive. The postage batches it owns stay in the cache, and can't be used until a node owning them is registered again.")
+                .WithDescription("Removes a bee node from beehive. The postage batches it owns stay in the cache, bound to the id of the removed node: they can't be used anymore, not even after registering the same node again, which gets a new id.")
                 .Produces(StatusCodes.Status200OK)
                 .Produces<string>(StatusCodes.Status400BadRequest)
                 .Produces<string>(StatusCodes.Status404NotFound);
