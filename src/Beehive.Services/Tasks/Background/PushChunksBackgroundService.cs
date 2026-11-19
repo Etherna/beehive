@@ -19,6 +19,7 @@ using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Exceptions;
@@ -47,9 +48,110 @@ namespace Etherna.Beehive.Services.Tasks.Background
         private const int MaxFailedAttempts = 100;
         
         // Fields.
+        private readonly Dictionary<PostageBatchId, DateTime> deferredBatches = []; //with the time each can be tried again
         private readonly TimeSpan processInterval = TimeSpan.FromSeconds(5);
         private readonly TimeSpan retryChunkAfter = TimeSpan.FromSeconds(60);
-        
+
+        // Properties.
+        /// <summary>
+        /// How long a postage batch whose owner node can't take its chunks waits before it is tried again
+        /// </summary>
+        internal TimeSpan RetryBatchAfter { get; init; } = TimeSpan.FromSeconds(60);
+
+        // Internal methods.
+        /// <summary>
+        /// Push to its owner node the queued chunks of the first postage batch free to be pushed
+        /// </summary>
+        /// <returns>False when no chunk waits to be pushed</returns>
+        internal async Task<bool> TryProcessWorkAsync(
+            CancellationToken cancellationToken)
+        {
+            // Initialize scope.
+            using var scope = serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
+            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
+            var postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
+
+            // Open the ambient context scrinium requires outside a request: the db operations of this cycle.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext);
+
+            // Search a postage batch with chunks to push, and lock it. The search only reads: a chunk ref is claimed
+            // under the lock of its batch, so the refs of a batch another instance is pushing stay as they are.
+            var now = DateTime.UtcNow;
+            foreach (var deferredBatchId in deferredBatches.Where(pair => pair.Value <= now).Select(pair => pair.Key).ToArray())
+                deferredBatches.Remove(deferredBatchId);
+            List<PostageBatchId> skipBatchIds = [.. deferredBatches.Keys];
+            PostageBatchId batchId = default;
+            IResourceLockLease? lockLease = null;
+            while (lockLease == null)
+            {
+                var retryBefore = DateTime.UtcNow - retryChunkAfter;
+                var nextBatchIds = await dbContext.ChunkPushQueue.QueryElementsAsync(chunkRefs =>
+                    chunkRefs.Where(r =>
+                            !skipBatchIds.Contains(r.BatchId) &&
+                            (r.HandledDateTime == null || r.HandledDateTime <= retryBefore) &&
+                            r.FailedAttempts < MaxFailedAttempts)
+                        .OrderBy(r => r.CreationDateTime)
+                        .Select(r => r.BatchId)
+                        .Take(1)
+                        .ToListAsync(cancellationToken: cancellationToken));
+                if (nextBatchIds.Count == 0)
+                {
+                    logger.NoChunksToPush();
+                    return false;
+                }
+
+                // Try to lock on postage batch to push chunks.
+                batchId = nextBatchIds[0];
+                lockLease = await postageBatchService.TryAcquireChunkPushLockAsync(batchId);
+                if (lockLease is null)
+                    skipBatchIds.Add(batchId);
+            }
+
+            await using (lockLease)
+            {
+                // Identify the node owner of the postage batch. Without a node able to take them the chunk refs stay
+                // in queue with their attempts, and the batch is tried again later: a node can be away for long.
+                var ownerNode = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(batchId);
+                if (ownerNode is null)
+                {
+                    logger.PostageBatchOwnerNodeNotFound(batchId);
+                    deferredBatches[batchId] = DateTime.UtcNow + RetryBatchAfter;
+                    return true;
+                }
+                if (ownerNode.Status.NotAliveReason is not null)
+                {
+                    logger.PostageBatchPushesDeferredOnNodeNotAlive(batchId, ownerNode.Id);
+                    deferredBatches[batchId] = DateTime.UtcNow + RetryBatchAfter;
+                    return true;
+                }
+
+                // Push the chunks enqueued with the postage batch, until one says the batch can't go on.
+                // This helps to reduce the postage batch lookup on the owner node.
+                while (true)
+                {
+                    var claimTime = DateTime.UtcNow;
+                    var retryBefore = claimTime - retryChunkAfter;
+                    var chunkRef = await dbContext.ChunkPushQueue.TryFindOneAndUpdateAsync(
+                        new ExpressionFilterDefinition<PushingChunkRef>(r =>
+                            r.BatchId == batchId &&
+                            (r.HandledDateTime == null || r.HandledDateTime <= retryBefore) &&
+                            r.FailedAttempts < MaxFailedAttempts),
+                        Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, claimTime),
+                        new FindOneAndUpdateOptions<PushingChunkRef>
+                        {
+                            Sort = Builders<PushingChunkRef>.Sort.Ascending(r => r.CreationDateTime)
+                        },
+                        cancellationToken);
+                    if (chunkRef is null)
+                        return true;
+
+                    if (!await TryPushChunkAsync(chunkStore, chunkRef, dbContext, ownerNode, cancellationToken))
+                        return true;
+                }
+            }
+        }
+
         // Protected methods.
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -89,87 +191,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
             logger.AbandonedPostageBatchChunks(batchId, result.ModifiedCount);
         }
 
-        private static async Task ReportPostageBatchUploadFailureAsync(
-            PostageBatchId batchId,
-            IBeehiveDbContext dbContext,
-            CancellationToken cancellationToken)
-        {
-            await dbContext.ChunkPushQueue.UpdateManyAsync(r => r.BatchId == batchId,
-                Builders<PushingChunkRef>.Update.Combine(
-                    Builders<PushingChunkRef>.Update.Inc(r => r.FailedAttempts, 1),
-                    Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, DateTime.UtcNow)),
-                cancellationToken: cancellationToken);
-        }
-        
-        private async Task<bool> TryProcessWorkAsync(
-            CancellationToken cancellationToken)
-        {
-            // Initialize scope.
-            using var scope = serviceScopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
-            await using var chunkStore = new BeehiveChunkStore(beeNodeLiveManager, dbContext, logger, serializerModifierAccessor);
-            var postageBatchService = scope.ServiceProvider.GetRequiredService<IPostageBatchService>();
-
-            // Open the ambient context scrinium requires outside a request: the db operations of this cycle.
-            using var dbExecutionContext = new DbExecutionContextHandler(dbContext);
-            
-            // Search chunk to push and lock its postage batch.
-            IResourceLockLease? lockLease = null;
-            PushingChunkRef? chunkRef = null;
-            List<PostageBatchId> skipBatchIds = [];
-            while (lockLease == null)
-            {
-                // Get the initial chunk ref.
-                chunkRef = await TryFindNextChunkRefAsync(null, skipBatchIds, dbContext, cancellationToken);
-                if (chunkRef is null)
-                {
-                    logger.NoChunksToPush();
-                    return false;   
-                }
-            
-                // Try to lock on postage batch to push chunks.
-                lockLease = await postageBatchService.TryAcquireChunkPushLockAsync(chunkRef.BatchId);
-                if (lockLease is null)
-                    skipBatchIds.Add(chunkRef.BatchId);
-            }
-            if (chunkRef is null)
-                throw new InvalidOperationException();
-
-            await using (lockLease)
-            {
-                // Identify the node owner of the postage batch.
-                var ownerNode = await postageBatchService.TryGetPostageBatchOwnerNodeAsync(chunkRef.BatchId);
-                if (ownerNode is null)
-                {
-                    logger.PostageBatchOwnerNodeNotFound(chunkRef.BatchId);
-                    logger.FailedToPushChunk(chunkRef.Hash, null);
-
-                    // Because this error involves all the chunks with the same postage batch,
-                    // report the error on all of them.
-                    await ReportPostageBatchUploadFailureAsync(chunkRef.BatchId, dbContext, cancellationToken);
-
-                    return false;
-                }
-
-                // Try to push chunk.
-                if (!await TryPushChunkAsync(chunkStore, chunkRef, dbContext, ownerNode, cancellationToken))
-                    return false;
-
-                // While pushes succeed, try to process also all other chunks enqueued with the same postage batch.
-                // This helps to reduce the postage batch lookup on the owner node.
-                while (true)
-                {
-                    chunkRef = await TryFindNextChunkRefAsync(chunkRef.BatchId, [], dbContext, cancellationToken);
-
-                    if (chunkRef is null)
-                        return true;
-
-                    if (!await TryPushChunkAsync(chunkStore, chunkRef, dbContext, ownerNode, cancellationToken))
-                        return false;
-                }
-            }
-        }
-
+        /// <returns>False when the postage batch can't be pushed further in this cycle</returns>
         private async Task<bool> TryPushChunkAsync(
             BeehiveChunkStore chunkStore,
             PushingChunkRef chunkRef,
@@ -181,27 +203,41 @@ namespace Etherna.Beehive.Services.Tasks.Background
             {
                 // Get actual chunk.
                 var chunk = await chunkStore.GetAsync(chunkRef.Hash, cancellationToken: cancellationToken);
+                if (chunk is not (SwarmCac or SwarmSoc))
+                    throw new InvalidOperationException("Unknown chunk type");
 
                 // Push chunk to node.
-                switch (chunk)
+                try
                 {
-                    case SwarmCac cac:
+                    if (chunk is SwarmCac cac)
+                    {
                         await ownerNode.Client.UploadChunkAsync(
                             cac,
                             chunkRef.BatchId,
                             cancellationToken: cancellationToken);
 
                         logger.SucceededToPushCac(chunkRef.Hash);
-                        break;
-                    case SwarmSoc soc:
+                    }
+                    else
+                    {
                         await ownerNode.Client.UploadSocAsync(
-                            soc,
+                            (SwarmSoc)chunk,
                             chunkRef.BatchId,
                             cancellationToken: cancellationToken);
 
                         logger.SucceededToPushSoc(chunkRef.Hash);
-                        break;
-                    default: throw new InvalidOperationException("Unknown chunk type");
+                    }
+                }
+                catch (Exception e) when (
+                    e is not SwarmSdkApiException { StatusCode: < 500 } &&
+                    !cancellationToken.IsCancellationRequested)
+                {
+                    // The node didn't answer, or failed on its own: nothing says the chunk is at fault. Its ref keeps
+                    // its attempts, and the batch is tried again later.
+                    logger.PostageBatchPushesDeferredOnNodeFailure(chunkRef.BatchId, ownerNode.Id, chunkRef.Hash, e);
+                    deferredBatches[chunkRef.BatchId] = DateTime.UtcNow + RetryBatchAfter;
+
+                    return false;
                 }
 
                 // Dequeue chunk ref.
@@ -219,46 +255,21 @@ namespace Etherna.Beehive.Services.Tasks.Background
 
                 return false;
             }
-            catch (Exception e)
+            catch (Exception e) when (!cancellationToken.IsCancellationRequested)
             {
+                // The failure of this chunk alone: the cycle goes on with the next ones of its batch.
                 logger.FailedToPushChunk(chunkRef.Hash, e);
 
-                await dbContext.ChunkPushQueue.TryFindOneAndUpdateAsync(
+                var failedChunkRef = await dbContext.ChunkPushQueue.TryFindOneAndUpdateAsync(
                     new ExpressionFilterDefinition<PushingChunkRef>(r => r.Id == chunkRef.Id),
                     Builders<PushingChunkRef>.Update.Inc(r => r.FailedAttempts, 1),
-                    new FindOneAndUpdateOptions<PushingChunkRef>(),
+                    new FindOneAndUpdateOptions<PushingChunkRef> { ReturnDocument = ReturnDocument.After },
                     cancellationToken: cancellationToken);
+                if (failedChunkRef?.FailedAttempts >= MaxFailedAttempts)
+                    logger.ChunkPushAbandoned(chunkRef.Hash, chunkRef.BatchId, failedChunkRef.FailedAttempts);
 
-                return false;
+                return true;
             }
-        }
-
-        private async Task<PushingChunkRef?> TryFindNextChunkRefAsync(
-            PostageBatchId? filterOnBatchId,
-            IEnumerable<PostageBatchId> skipBatchIds,
-            IBeehiveDbContext dbContext,
-            CancellationToken cancellationToken)
-        {
-            var now = DateTime.UtcNow;
-            
-            var filter = filterOnBatchId.HasValue
-                ? new ExpressionFilterDefinition<PushingChunkRef>(r =>
-                    r.BatchId == filterOnBatchId &&
-                    (r.HandledDateTime == null || r.HandledDateTime <= now - retryChunkAfter) &&
-                    r.FailedAttempts < MaxFailedAttempts)
-                : new ExpressionFilterDefinition<PushingChunkRef>(r =>
-                    !skipBatchIds.Contains(r.BatchId) &&
-                    (r.HandledDateTime == null || r.HandledDateTime <= now - retryChunkAfter) &&
-                    r.FailedAttempts < MaxFailedAttempts);
-            
-            return await dbContext.ChunkPushQueue.TryFindOneAndUpdateAsync(
-                filter,
-                Builders<PushingChunkRef>.Update.Set(r => r.HandledDateTime, now),
-                new FindOneAndUpdateOptions<PushingChunkRef>
-                {
-                    Sort = Builders<PushingChunkRef>.Sort.Ascending(r => r.CreationDateTime)
-                },
-                cancellationToken);
         }
     }
 }
