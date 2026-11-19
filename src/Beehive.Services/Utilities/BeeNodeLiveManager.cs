@@ -26,6 +26,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -79,6 +80,67 @@ namespace Etherna.Beehive.Services.Utilities
 
             var beeNode = await dbContext.BeeNodes.FindOneAsync(nodeId);
             return TryAddBeeNode(beeNode);
+        }
+
+        /// <summary>
+        /// A heartbeat round: sync the registered nodes with the db, refresh their status and the chain state
+        /// </summary>
+        /// <remarks>
+        /// The timer runs it as an async void callback, whose escaping exception would terminate the process: the
+        /// round never lets one out, it logs it and the next tick runs a new round.
+        /// </remarks>
+        [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
+        internal async Task HeartbeatCallbackAsync()
+        {
+            try
+            {
+                // Sync the registered nodes with the db.
+                List<BeeNode> dbNodes;
+                try
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
+
+                    dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
+                }
+                catch (UnauthorizedAccessException e) //can fail during dbcontext migration
+                {
+                    logger.BeeNodesHeartbeatSkipped(e);
+                    return;
+                }
+
+                //add new nodes from db
+                foreach (var dbNode in dbNodes)
+                    TryAddBeeNodeInstance(dbNode, out _);
+                //remove missing nodes from db (dev node is not persisted, skip it)
+                foreach (var instance in AllNodes.Where(n =>
+                             n.Id != DevNodeClient.NodeId &&
+                             !dbNodes.Select(dbN => dbN.Id).Contains(n.Id)).ToArray())
+                    TryRemoveBeeNodeInstance(instance.Id);
+                //fall back to the dev node when no node is registered
+                TryAddDevNodeInstance();
+
+                // Refresh nodes status, in parallel: a node not answering holds its own refresh only, within the client's bound.
+                await Task.WhenAll(beeNodeInstances.Values.Select(instance => instance.TryRefreshStatusAsync()));
+
+                // Update chain state.
+                var node = await TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "chainState");
+                if (node is not null)
+                {
+                    try
+                    {
+                        ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
+                    }
+                    catch (Exception e) when (e.IsBeeNodeCallFailure())
+                    {
+                        logger.BeeNodeCallFailed(node.Id, "getChainState", e.GetBeeNodeFailureReason(), e);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                logger.BeeNodesHeartbeatFailed(e);
+            }
         }
 
         public async Task<BeeNodeLiveInstance> SelectHealthyNodeAsync(
@@ -207,52 +269,6 @@ namespace Etherna.Beehive.Services.Utilities
         }
 
         // Helpers.
-        private async Task HeartbeatCallbackAsync()
-        {
-            // Sync the registered nodes with the db.
-            List<BeeNode> dbNodes;
-            try
-            {
-                using var scope = serviceScopeFactory.CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<IBeehiveDbContext>();
-
-                dbNodes = await dbContext.BeeNodes.QueryElementsAsync(nodes => nodes.ToListAsync());
-            }
-            catch (UnauthorizedAccessException e) //can fail during dbcontext migration
-            {
-                logger.BeeNodesHeartbeatSkipped(e);
-                return;
-            }
-
-            //add new nodes from db
-            foreach (var dbNode in dbNodes)
-                TryAddBeeNodeInstance(dbNode, out _);
-            //remove missing nodes from db (dev node is not persisted, skip it)
-            foreach (var instance in AllNodes.Where(n =>
-                         n.Id != DevNodeClient.NodeId &&
-                         !dbNodes.Select(dbN => dbN.Id).Contains(n.Id)).ToArray())
-                TryRemoveBeeNodeInstance(instance.Id);
-            //fall back to the dev node when no node is registered
-            TryAddDevNodeInstance();
-
-            // Refresh nodes status, in parallel: a node not answering holds its own refresh only, within the client's bound.
-            await Task.WhenAll(beeNodeInstances.Values.Select(instance => instance.TryRefreshStatusAsync()));
-
-            // Update chain state.
-            var node = await TrySelectHealthyNodeAsync(BeeNodeSelectionMode.RoundRobin, "chainState");
-            if (node is not null)
-            {
-                try
-                {
-                    ChainState = new ChainState(node.Id, await node.Client.GetChainStateAsync());
-                }
-                catch (Exception e) when (e.IsBeeNodeCallFailure())
-                {
-                    logger.BeeNodeCallFailed(node.Id, "getChainState", e.GetBeeNodeFailureReason(), e);
-                }
-            }
-        }
-
         /// <summary>
         /// Run a heartbeat round now, instead of waiting the next tick: nothing before the heartbeat is started
         /// </summary>
