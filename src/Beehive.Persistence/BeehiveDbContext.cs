@@ -21,12 +21,14 @@ using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Repositories;
 using Etherna.Scrinium.Core.Serialization;
+using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Persistence
 {
@@ -70,13 +72,13 @@ namespace Etherna.Beehive.Persistence
                     (Builders<PushingChunkRef>.IndexKeys.Ascending(r => r.HandledDateTime), new CreateIndexOptions<PushingChunkRef>())
                 ]
             });
-        public IRepository<Chunk, string> Chunks { get; } =
-            new Repository<Chunk, string>(new RepositoryOptions<Chunk>("chunks")
+        public IRepository<LegacyChunk, string> Chunks { get; } =
+            new Repository<LegacyChunk, string>(new RepositoryOptions<LegacyChunk>("chunks")
             {
                 IndexBuilders =
                 [
-                    (Builders<Chunk>.IndexKeys.Ascending(c => c.CreationDateTime), new CreateIndexOptions<Chunk>()),
-                    (Builders<Chunk>.IndexKeys.Ascending(c => c.Hash), new CreateIndexOptions<Chunk>())
+                    (Builders<LegacyChunk>.IndexKeys.Ascending(c => c.CreationDateTime), new CreateIndexOptions<LegacyChunk>()),
+                    (Builders<LegacyChunk>.IndexKeys.Ascending(c => c.Hash), new CreateIndexOptions<LegacyChunk>())
                 ]
             });
         public IGridFSBucket ChunksBucket
@@ -133,6 +135,14 @@ namespace Etherna.Beehive.Persistence
                             .Ascending(s => s.BatchId)
                             .Ascending(s => s.ChunkHash),
                         new CreateIndexOptions<PostageStamp> { Unique = true })
+                ]
+            });
+        public IRepository<Chunk, SwarmHash> SwarmChunks { get; } =
+            new Repository<Chunk, SwarmHash>(new RepositoryOptions<Chunk>("swarmChunks")
+            {
+                IndexBuilders =
+                [
+                    (Builders<Chunk>.IndexKeys.Ascending(c => c.CreationDateTime), new CreateIndexOptions<Chunk>())
                 ]
             });
 

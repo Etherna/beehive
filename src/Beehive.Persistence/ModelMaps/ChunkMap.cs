@@ -27,7 +27,20 @@ namespace Etherna.Beehive.Persistence.ModelMaps
     {
         public void Register(IDbContextEngine dbContextEngine)
         {
-            dbContextEngine.MapRegistry.AddModelMap<Chunk>( //v0.4.0
+            dbContextEngine.MapRegistry.AddModelMap<Chunk>( //v0.4.12
+                "2886eaeb-2177-40af-8df4-090c9a74f9ca",
+                mm =>
+                {
+                    mm.AutoMap();
+
+                    // Set members with custom serializers.
+                    mm.SetMemberSerializer(c => c.Payload, new ReadonlyMemorySerializer<byte>(BsonType.Binary));
+                    //a deleted pin leaves the chunks it pinned: its references are pulled in background
+                    mm.SetMemberSerializer(c => c.Pins, new EnumerableSerializer<ChunkPin>(
+                        ChunkPinMap.ReferenceSerializer(dbContextEngine, OriginDeleteMode.RemoveReference)));
+                });
+
+            dbContextEngine.MapRegistry.AddModelMap<LegacyChunk>( //v0.4.0
                 "06aaf593-07af-4fca-99a9-bdc3718547d8",
                 mm =>
                 {

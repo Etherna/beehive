@@ -86,32 +86,30 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             {
                 var tests = new List<DeserializationTestElement<Chunk>>();
 
-                // "06aaf593-07af-4fca-99a9-bdc3718547d8" - v0.4.0
+                // "2886eaeb-2177-40af-8df4-090c9a74f9ca" - v0.4.12
                 {
                     var sourceDocument =
                         """
                         {
-                            "_id" : ObjectId("683834b4fd678b310f161d23"),
-                            "_m" : "06aaf593-07af-4fca-99a9-bdc3718547d8",
-                            "CreationDateTime" : ISODate("2025-05-29T10:19:32.890+0000"),
-                            "Hash" : "fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d",
+                            "_id" : "fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d",
+                            "_s" : "2886eaeb-2177-40af-8df4-090c9a74f9ca",
+                            "CreationDateTime" : ISODate("2026-11-19T17:00:36.480+0000"),
                             "IsSoc" : true,
                             "Payload" : BinData(0, "ABAAAAAAAABcnoa45zctbM5JJJklV1unLHANcvM2dNtAqyLpyOhrW7Rm20FRG7kB"),
                             "Pins" : [
                                 {
-                                    "_m" : "d04090e8-1246-4ab8-bd6b-a37d9339c638",
-                                    "_id" : ObjectId("683834b4fd678b310f161d22")
+                                    "_s" : "d04090e8-1246-4ab8-bd6b-a37d9339c638",
+                                    "_id" : ObjectId("6aff2b340d57dfaa8a27644c")
                                 }
                             ]
                         }
                         """;
                     
-                    var expectedNodeMock = new Mock<Chunk>();
-                    expectedNodeMock.Setup(n => n.Id).Returns("683834b4fd678b310f161d23");
-                    expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 19, 32, 890));
-                    expectedNodeMock.Setup(n => n.Hash).Returns("fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d");
-                    expectedNodeMock.Setup(n => n.IsSoc).Returns(true);
-                    expectedNodeMock.Setup(n => n.Payload).Returns(new byte[]
+                    var expectedChunkMock = new Mock<Chunk>();
+                    expectedChunkMock.Setup(c => c.Id).Returns("fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d");
+                    expectedChunkMock.Setup(c => c.CreationDateTime).Returns(new DateTime(2026, 11, 19, 17, 00, 36, 480));
+                    expectedChunkMock.Setup(c => c.IsSoc).Returns(true);
+                    expectedChunkMock.Setup(c => c.Payload).Returns(new byte[]
                     {
                         0, 16, 0, 0, 0, 0, 0, 0, 92, 158, 134, 184, 231, 55, 45, 108, 206, 73, 36, 153, 37, 87, 91, 167,
                         44, 112, 13, 114, 243, 54, 116, 219, 64, 171, 34, 233, 200, 232, 107, 91, 180, 102, 219, 65, 81,
@@ -119,11 +117,11 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     });
                     {
                         var pinMock = new Mock<ChunkPin>();
-                        pinMock.Setup(p => p.Id).Returns("683834b4fd678b310f161d22");
-                        expectedNodeMock.Setup(n => n.Pins).Returns([pinMock.Object]);
+                        pinMock.Setup(p => p.Id).Returns("6aff2b340d57dfaa8a27644c");
+                        expectedChunkMock.Setup(c => c.Pins).Returns([pinMock.Object]);
                     }
 
-                    tests.Add(new DeserializationTestElement<Chunk>(sourceDocument, expectedNodeMock.Object));
+                    tests.Add(new DeserializationTestElement<Chunk>(sourceDocument, expectedChunkMock.Object));
                 }
 
                 return tests.Select(t => new object[] { t });
@@ -222,6 +220,56 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                     expectedNodeMock.Setup(n => n.TotPinnedChunks).Returns(0);
                     
                     tests.Add(new DeserializationTestElement<ChunkPin>(sourceDocument, expectedNodeMock.Object));
+                }
+
+                return tests.Select(t => new object[] { t });
+            }
+        }
+
+        public static IEnumerable<object[]> LegacyChunkDeserializationTests
+        {
+            get
+            {
+                var tests = new List<DeserializationTestElement<LegacyChunk>>();
+
+                // "06aaf593-07af-4fca-99a9-bdc3718547d8" - v0.4.0
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("683834b4fd678b310f161d23"),
+                            "_m" : "06aaf593-07af-4fca-99a9-bdc3718547d8",
+                            "CreationDateTime" : ISODate("2025-05-29T10:19:32.890+0000"),
+                            "Hash" : "fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d",
+                            "IsSoc" : true,
+                            "Payload" : BinData(0, "ABAAAAAAAABcnoa45zctbM5JJJklV1unLHANcvM2dNtAqyLpyOhrW7Rm20FRG7kB"),
+                            "Pins" : [
+                                {
+                                    "_m" : "d04090e8-1246-4ab8-bd6b-a37d9339c638",
+                                    "_id" : ObjectId("683834b4fd678b310f161d22")
+                                }
+                            ]
+                        }
+                        """;
+                    
+                    var expectedNodeMock = new Mock<LegacyChunk>();
+                    expectedNodeMock.Setup(n => n.Id).Returns("683834b4fd678b310f161d23");
+                    expectedNodeMock.Setup(n => n.CreationDateTime).Returns(new DateTime(2025, 05, 29, 10, 19, 32, 890));
+                    expectedNodeMock.Setup(n => n.Hash).Returns("fd06a035dcba7c912eb76db8ba696a63b01c7253614f28ee975f1bb60fbb222d");
+                    expectedNodeMock.Setup(n => n.IsSoc).Returns(true);
+                    expectedNodeMock.Setup(n => n.Payload).Returns(new byte[]
+                    {
+                        0, 16, 0, 0, 0, 0, 0, 0, 92, 158, 134, 184, 231, 55, 45, 108, 206, 73, 36, 153, 37, 87, 91, 167,
+                        44, 112, 13, 114, 243, 54, 116, 219, 64, 171, 34, 233, 200, 232, 107, 91, 180, 102, 219, 65, 81,
+                        27, 185, 1
+                    });
+                    {
+                        var pinMock = new Mock<ChunkPin>();
+                        pinMock.Setup(p => p.Id).Returns("683834b4fd678b310f161d22");
+                        expectedNodeMock.Setup(n => n.Pins).Returns([pinMock.Object]);
+                    }
+
+                    tests.Add(new DeserializationTestElement<LegacyChunk>(sourceDocument, expectedNodeMock.Object));
                 }
 
                 return tests.Select(t => new object[] { t });
@@ -565,11 +613,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             // Assert.
             Assert.Equal(testElement.ExpectedModel.Id, result.Id);
             Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
-            Assert.Equal(testElement.ExpectedModel.Hash, result.Hash);
             Assert.Equal(testElement.ExpectedModel.IsSoc, result.IsSoc);
             Assert.Equal(testElement.ExpectedModel.Payload, result.Payload);
             Assert.Equal(testElement.ExpectedModel.Pins, result.Pins, EntityModelEqualityComparer.Instance);
-            Assert.NotNull(result.Id);
         }
         
         [Theory, MemberData(nameof(ChunkPinDeserializationTests))]
@@ -594,6 +640,31 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             Assert.Equal(testElement.ExpectedModel.IsProcessed, result.IsProcessed);
             Assert.Equal(testElement.ExpectedModel.MissingChunks, result.MissingChunks);
             Assert.Equal(testElement.ExpectedModel.TotPinnedChunks, result.TotPinnedChunks);
+            Assert.NotNull(result.Id);
+        }
+        
+        [Theory, MemberData(nameof(LegacyChunkDeserializationTests))]
+        public void LegacyChunkDeserialization(DeserializationTestElement<LegacyChunk> testElement)
+        {
+            ArgumentNullException.ThrowIfNull(testElement);
+
+            // Setup.
+            using var documentReader = new JsonReader(testElement.SourceDocument);
+            var modelMapSerializer = new ModelMapSerializer<LegacyChunk>(dbContext.Engine);
+            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
+            testElement.SetupAction(mongoDatabaseMock, dbContext);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            var result = modelMapSerializer.Deserialize(deserializationContext);
+
+            // Assert.
+            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
+            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
+            Assert.Equal(testElement.ExpectedModel.Hash, result.Hash);
+            Assert.Equal(testElement.ExpectedModel.IsSoc, result.IsSoc);
+            Assert.Equal(testElement.ExpectedModel.Payload, result.Payload);
+            Assert.Equal(testElement.ExpectedModel.Pins, result.Pins, EntityModelEqualityComparer.Instance);
             Assert.NotNull(result.Id);
         }
         

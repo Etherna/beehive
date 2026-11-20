@@ -13,11 +13,13 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Persistence.Serializers;
 using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.Serialization.IdGenerators;
 using Etherna.MongoDB.Bson.Serialization.Serializers;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Serialization;
+using Etherna.SwarmSdk.Models;
 
 namespace Etherna.Beehive.Persistence.ModelMaps
 {
@@ -34,6 +36,13 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                 // Set Id representation.
                 modelMap.IdMemberMap.SetSerializer(new StringSerializer(BsonType.ObjectId))
                                     .SetIdGenerator(new StringObjectIdGenerator());
+            });
+            dbContextEngine.MapRegistry.AddModelMap<EntityModelBase<SwarmHash>>("d86b224a-b87f-4177-9c4a-4730f8950e78", modelMap =>
+            {
+                modelMap.AutoMap();
+
+                // Set Id representation: the hash, assigned by the model.
+                modelMap.IdMemberMap.SetSerializer(new SwarmHashSerializer());
             });
         }
     }

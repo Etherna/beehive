@@ -107,7 +107,7 @@ namespace Etherna.Beehive.Services.Domain
             var reference = await UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
             var goneHash = node.Chunks.AllChunks.Keys.First(h => h != reference.Hash);
-            db.ChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
+            db.SwarmChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
                     It.IsAny<FilterDefinition<Chunk>>(),
                     It.IsAny<Expression<Func<Chunk, IEnumerable<ChunkPin>>>>(),
                     It.IsAny<ChunkPin>(),
@@ -120,12 +120,12 @@ namespace Etherna.Beehive.Services.Domain
                     FindOneAndUpdateOptions<Chunk> _,
                     CancellationToken _) =>
                 {
-                    var chunk = db.Chunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile());
+                    var chunk = db.SwarmChunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile());
                     if (chunk is null)
                         return Task.FromResult<Chunk?>(null);
-                    if (chunk.Hash == goneHash)
+                    if (chunk.Id == goneHash)
                     {
-                        db.Chunks.Remove(chunk);
+                        db.SwarmChunks.Remove(chunk);
                         return Task.FromResult<Chunk?>(null);
                     }
                     if (chunk.Pins.All(p => p.Id != addedPin.Id))
@@ -140,8 +140,8 @@ namespace Etherna.Beehive.Services.Domain
             Assert.False(result.Pin.IsSucceeded);
             Assert.Equal([goneHash], result.Pin.MissingChunks);
             Assert.Equal(node.Chunks.AllChunks.Count - 1, result.Pin.TotPinnedChunks);
-            Assert.DoesNotContain(db.Chunks, c => c.Hash == goneHash);
-            Assert.All(db.Chunks, c => Assert.Equal([pin], c.Pins));
+            Assert.DoesNotContain(db.SwarmChunks, c => c.Id == goneHash);
+            Assert.All(db.SwarmChunks, c => Assert.Equal([pin], c.Pins));
         }
 
         [Fact]
@@ -153,7 +153,7 @@ namespace Etherna.Beehive.Services.Domain
             foreach (var chunk in node.Chunks.AllChunks.Values)
                 db.AddChunk(new Chunk(chunk.Hash, chunk.GetFullPayload(), false));
             var pin = NewPin(reference);
-            db.ChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
+            db.SwarmChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
                     It.IsAny<FilterDefinition<Chunk>>(),
                     It.IsAny<Expression<Func<Chunk, IEnumerable<ChunkPin>>>>(),
                     It.IsAny<ChunkPin>(),
@@ -165,7 +165,7 @@ namespace Etherna.Beehive.Services.Domain
                     ChunkPin _,
                     FindOneAndUpdateOptions<Chunk> _,
                     CancellationToken _) =>
-                    Task.FromResult(db.Chunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile())));
+                    Task.FromResult(db.SwarmChunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile())));
 
             // Action.
             var result = await service.PinChunksAsync(pin.Id, node.Instance);
@@ -203,13 +203,13 @@ namespace Etherna.Beehive.Services.Domain
             //the lease is lost when the traversal is over, while the pinned documents are read back
             var reference = await UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
-            db.ChunksMock.Setup(r => r.QueryElementsAsync(
+            db.SwarmChunksMock.Setup(r => r.QueryElementsAsync(
                     It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
                     null))
                 .Returns((Func<IQueryable<Chunk>, Task<List<SwarmHash>>> query, AggregateOptions? _) =>
                 {
                     pinLeases.Single().Lose();
-                    return query(InMemoryQueryable.Of(db.Chunks));
+                    return query(InMemoryQueryable.Of(db.SwarmChunks));
                 });
 
             // Action.
@@ -255,7 +255,7 @@ namespace Etherna.Beehive.Services.Domain
             Assert.True(Assert.Single(pinLeases).IsReleased);
             Assert.False(pin.IsProcessed);
             Assert.Empty(node.RequestedHashes); //no read was sent after the loss
-            Assert.Empty(db.Chunks);
+            Assert.Empty(db.SwarmChunks);
             db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
@@ -288,6 +288,30 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         [Fact]
+        public async Task PinsAChunkStillInTheDeprecatedChunksOnItsDocument()
+        {
+            // Setup.
+            //beehive holds the content, one data chunk of it in the chunks of 0.4.0 only, not migrated yet
+            var reference = await UploadContentAsync(node.Chunks);
+            var legacyChunk = node.Chunks.AllChunks.Values.First(c => c.Hash != reference.Hash);
+            foreach (var chunk in node.Chunks.AllChunks.Values.Where(c => c.Hash != legacyChunk.Hash))
+                db.AddChunk(new Chunk(chunk.Hash, chunk.GetFullPayload(), false));
+            var legacyDocument = new LegacyChunk(legacyChunk.Hash, legacyChunk.GetFullPayload(), false);
+            db.AddLegacyChunk(legacyDocument);
+            var pin = NewPin(reference);
+
+            // Action.
+            var result = await service.PinChunksAsync(pin.Id, node.Instance);
+
+            // Assert.
+            Assert.True(result.Pin.IsSucceeded);
+            Assert.Equal(node.Chunks.AllChunks.Count, result.Pin.TotPinnedChunks);
+            Assert.Equal([pin], legacyDocument.Pins); //its migration moves the pin
+            Assert.DoesNotContain(db.SwarmChunks, c => c.Id == legacyChunk.Hash);
+            Assert.Empty(node.RequestedHashes); //nothing was read from the node
+        }
+
+        [Fact]
         public async Task PinsASingleOwnerChunkReferenceAsItsSingleChunk()
         {
             // Setup.
@@ -303,8 +327,8 @@ namespace Etherna.Beehive.Services.Domain
             Assert.True(result.Pin.IsSucceeded);
             Assert.Equal(1, result.Pin.TotPinnedChunks);
             Assert.Empty(result.InvalidChunks);
-            var chunk = Assert.Single(db.Chunks);
-            Assert.Equal(soc.Hash, chunk.Hash);
+            var chunk = Assert.Single(db.SwarmChunks);
+            Assert.Equal(soc.Hash, chunk.Id);
             Assert.True(chunk.IsSoc);
             Assert.Contains(pin, chunk.Pins);
         }
@@ -321,9 +345,9 @@ namespace Etherna.Beehive.Services.Domain
             Assert.Equal(contentHashes.Count, result.Pin.TotPinnedChunks);
 
             //every chunk of the content is on the db, once, with the pin once
-            Assert.Equal(contentHashes.Count, db.Chunks.Count);
-            Assert.Equal(contentHashes, db.Chunks.Select(c => c.Hash).ToHashSet());
-            Assert.All(db.Chunks, c => Assert.Equal([pin], c.Pins));
+            Assert.Equal(contentHashes.Count, db.SwarmChunks.Count);
+            Assert.Equal(contentHashes, db.SwarmChunks.Select(c => c.Id).ToHashSet());
+            Assert.All(db.SwarmChunks, c => Assert.Equal([pin], c.Pins));
         }
 
         private ChunkPin NewPin(SwarmReference reference)

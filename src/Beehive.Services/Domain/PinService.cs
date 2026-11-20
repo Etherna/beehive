@@ -116,12 +116,16 @@ namespace Etherna.Beehive.Services.Domain
                 }
 
                 // Verify the pin on the db before declaring it: a chunk is pinned by its document carrying the pin,
-                // not by the traversal having met it.
+                // not by the traversal having met it. A chunk not migrated yet carries it in the deprecated chunks.
+                var storedSwarmChunksHash = await dbContext.SwarmChunks.QueryElementsAsync(elements =>
+                    elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
+                        .Select(c => c.Id)
+                        .ToListAsync(workToken));
                 var storedChunksHash = await dbContext.Chunks.QueryElementsAsync(elements =>
                     elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
                         .Select(c => c.Hash)
-                        .ToListAsync());
-                foreach (var hash in pinnedChunksHash.Except(storedChunksHash).ToArray())
+                        .ToListAsync(workToken));
+                foreach (var hash in pinnedChunksHash.Except(storedSwarmChunksHash).Except(storedChunksHash).ToArray())
                 {
                     pinnedChunksHash.Remove(hash);
                     missingChunksHash.Add(hash);
@@ -161,7 +165,8 @@ namespace Etherna.Beehive.Services.Domain
         // Helpers.
         /// <summary>
         /// Attach the pin to the document of a chunk the traversal met, once per chunk: the chunk is pinned when a
-        /// document took the pin (saved with it by the store, or held by beehive already), missing otherwise
+        /// document took the pin (saved with it by the store, or held by beehive already), missing otherwise. A chunk
+        /// not migrated yet from the deprecated chunks of 0.4.0 takes the pin there: its migration moves its pins
         /// </summary>
         private async Task PinFoundChunkAsync(
             ChunkPin pin,
@@ -173,13 +178,21 @@ namespace Etherna.Beehive.Services.Domain
             if (pinnedChunksHash.Contains(hash) || missingChunksHash.Contains(hash))
                 return;
 
-            var chunkDocument = await dbContext.Chunks.TryFindOneAndAddToSetAsync(
-                new ExpressionFilterDefinition<Chunk>(c => c.Hash == hash),
+            var chunkDocument = await dbContext.SwarmChunks.TryFindOneAndAddToSetAsync(
+                new ExpressionFilterDefinition<Chunk>(c => c.Id == hash),
                 c => c.Pins,
                 pin,
                 new FindOneAndUpdateOptions<Chunk>(),
                 cancellationToken);
-            if (chunkDocument is not null)
+            var legacyChunkDocument = chunkDocument is null ?
+                await dbContext.Chunks.TryFindOneAndAddToSetAsync(
+                    new ExpressionFilterDefinition<LegacyChunk>(c => c.Hash == hash),
+                    c => c.Pins,
+                    pin,
+                    new FindOneAndUpdateOptions<LegacyChunk>(),
+                    cancellationToken) :
+                null;
+            if (chunkDocument is not null || legacyChunkDocument is not null)
                 pinnedChunksHash.Add(hash);
             else
                 missingChunksHash.Add(hash);

@@ -18,7 +18,10 @@ using System.Collections.Generic;
 
 namespace Etherna.Beehive.Domain.Models
 {
-    public class Chunk : EntityModelBase<string>
+    /// <summary>
+    /// A chunk held by beehive, keyed by its hash: one document per chunk, whoever stored it
+    /// </summary>
+    public class Chunk : EntityModelBase<SwarmHash>
     {
         // Fields.
         private List<ChunkPin> _pins = [];
@@ -29,7 +32,7 @@ namespace Etherna.Beehive.Domain.Models
             ReadOnlyMemory<byte> payload,
             bool isSoc)
         {
-            Hash = hash;
+            Id = hash;
             IsSoc = isSoc;
             Payload = payload;
         }
@@ -38,7 +41,6 @@ namespace Etherna.Beehive.Domain.Models
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Properties.
-        public virtual SwarmHash Hash { get; protected set; }
         public virtual bool IsSoc { get; protected set; }
         public virtual ReadOnlyMemory<byte> Payload { get; protected set; }
         public virtual IEnumerable<ChunkPin> Pins

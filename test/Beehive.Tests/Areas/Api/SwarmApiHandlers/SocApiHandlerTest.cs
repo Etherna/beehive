@@ -67,7 +67,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             Assert.Equal(content, env.GetResponseBody());
             Assert.All( //every chunk read from the node was saved; the root is wrapped in the soc, never read
                 nodeChunks.AllChunks.Keys.Where(h => h != reference.Hash),
-                h => Assert.Contains(env.DbChunks, d => d.Hash == h));
+                h => Assert.Contains(env.DbChunks, d => d.Id == h));
         }
     }
 }

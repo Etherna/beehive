@@ -15,6 +15,9 @@
 using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.MongoDB.Driver;
+using Etherna.MongoDB.Driver.Core.Clusters;
+using Etherna.MongoDB.Driver.Core.Connections;
+using Etherna.MongoDB.Driver.Core.Servers;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
@@ -26,6 +29,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,33 +46,36 @@ namespace Etherna.Beehive.Services.Helpers
         // Constructor.
         public InMemoryBeehiveDb()
         {
-            // Chunks: lookups, queries, creations and the add-to-set of a pin over the list.
-            ChunksMock.Setup(r => r.TryFindOneAsync(
-                    It.IsAny<Expression<Func<Chunk, bool>>>(),
+            // SwarmChunks: lookups by hash, queries, creations and the add-to-set of a pin over the list. A creation is
+            // all or nothing, as the transaction of the replica set: a hash held already refuses the whole batch with
+            // the duplicate key of the unique id.
+            SwarmChunksMock.Setup(r => r.TryFindOneAsync(
+                    It.IsAny<SwarmHash>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Expression<Func<Chunk, bool>> predicate, CancellationToken _) =>
-                    Chunks.FirstOrDefault(predicate.Compile()));
-            ChunksMock.Setup(r => r.QueryElementsAsync(
+                .ReturnsAsync((SwarmHash hash, CancellationToken _) =>
+                    SwarmChunks.FirstOrDefault(c => c.Id == hash));
+            SwarmChunksMock.Setup(r => r.QueryElementsAsync(
                     It.IsAny<Func<IQueryable<Chunk>, Task<List<Chunk>>>>(),
                     null))
                 .Returns((Func<IQueryable<Chunk>, Task<List<Chunk>>> query, AggregateOptions? _) =>
-                    query(InMemoryQueryable.Of(Chunks)));
-            ChunksMock.Setup(r => r.QueryElementsAsync(
+                    query(InMemoryQueryable.Of(SwarmChunks)));
+            SwarmChunksMock.Setup(r => r.QueryElementsAsync(
                     It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
                     null))
                 .Returns((Func<IQueryable<Chunk>, Task<List<SwarmHash>>> query, AggregateOptions? _) =>
-                    query(InMemoryQueryable.Of(Chunks)));
-            ChunksMock.Setup(r => r.CreateAsync(It.IsAny<Chunk>(), It.IsAny<CancellationToken>()))
-                .Callback((Chunk chunk, CancellationToken _) => AddChunk(chunk))
-                .Returns(Task.CompletedTask);
-            ChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
-                .Callback((IEnumerable<Chunk> chunks, CancellationToken _) =>
+                    query(InMemoryQueryable.Of(SwarmChunks)));
+            SwarmChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
+                .Returns((IEnumerable<Chunk> chunks, CancellationToken _) =>
                 {
-                    foreach (var chunk in chunks.ToArray())
+                    var batch = chunks.ToArray();
+                    OnCreatingChunks?.Invoke(batch);
+                    if (batch.Any(c => SwarmChunks.Any(held => held.Id == c.Id)))
+                        return Task.FromException(NewDuplicateKeyException());
+                    foreach (var chunk in batch)
                         AddChunk(chunk);
-                })
-                .Returns(Task.CompletedTask);
-            ChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
+                    return Task.CompletedTask;
+                });
+            SwarmChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
                     It.IsAny<FilterDefinition<Chunk>>(),
                     It.IsAny<Expression<Func<Chunk, IEnumerable<ChunkPin>>>>(),
                     It.IsAny<ChunkPin>(),
@@ -80,7 +88,42 @@ namespace Etherna.Beehive.Services.Helpers
                     FindOneAndUpdateOptions<Chunk> _,
                     CancellationToken _) =>
                 {
-                    var chunk = Chunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile());
+                    var chunk = SwarmChunks.FirstOrDefault(((ExpressionFilterDefinition<Chunk>)filter).Expression.Compile());
+                    if (chunk is not null && chunk.Pins.All(p => p.Id != pin.Id))
+                        chunk.AddPin(pin);
+                    return Task.FromResult(chunk);
+                });
+
+            // Deprecated chunks of 0.4.0: lookups, queries and the add-to-set of a pin over the list.
+            ChunksMock.Setup(r => r.TryFindOneAsync(
+                    It.IsAny<Expression<Func<LegacyChunk, bool>>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Expression<Func<LegacyChunk, bool>> predicate, CancellationToken _) =>
+                    Chunks.FirstOrDefault(predicate.Compile()));
+            ChunksMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<LegacyChunk>, Task<List<LegacyChunk>>>>(),
+                    null))
+                .Returns((Func<IQueryable<LegacyChunk>, Task<List<LegacyChunk>>> query, AggregateOptions? _) =>
+                    query(InMemoryQueryable.Of(Chunks)));
+            ChunksMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<LegacyChunk>, Task<List<SwarmHash>>>>(),
+                    null))
+                .Returns((Func<IQueryable<LegacyChunk>, Task<List<SwarmHash>>> query, AggregateOptions? _) =>
+                    query(InMemoryQueryable.Of(Chunks)));
+            ChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
+                    It.IsAny<FilterDefinition<LegacyChunk>>(),
+                    It.IsAny<Expression<Func<LegacyChunk, IEnumerable<ChunkPin>>>>(),
+                    It.IsAny<ChunkPin>(),
+                    It.IsAny<FindOneAndUpdateOptions<LegacyChunk>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((
+                    FilterDefinition<LegacyChunk> filter,
+                    Expression<Func<LegacyChunk, IEnumerable<ChunkPin>>> _,
+                    ChunkPin pin,
+                    FindOneAndUpdateOptions<LegacyChunk> _,
+                    CancellationToken _) =>
+                {
+                    var chunk = Chunks.FirstOrDefault(((ExpressionFilterDefinition<LegacyChunk>)filter).Expression.Compile());
                     if (chunk is not null && chunk.Pins.All(p => p.Id != pin.Id))
                         chunk.AddPin(pin);
                     return Task.FromResult(chunk);
@@ -110,9 +153,10 @@ namespace Etherna.Beehive.Services.Helpers
             engineMock.Setup(e => e.ExecutionContext).Returns(AsyncLocalContext.Instance);
 
             DbContextMock.Setup(c => c.ChunkPins).Returns(ChunkPinsMock.Object);
-            DbContextMock.Setup(c => c.Chunks).Returns(ChunksMock.Object);
+            DbContextMock.Setup(c => c.SwarmChunks).Returns(SwarmChunksMock.Object);
             DbContextMock.Setup(c => c.ChunksBucket).Returns(ChunksBucketMock.Object);
             DbContextMock.Setup(c => c.Engine).Returns(engineMock.Object);
+            DbContextMock.Setup(c => c.Chunks).Returns(ChunksMock.Object);
             DbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
         }
@@ -120,22 +164,59 @@ namespace Etherna.Beehive.Services.Helpers
         // Properties.
         public List<ChunkPin> ChunkPins { get; } = [];
         public Mock<IRepository<ChunkPin, string>> ChunkPinsMock { get; } = new();
-        public List<Chunk> Chunks { get; } = [];
+        public List<Chunk> SwarmChunks { get; } = [];
         public Mock<IGridFSBucket> ChunksBucketMock { get; } = new();
-        public Mock<IRepository<Chunk, string>> ChunksMock { get; } = new();
+        public Mock<IRepository<Chunk, SwarmHash>> SwarmChunksMock { get; } = new();
         public IBeehiveDbContext DbContext => DbContextMock.Object;
         public Mock<IBeehiveDbContext> DbContextMock { get; } = new();
+        public List<LegacyChunk> Chunks { get; } = [];
+
+        /// <summary>
+        /// Run before a batch of chunks is created: a concurrent writer can create some of them first
+        /// </summary>
+        public Action<IReadOnlyList<Chunk>>? OnCreatingChunks { get; set; }
+        public Mock<IRepository<LegacyChunk, string>> ChunksMock { get; } = new();
 
         // Methods.
         /// <summary>
-        /// Add a chunk to the db, with an id when it has none
+        /// Add a chunk to the db, refused when its hash is held already, as the unique id refuses it
         /// </summary>
         public void AddChunk(Chunk chunk)
         {
             ArgumentNullException.ThrowIfNull(chunk);
 
-            if (chunk.Id is null)
-                ReflectionHelper.SetValue(chunk, c => c.Id, Guid.NewGuid().ToString());
+            if (SwarmChunks.Any(c => c.Id == chunk.Id))
+                throw new InvalidOperationException($"Duplicate chunk {chunk.Id}");
+            SwarmChunks.Add(chunk);
+        }
+
+        /// <summary>
+        /// The driver's refusal of a document whose unique id is held: its write error is built by reflection, the
+        /// driver keeps the constructor internal
+        /// </summary>
+        public static MongoWriteException NewDuplicateKeyException()
+        {
+            var writeError = (WriteError)Activator.CreateInstance(
+                typeof(WriteError),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                [ServerErrorCategory.DuplicateKey, 11000, "E11000 duplicate key error collection: swarmChunks", null],
+                null)!;
+            return new MongoWriteException(
+                new ConnectionId(new ServerId(new ClusterId(), new DnsEndPoint("localhost", 27017))),
+                writeError,
+                null,
+                null);
+        }
+
+        /// <summary>
+        /// Add a deprecated chunk of 0.4.0 to the db, with an id
+        /// </summary>
+        public void AddLegacyChunk(LegacyChunk chunk)
+        {
+            ArgumentNullException.ThrowIfNull(chunk);
+
+            ReflectionHelper.SetValue(chunk, c => c.Id, Guid.NewGuid().ToString());
             Chunks.Add(chunk);
         }
 
