@@ -48,7 +48,7 @@ namespace Etherna.Beehive.Helpers
 {
     /// <summary>
     /// What an api handler test needs around the handler: a db holding chunk documents, and taking the ones the
-    /// store saves, the legacy bucket empty, the live manager with one healthy node or none, and an http context
+    /// store saves, the deprecated chunks and the legacy bucket empty, the live manager with one healthy node or none, and an http context
     /// whose response body can be read back after the result executed, through the api pipeline or not
     /// </summary>
     public sealed class HandlerTestEnvironment
@@ -56,24 +56,35 @@ namespace Etherna.Beehive.Helpers
         // Constructor.
         public HandlerTestEnvironment(BeeNodeLiveInstance? node = null)
         {
-            var chunksMock = new Mock<IRepository<Chunk, string>>();
-            chunksMock.Setup(r => r.TryFindOneAsync(
-                    It.IsAny<Expression<Func<Chunk, bool>>>(),
+            var swarmChunksMock = new Mock<IRepository<Chunk, SwarmHash>>();
+            swarmChunksMock.Setup(r => r.TryFindOneAsync(
+                    It.IsAny<SwarmHash>(),
                     It.IsAny<CancellationToken>()))
-                .ReturnsAsync((Expression<Func<Chunk, bool>> predicate, CancellationToken _) =>
-                    DbChunks.FirstOrDefault(predicate.Compile()));
-            chunksMock.Setup(r => r.QueryElementsAsync(
+                .ReturnsAsync((SwarmHash hash, CancellationToken _) =>
+                    DbChunks.FirstOrDefault(c => c.Id == hash));
+            swarmChunksMock.Setup(r => r.QueryElementsAsync(
                     It.IsAny<Func<IQueryable<Chunk>, Task<List<Chunk>>>>(),
                     null))
                 .Returns((Func<IQueryable<Chunk>, Task<List<Chunk>>> query, AggregateOptions? _) =>
                     query(InMemoryQueryable.Of(DbChunks.ToArray())));
-            chunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
+            swarmChunksMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
+                    null))
+                .Returns((Func<IQueryable<Chunk>, Task<List<SwarmHash>>> query, AggregateOptions? _) =>
+                    query(InMemoryQueryable.Of(DbChunks.ToArray())));
+            swarmChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
                 .Callback((IEnumerable<Chunk> chunks, CancellationToken _) =>
                 {
                     foreach (var chunk in chunks)
                         DbChunks.Add(chunk);
                 })
                 .Returns(Task.CompletedTask);
+            var chunksMock = new Mock<IRepository<LegacyChunk, string>>();
+            chunksMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<LegacyChunk>, Task<List<LegacyChunk>>>>(),
+                    null))
+                .Returns((Func<IQueryable<LegacyChunk>, Task<List<LegacyChunk>>> query, AggregateOptions? _) =>
+                    query(InMemoryQueryable.Of(Array.Empty<LegacyChunk>())));
             var chunksBucketMock = new Mock<IGridFSBucket>();
             chunksBucketMock.Setup(b => b.DownloadAsBytesByNameAsync(
                     It.IsAny<string>(),
@@ -83,9 +94,10 @@ namespace Etherna.Beehive.Helpers
             var engineMock = new Mock<IDbContextEngine>();
             engineMock.Setup(e => e.ExecutionContext).Returns(AsyncLocalContext.Instance);
             var dbContextMock = new Mock<IBeehiveDbContext>();
-            dbContextMock.Setup(c => c.Chunks).Returns(chunksMock.Object);
+            dbContextMock.Setup(c => c.SwarmChunks).Returns(swarmChunksMock.Object);
             dbContextMock.Setup(c => c.ChunksBucket).Returns(chunksBucketMock.Object);
             dbContextMock.Setup(c => c.Engine).Returns(engineMock.Object);
+            dbContextMock.Setup(c => c.Chunks).Returns(chunksMock.Object);
             DbContext = dbContextMock.Object;
 
             BeeNodeLiveInstance[] healthyNodes = node is null ? [] : [node];

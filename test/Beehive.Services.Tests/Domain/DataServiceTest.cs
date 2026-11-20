@@ -97,7 +97,7 @@ namespace Etherna.Beehive.Services.Domain
             // Setup.
             //the db refuses the chunks
             var dbFailure = new MongoException("db down");
-            db.ChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
+            db.SwarmChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(dbFailure);
 
             // Action.
@@ -121,7 +121,7 @@ namespace Etherna.Beehive.Services.Domain
             // Assert.
             Assert.Same(dbFailure, exception);
             //one refused write, the flush of the upload: the store's dispose didn't try it again
-            db.ChunksMock.Verify(
+            db.SwarmChunksMock.Verify(
                 r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()),
                 Times.Once);
             //nothing recorded as succeeded: no stamps, no push, the pin still provisional

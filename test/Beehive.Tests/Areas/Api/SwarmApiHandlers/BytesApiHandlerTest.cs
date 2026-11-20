@@ -100,7 +100,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             // Assert.
             Assert.Equal(StatusCodes.Status200OK, env.HttpContext.Response.StatusCode);
             Assert.Equal(content, env.GetResponseBody());
-            Assert.All(nodeChunks.AllChunks.Keys, h => Assert.Contains(env.DbChunks, d => d.Hash == h)); //every chunk read from the node was saved
+            Assert.All(nodeChunks.AllChunks.Keys, h => Assert.Contains(env.DbChunks, d => d.Id == h)); //every chunk read from the node was saved
         }
 
         // Helpers.

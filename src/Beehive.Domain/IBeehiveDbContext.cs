@@ -17,6 +17,8 @@ using Etherna.DomainEvents;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Repositories;
+using Etherna.SwarmSdk.Models;
+using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Domain
 {
@@ -27,12 +29,21 @@ namespace Etherna.Beehive.Domain
         IRepository<BeeNode, string> BeeNodes { get; }
         IRepository<ChunkPin, string> ChunkPins { get; }
         IRepository<PushingChunkRef, string> ChunkPushQueue { get; }
-        IRepository<Chunk, string> Chunks { get; }
+
+        /// <summary>
+        /// The deprecated chunks of 0.4.0, read until migrated
+        /// </summary>
+        IRepository<LegacyChunk, string> Chunks { get; }
+
+        /// <summary>
+        /// The deprecated GridFS bucket of the chunks stored before 0.4.0, read until migrated
+        /// </summary>
         IGridFSBucket ChunksBucket { get; }
         IRepository<NodePinImport, string> NodePinImports { get; }
         IRepository<NodePinsImport, string> NodePinsImports { get; }
         IRepository<PostageBatchCache, string> PostageBatchesCache { get; }
         IRepository<PostageStamp, string> PostageStamps { get; }
+        IRepository<Chunk, SwarmHash> SwarmChunks { get; }
 
         //others
         IEventDispatcher EventDispatcher { get; }

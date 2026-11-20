@@ -16,6 +16,7 @@ using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities.Models;
+using Etherna.MongoDB.Driver;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
@@ -39,6 +40,9 @@ namespace Etherna.Beehive.Services.Utilities
     /// per chunk among the healthy ones, or the given source node only. A node's not found is final: the node
     /// already searched the network. What a node serves is saved in the db at once, with
     /// <paramref name="onSavingChunk"/> applied.
+    /// The db holds one document per chunk, keyed by its hash: a chunk held already is not created again, it takes
+    /// the pins of the saved one. Chunks are inserted optimistically, the db read only after a refused insert. The deprecated stores (the chunks of 0.4.0 and the GridFS bucket before them) are
+    /// read after it, never written but for the pins of the chunks they hold.
     /// A chunk the db refuses fails the operation writing it: the write exception propagates, the chunks stay in
     /// the saving buffer, readable, and the store doesn't write again: every further add or flush throws the same
     /// failure at once, without a db round trip, and its dispose leaves the buffer alone
@@ -131,7 +135,7 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 try
                 {
-                    await dbContext.Chunks.CreateAsync(domainChunk, cancellationToken);
+                    await SaveChunksAsync([domainChunk], cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -170,7 +174,7 @@ namespace Etherna.Beehive.Services.Utilities
                 // A failed write keeps them in the buffer and marks the store: no further write, not even on dispose.
                 try
                 {
-                    await dbContext.Chunks.CreateAsync(chunks);
+                    await SaveChunksAsync(chunks, CancellationToken.None);
                 }
                 catch (Exception e)
                 {
@@ -178,7 +182,7 @@ namespace Etherna.Beehive.Services.Utilities
                     throw;
                 }
                 foreach (var chunk in chunks)
-                    chunkSavingBuffer.TryRemove(chunk.Hash, out _);
+                    chunkSavingBuffer.TryRemove(chunk.Id, out _);
             }
             finally
             {
@@ -190,22 +194,21 @@ namespace Etherna.Beehive.Services.Utilities
         {
             // Try to find on buffer.
             if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
-            {
-                return chunk.IsSoc ?
-                    SwarmSoc.BuildFromBytes(hash, chunk.Payload, new SwarmChunkBmt()) :
-                    new SwarmCac(hash, chunk.Payload);
-            }
+                return ToSwarmChunk(hash, chunk.Payload, chunk.IsSoc);
             
             // Try to load from db.
             using(var _ = serializerModifierAccessor.EnableCacheSerializerModifier(true))
             using(var __ = new DbExecutionContextHandler(dbContext))
             {
                 //try to find on repository
-                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+                var chunkModel = await dbContext.SwarmChunks.TryFindOneAsync(hash, cancellationToken);
                 if (chunkModel is not null)
-                    return chunkModel.IsSoc ?
-                        SwarmSoc.BuildFromBytes(hash, chunkModel.Payload, new SwarmChunkBmt()) :
-                        new SwarmCac(hash, chunkModel.Payload);
+                    return ToSwarmChunk(hash, chunkModel.Payload, chunkModel.IsSoc);
+                
+                //fallback on the deprecated chunks of 0.4.0
+                var legacyChunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+                if (legacyChunkModel is not null)
+                    return ToSwarmChunk(hash, legacyChunkModel.Payload, legacyChunkModel.IsSoc);
             
                 //fallback on old gridfs
                 try
@@ -236,15 +239,9 @@ namespace Etherna.Beehive.Services.Utilities
             foreach (var hash in hashes)
             {
                 if (chunkSavingBuffer.TryGetValue(hash, out var chunk))
-                {
-                    results.Add(hash, chunk.IsSoc ?
-                        SwarmSoc.BuildFromBytes(hash, chunk.Payload, new SwarmChunkBmt()) :
-                        new SwarmCac(hash, chunk.Payload));
-                }
+                    results.Add(hash, ToSwarmChunk(hash, chunk.Payload, chunk.IsSoc));
                 else
-                {
                     missingHashes.Add(hash);
-                }
             }
             if (missingHashes.Count == 0)
                 return results;
@@ -254,16 +251,28 @@ namespace Etherna.Beehive.Services.Utilities
             using(var __ = new DbExecutionContextHandler(dbContext))
             {
                 //try to find on repository
-                var chunkModels = await dbContext.Chunks.QueryElementsAsync(chunks =>
-                    chunks.Where(c => missingHashes.Contains(c.Hash))
+                var chunkModels = await dbContext.SwarmChunks.QueryElementsAsync(chunks =>
+                    chunks.Where(c => missingHashes.Contains(c.Id))
                         .ToListAsync(cancellationToken));
 
                 foreach (var chunkModel in chunkModels)
                 {
-                    results.TryAdd(chunkModel.Hash, chunkModel.IsSoc ?
-                        SwarmSoc.BuildFromBytes(chunkModel.Hash, chunkModel.Payload, new SwarmChunkBmt()) :
-                        new SwarmCac(chunkModel.Hash, chunkModel.Payload));
-                    missingHashes.Remove(chunkModel.Hash);
+                    results.TryAdd(chunkModel.Id, ToSwarmChunk(chunkModel.Id, chunkModel.Payload, chunkModel.IsSoc));
+                    missingHashes.Remove(chunkModel.Id);
+                }
+                
+                //fallback on the deprecated chunks of 0.4.0
+                if (missingHashes.Count > 0)
+                {
+                    var legacyChunkModels = await dbContext.Chunks.QueryElementsAsync(chunks =>
+                        chunks.Where(c => missingHashes.Contains(c.Hash))
+                            .ToListAsync(cancellationToken));
+                    foreach (var legacyChunkModel in legacyChunkModels)
+                    {
+                        results.TryAdd(legacyChunkModel.Hash,
+                            ToSwarmChunk(legacyChunkModel.Hash, legacyChunkModel.Payload, legacyChunkModel.IsSoc));
+                        missingHashes.Remove(legacyChunkModel.Hash);
+                    }
                 }
                 
                 //fallback on old gridfs
@@ -302,8 +311,13 @@ namespace Etherna.Beehive.Services.Utilities
             using(var __ = new DbExecutionContextHandler(dbContext))
             {
                 //try to find on repository
-                var chunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+                var chunkModel = await dbContext.SwarmChunks.TryFindOneAsync(hash, cancellationToken);
                 if (chunkModel is not null)
+                    return true;
+                
+                //fallback on the deprecated chunks of 0.4.0
+                var legacyChunkModel = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+                if (legacyChunkModel is not null)
                     return true;
             
                 //fallback on old gridfs
@@ -329,11 +343,19 @@ namespace Etherna.Beehive.Services.Utilities
             var found = chunkSavingBuffer.TryRemove(hash, out _);
             
             // Try to remove from repository.
-            var chunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+            var chunk = await dbContext.SwarmChunks.TryFindOneAsync(hash, cancellationToken);
             if (chunk is not null)
             {
                 found = true;
-                await dbContext.Chunks.DeleteAsync(chunk, cancellationToken);
+                await dbContext.SwarmChunks.DeleteAsync(chunk, cancellationToken);
+            }
+            
+            // Try to remove from the deprecated chunks of 0.4.0.
+            var legacyChunk = await dbContext.Chunks.TryFindOneAsync(c => c.Hash == hash, cancellationToken);
+            if (legacyChunk is not null)
+            {
+                found = true;
+                await dbContext.Chunks.DeleteAsync(legacyChunk, cancellationToken);
             }
             
             // Try to remove from old gridfs.
@@ -352,6 +374,32 @@ namespace Etherna.Beehive.Services.Utilities
         }
         
         // Helpers.
+        private async Task AddPinsToHeldChunkAsync(Chunk heldChunk, CancellationToken cancellationToken)
+        {
+            var hash = heldChunk.Id;
+            foreach (var pin in heldChunk.Pins)
+                await dbContext.SwarmChunks.TryFindOneAndAddToSetAsync(
+                    new ExpressionFilterDefinition<Chunk>(c => c.Id == hash),
+                    c => c.Pins,
+                    pin,
+                    new FindOneAndUpdateOptions<Chunk>(),
+                    cancellationToken);
+        }
+
+        private static bool IsDuplicateKeyFailure(Exception exception) =>
+            exception switch
+            {
+                MongoWriteException e => e.WriteError.Category == ServerErrorCategory.DuplicateKey,
+                MongoBulkWriteException e => e.WriteErrors.Any(w => w.Category == ServerErrorCategory.DuplicateKey),
+                { InnerException: not null } => IsDuplicateKeyFailure(exception.InnerException),
+                _ => false
+            };
+
+        private static SwarmChunk ToSwarmChunk(SwarmHash hash, ReadOnlyMemory<byte> payload, bool isSoc) =>
+            isSoc ?
+                SwarmSoc.BuildFromBytes(hash, payload, new SwarmChunkBmt()) :
+                new SwarmCac(hash, payload);
+
         private async Task<SwarmChunk> GetFromBeeNodeAsync(SwarmHash hash, CancellationToken cancellationToken)
         {
             // Get from the source node, or from the nearest healthy one.
@@ -449,6 +497,50 @@ namespace Etherna.Beehive.Services.Utilities
             if (found.Count < hashes.Count)
                 logger.ChunksNotFoundOnNode(node.Id, hashes.Where(h => !found.ContainsKey(h)));
             return found;
+        }
+
+        /// <summary>
+        /// Save chunks in the db, one document per hash, inserting them optimistically: the db is read only when the
+        /// insert is refused for a hash it holds already, by now or because a concurrent writer created it. Then the
+        /// held ones take the pins of the saved ones, and the others are saved again in two halves, each inserted
+        /// optimistically in turn: every refusal leaves one more hash held, and the halves shrink down to a single
+        /// chunk, which a refusal proves held
+        /// </summary>
+        private async Task SaveChunksAsync(Chunk[] chunks, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await dbContext.SwarmChunks.CreateAsync(chunks, cancellationToken);
+                return;
+            }
+            catch (Exception e) when (IsDuplicateKeyFailure(e))
+            {
+                //a hash is held: by now, or created meanwhile by a concurrent writer
+            }
+
+            // A single chunk refused is held.
+            if (chunks.Length == 1)
+            {
+                await AddPinsToHeldChunkAsync(chunks[0], cancellationToken);
+                return;
+            }
+
+            // Read which chunks are held, and save the others again in halves.
+            var hashes = chunks.Select(c => c.Id).ToArray();
+            var heldHashes = (await dbContext.SwarmChunks.QueryElementsAsync(elements =>
+                elements.Where(c => hashes.Contains(c.Id))
+                    .Select(c => c.Id)
+                    .ToListAsync(cancellationToken))).ToHashSet();
+            foreach (var heldChunk in chunks.Where(c => heldHashes.Contains(c.Id)))
+                await AddPinsToHeldChunkAsync(heldChunk, cancellationToken);
+
+            var notHeldChunks = chunks.Where(c => !heldHashes.Contains(c.Id)).ToArray();
+            if (notHeldChunks.Length == 0)
+                return;
+            var halfLength = (notHeldChunks.Length + 1) / 2;
+            await SaveChunksAsync(notHeldChunks[..halfLength], cancellationToken);
+            if (notHeldChunks.Length > halfLength)
+                await SaveChunksAsync(notHeldChunks[halfLength..], cancellationToken);
         }
 
         /// <summary>

@@ -112,7 +112,7 @@ namespace Etherna.Beehive.Services.Domain
                     {
                         if (pin != null)
                             c.AddPin(pin);
-                        chunkRefs.Add(new(c.Hash, batchId));
+                        chunkRefs.Add(new(c.Id, batchId));
                     }))
             {
                 //create and store chunks

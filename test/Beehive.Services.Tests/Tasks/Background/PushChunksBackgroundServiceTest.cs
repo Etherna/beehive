@@ -204,7 +204,7 @@ namespace Etherna.Beehive.Services.Tasks.Background
         {
             var unreadable = Enqueue(BatchA, 1);
             var next = Enqueue(BatchA, 2);
-            db.Chunks.RemoveAll(c => c.Hash == unreadable.Hash); //and no node holds it
+            db.SwarmChunks.RemoveAll(c => c.Id == unreadable.Hash); //and no node holds it
 
             Assert.True(await service.TryProcessWorkAsync(CancellationToken.None));
 
