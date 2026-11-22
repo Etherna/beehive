@@ -135,7 +135,7 @@ namespace Etherna.Beehive.Services.Utilities
             {
                 try
                 {
-                    await SaveChunksAsync([domainChunk], cancellationToken);
+                    await dbContext.SwarmChunks.CreateAsync([domainChunk], cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -174,7 +174,7 @@ namespace Etherna.Beehive.Services.Utilities
                 // A failed write keeps them in the buffer and marks the store: no further write, not even on dispose.
                 try
                 {
-                    await SaveChunksAsync(chunks, CancellationToken.None);
+                    await dbContext.SwarmChunks.CreateAsync(chunks, CancellationToken.None);
                 }
                 catch (Exception e)
                 {
@@ -374,27 +374,6 @@ namespace Etherna.Beehive.Services.Utilities
         }
         
         // Helpers.
-        private async Task AddPinsToHeldChunkAsync(Chunk heldChunk, CancellationToken cancellationToken)
-        {
-            var hash = heldChunk.Id;
-            foreach (var pin in heldChunk.Pins)
-                await dbContext.SwarmChunks.TryFindOneAndAddToSetAsync(
-                    new ExpressionFilterDefinition<Chunk>(c => c.Id == hash),
-                    c => c.Pins,
-                    pin,
-                    new FindOneAndUpdateOptions<Chunk>(),
-                    cancellationToken);
-        }
-
-        private static bool IsDuplicateKeyFailure(Exception exception) =>
-            exception switch
-            {
-                MongoWriteException e => e.WriteError.Category == ServerErrorCategory.DuplicateKey,
-                MongoBulkWriteException e => e.WriteErrors.Any(w => w.Category == ServerErrorCategory.DuplicateKey),
-                { InnerException: not null } => IsDuplicateKeyFailure(exception.InnerException),
-                _ => false
-            };
-
         private static SwarmChunk ToSwarmChunk(SwarmHash hash, ReadOnlyMemory<byte> payload, bool isSoc) =>
             isSoc ?
                 SwarmSoc.BuildFromBytes(hash, payload, new SwarmChunkBmt()) :
@@ -497,50 +476,6 @@ namespace Etherna.Beehive.Services.Utilities
             if (found.Count < hashes.Count)
                 logger.ChunksNotFoundOnNode(node.Id, hashes.Where(h => !found.ContainsKey(h)));
             return found;
-        }
-
-        /// <summary>
-        /// Save chunks in the db, one document per hash, inserting them optimistically: the db is read only when the
-        /// insert is refused for a hash it holds already, by now or because a concurrent writer created it. Then the
-        /// held ones take the pins of the saved ones, and the others are saved again in two halves, each inserted
-        /// optimistically in turn: every refusal leaves one more hash held, and the halves shrink down to a single
-        /// chunk, which a refusal proves held
-        /// </summary>
-        private async Task SaveChunksAsync(Chunk[] chunks, CancellationToken cancellationToken)
-        {
-            try
-            {
-                await dbContext.SwarmChunks.CreateAsync(chunks, cancellationToken);
-                return;
-            }
-            catch (Exception e) when (IsDuplicateKeyFailure(e))
-            {
-                //a hash is held: by now, or created meanwhile by a concurrent writer
-            }
-
-            // A single chunk refused is held.
-            if (chunks.Length == 1)
-            {
-                await AddPinsToHeldChunkAsync(chunks[0], cancellationToken);
-                return;
-            }
-
-            // Read which chunks are held, and save the others again in halves.
-            var hashes = chunks.Select(c => c.Id).ToArray();
-            var heldHashes = (await dbContext.SwarmChunks.QueryElementsAsync(elements =>
-                elements.Where(c => hashes.Contains(c.Id))
-                    .Select(c => c.Id)
-                    .ToListAsync(cancellationToken))).ToHashSet();
-            foreach (var heldChunk in chunks.Where(c => heldHashes.Contains(c.Id)))
-                await AddPinsToHeldChunkAsync(heldChunk, cancellationToken);
-
-            var notHeldChunks = chunks.Where(c => !heldHashes.Contains(c.Id)).ToArray();
-            if (notHeldChunks.Length == 0)
-                return;
-            var halfLength = (notHeldChunks.Length + 1) / 2;
-            await SaveChunksAsync(notHeldChunks[..halfLength], cancellationToken);
-            if (notHeldChunks.Length > halfLength)
-                await SaveChunksAsync(notHeldChunks[halfLength..], cancellationToken);
         }
 
         /// <summary>

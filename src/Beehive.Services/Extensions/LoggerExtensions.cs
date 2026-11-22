@@ -21,7 +21,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 65
+     * Last event id is: 75
      */
     public static class LoggerExtensions
     {
@@ -99,6 +99,24 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Information,
                 new EventId(36, nameof(CashoutAllNodesChequesTaskCompleted)),
                 "Cashout all nodes cheques task completed on {NodesCount} nodes, {BzzCashedOut} BZZ cashed out");
+
+        private static readonly Action<ILogger, string, long, long, long, long, long, Exception> _chunksMigrationCompleted =
+            LoggerMessage.Define<string, long, long, long, long, long>(
+                LogLevel.Information,
+                new EventId(66, nameof(ChunksMigrationCompleted)),
+                "Chunks migration {MigrationId} completed: chunks collection {LegacyInserted} moved and {LegacyMerged} held already, GridFS bucket {GridFsInserted} moved and {GridFsMerged} held already, {Failed} failed and left in their store");
+
+        private static readonly Action<ILogger, string, long, long, Exception> _chunksMigrationStarted =
+            LoggerMessage.Define<string, long, long>(
+                LogLevel.Information,
+                new EventId(67, nameof(ChunksMigrationStarted)),
+                "Chunks migration {MigrationId} started: about {LegacyChunks} documents in the chunks collection, {GridFsFiles} files in the GridFS bucket");
+
+        private static readonly Action<ILogger, string, Exception> _chunksMigrationStopped =
+            LoggerMessage.Define<string>(
+                LogLevel.Information,
+                new EventId(68, nameof(ChunksMigrationStopped)),
+                "Chunks migration {MigrationId} stopped on request: a new migration goes on with what is left");
 
         private static readonly Action<ILogger, long, Exception> _cleanupOldFailedTasksTaskCompleted =
             LoggerMessage.Define<long>(
@@ -287,11 +305,47 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(53, nameof(ChequeCashoutFailed)),
                 "Node {NodeId}: cashout of the cheque of peer {Peer} failed");
 
+        private static readonly Action<ILogger, string, Exception> _chunksMigrationHeldByAnotherRun =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(69, nameof(ChunksMigrationHeldByAnotherRun)),
+                "Chunks migration {MigrationId} waits: another run of a migration holds the lease");
+
+        private static readonly Action<ILogger, string, Exception> _chunksMigrationInterrupted =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(70, nameof(ChunksMigrationInterrupted)),
+                "Chunks migration {MigrationId} interrupted: its job was cancelled, by a shutdown or because another worker took it. It starts again at the next run");
+
+        private static readonly Action<ILogger, string, string, Exception> _chunksMigrationJobGone =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(71, nameof(ChunksMigrationJobGone)),
+                "Chunks migration {MigrationId} failed, its job {JobId} ended before completing it");
+
+        private static readonly Action<ILogger, string, Exception> _chunksMigrationLeaseLost =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(72, nameof(ChunksMigrationLeaseLost)),
+                "The run of chunks migration {MigrationId} lost its lease and stops without writing the migration");
+
         private static readonly Action<ILogger, string, string, Exception> _failedToReadNodeBalance =
             LoggerMessage.Define<string, string>(
                 LogLevel.Warning,
                 new EventId(54, nameof(FailedToReadNodeBalance)),
                 "Reading the {Currency} balance of node {NodeId} address failed");
+
+        private static readonly Action<ILogger, string, string, string, Exception> _gridFsChunkFileMigrationFailed =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Warning,
+                new EventId(73, nameof(GridFsChunkFileMigrationFailed)),
+                "GridFS file {FileId} named {FileName} could not be migrated, it stays in the bucket: {Reason}");
+
+        private static readonly Action<ILogger, string, string, Exception> _legacyChunkMigrationFailed =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(74, nameof(LegacyChunkMigrationFailed)),
+                "Chunk document {DocumentId} could not be migrated, it stays in the chunks collection: {Reason}");
 
         private static readonly Action<ILogger, string, SwarmReference, Exception> _nodePinImportFailed =
             LoggerMessage.Define<string, SwarmReference>(
@@ -365,6 +419,12 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Error,
                 new EventId(62, nameof(ChunkPushAbandoned)),
                 "Chunk with hash {Hash} of Postage Batch with Id {PostageBatchId} abandoned after {FailedAttempts} failed pushes: it stays in queue, never pushed again");
+
+        private static readonly Action<ILogger, string, Exception> _chunksMigrationFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(75, nameof(ChunksMigrationFailed)),
+                "Chunks migration {MigrationId} failed");
 
         private static readonly Action<ILogger, string, BzzValue, Exception> _failedToDepositBzzOnNodeChequeBook =
             LoggerMessage.Define<string, BzzValue>(
@@ -445,6 +505,30 @@ namespace Etherna.Beehive.Services.Extensions
         public static void ChunkReadFromNode(this ILogger logger, SwarmHash hash, string nodeId) =>
             _chunkReadFromNode(logger, hash, nodeId, null!);
 
+        public static void ChunksMigrationCompleted(this ILogger logger, string migrationId, long legacyInserted, long legacyMerged, long gridFsInserted, long gridFsMerged, long failed) =>
+            _chunksMigrationCompleted(logger, migrationId, legacyInserted, legacyMerged, gridFsInserted, gridFsMerged, failed, null!);
+
+        public static void ChunksMigrationFailed(this ILogger logger, string migrationId, Exception exception) =>
+            _chunksMigrationFailed(logger, migrationId, exception);
+
+        public static void ChunksMigrationHeldByAnotherRun(this ILogger logger, string migrationId) =>
+            _chunksMigrationHeldByAnotherRun(logger, migrationId, null!);
+
+        public static void ChunksMigrationInterrupted(this ILogger logger, string migrationId) =>
+            _chunksMigrationInterrupted(logger, migrationId, null!);
+
+        public static void ChunksMigrationJobGone(this ILogger logger, string migrationId, string jobId) =>
+            _chunksMigrationJobGone(logger, migrationId, jobId, null!);
+
+        public static void ChunksMigrationLeaseLost(this ILogger logger, string migrationId) =>
+            _chunksMigrationLeaseLost(logger, migrationId, null!);
+
+        public static void ChunksMigrationStarted(this ILogger logger, string migrationId, long legacyChunks, long gridFsFiles) =>
+            _chunksMigrationStarted(logger, migrationId, legacyChunks, gridFsFiles, null!);
+
+        public static void ChunksMigrationStopped(this ILogger logger, string migrationId) =>
+            _chunksMigrationStopped(logger, migrationId, null!);
+
         public static void ChunksNotFoundOnNode(this ILogger logger, string nodeId, IEnumerable<SwarmHash> hashes) =>
             _chunksNotFoundOnNode(logger, nodeId, hashes, null!);
 
@@ -480,6 +564,12 @@ namespace Etherna.Beehive.Services.Extensions
 
         public static void FailedToWithdrawBzzOnNodeChequeBook(this ILogger logger, string nodeId, BzzValue bzzWithdraw, Exception exception) =>
             _failedToWithdrawBzzOnNodeChequeBook(logger, nodeId, bzzWithdraw, exception);
+
+        public static void GridFsChunkFileMigrationFailed(this ILogger logger, string fileId, string fileName, string reason) =>
+            _gridFsChunkFileMigrationFailed(logger, fileId, fileName, reason, null!);
+
+        public static void LegacyChunkMigrationFailed(this ILogger logger, string documentId, string reason) =>
+            _legacyChunkMigrationFailed(logger, documentId, reason, null!);
 
         public static void NoChunksToPush(this ILogger logger) =>
             _noChunksToPush(logger, null!);

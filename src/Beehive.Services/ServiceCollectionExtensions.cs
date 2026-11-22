@@ -45,6 +45,7 @@ namespace Etherna.Beehive.Services
             // Register services.
             //domain
             services.AddScoped<IBeeNodeService, BeeNodeService>();
+            services.AddScoped<IChunksMigrationService, ChunksMigrationService>();
             services.AddScoped<IDataService, DataService>();
             services.AddScoped<INodePinsImportService, NodePinsImportService>();
             services.AddScoped<IPinService, PinService>();
@@ -52,12 +53,14 @@ namespace Etherna.Beehive.Services
 
             // Utilities.
             services.AddSingleton<IBeeNodeLiveManager, BeeNodeLiveManager>();
+            services.AddScoped<IDeprecatedChunkStores, DeprecatedChunkStores>();
             services.AddSingleton<IHangfireJobsMonitor, HangfireJobsMonitor>();
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesChequesTask, CashoutAllNodesChequesTask>();
             services.AddTransient<ICleanupOldFailedTasksTask, CleanupOldFailedTasksTask>();
             services.AddTransient<IImportNodePinsTask, ImportNodePinsTask>();
+            services.AddTransient<IMigrateChunksTask, MigrateChunksTask>();
             services.AddTransient<INodesAddressMaintainerTask, NodesAddressMaintainerTask>();
             services.AddTransient<INodesChequebookMaintainerTask, NodesChequebookMaintainerTask>();
             services.AddTransient<IPinChunksTask, PinChunksTask>();

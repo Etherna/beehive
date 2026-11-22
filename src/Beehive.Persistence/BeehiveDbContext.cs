@@ -92,6 +92,14 @@ namespace Etherna.Beehive.Persistence
                 });
             }
         }
+        public IRepository<ChunksMigration, string> ChunksMigrations { get; } =
+            new Repository<ChunksMigration, string>(new RepositoryOptions<ChunksMigration>("chunksMigrations")
+            {
+                IndexBuilders =
+                [
+                    (Builders<ChunksMigration>.IndexKeys.Descending(m => m.CreationDateTime), new CreateIndexOptions<ChunksMigration>())
+                ]
+            });
         public IRepository<NodePinImport, string> NodePinImports { get; } =
             new Repository<NodePinImport, string>(new RepositoryOptions<NodePinImport>("nodePinImports")
             {
@@ -136,8 +144,8 @@ namespace Etherna.Beehive.Persistence
                         new CreateIndexOptions<PostageStamp> { Unique = true })
                 ]
             });
-        public IRepository<Chunk, SwarmHash> SwarmChunks { get; } =
-            new Repository<Chunk, SwarmHash>(new RepositoryOptions<Chunk>("swarmChunks")
+        public ISwarmChunksRepository SwarmChunks { get; } =
+            new SwarmChunksRepository(new RepositoryOptions<Chunk>("swarmChunks")
             {
                 IndexBuilders =
                 [

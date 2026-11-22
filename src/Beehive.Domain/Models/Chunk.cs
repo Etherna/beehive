@@ -54,5 +54,25 @@ namespace Etherna.Beehive.Domain.Models
         {
             _pins.Add(chunkPin);
         }
+
+        // Static methods.
+        /// <summary>
+        /// A chunk moved from a deprecated store, keeping when it was stored first and the pins holding it
+        /// </summary>
+        public static Chunk FromDeprecatedStore(
+            SwarmHash hash,
+            ReadOnlyMemory<byte> payload,
+            bool isSoc,
+            DateTime creationDateTime,
+            IEnumerable<ChunkPin> pins)
+        {
+            ArgumentNullException.ThrowIfNull(pins);
+
+            return new Chunk(hash, payload, isSoc)
+            {
+                CreationDateTime = creationDateTime,
+                _pins = [.. pins]
+            };
+        }
     }
 }

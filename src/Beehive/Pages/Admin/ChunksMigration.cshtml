@@ -1,0 +1,100 @@
+@page "/admin/chunks-migration"
+@using Etherna.Beehive.Domain.Models
+@model Etherna.Beehive.Pages.Admin.ChunksMigrationModel
+@{
+    ViewData["Title"] = "Chunks migration";
+
+    static string StateBadge(ChunksMigrationState state) => state switch
+    {
+        ChunksMigrationState.Completed => "bg-success",
+        ChunksMigrationState.Running => "bg-primary",
+        ChunksMigrationState.Pending or ChunksMigrationState.Stopped => "bg-secondary",
+        _ => "bg-danger"
+    };
+}
+
+<h1>Chunks migration</h1>
+<p class="text-muted">
+    The migration of the chunks still in the deprecated stores, the chunks collection and the GridFS bucket, to the
+    chunks keyed by hash. A migrated chunk leaves its deprecated store: a new migration goes on with what is left.
+    Every chunk is verified against its hash before it is moved: one that doesn't verify, or can't be read, is
+    counted as failed, logged with its reason and left in its store.
+</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-info">@Model.Message</div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">Still in the deprecated stores</div>
+    <div class="card-body">
+        <p>
+            Chunks collection: <strong>@Model.DeprecatedChunks.LegacyChunks</strong> documents,
+            GridFS bucket: <strong>@Model.DeprecatedChunks.GridFsFiles</strong> files
+            <span class="text-muted">(as estimated by the db)</span>.
+        </p>
+        <form method="post" asp-page-handler="Start">
+            <button class="btn btn-outline-primary btn-sm" type="submit">Start a migration</button>
+        </form>
+    </div>
+</div>
+
+<h5>Migrations</h5>
+@if (Model.Migrations.Count == 0)
+{
+    <p class="text-muted">No migration was ever started.</p>
+}
+else
+{
+    <table class="table table-sm small">
+        <thead>
+            <tr>
+                <th>State</th>
+                <th>Chunks collection</th>
+                <th>GridFS bucket</th>
+                <th>Started</th>
+                <th>Ended</th>
+                <th>Job</th>
+                <th>Failure</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var migration in Model.Migrations)
+            {
+                <tr>
+                    <td><span class="badge @StateBadge(migration.State)">@migration.State</span></td>
+                    <td>
+                        @migration.LegacyChunksRead read of @(migration.LegacyChunksTotal?.ToString() ?? "-"):
+                        @migration.LegacyChunksInserted moved, @migration.LegacyChunksMerged held already, @migration.LegacyChunksFailed failed
+                    </td>
+                    <td>
+                        @migration.GridFsFilesRead read of @(migration.GridFsFilesTotal?.ToString() ?? "-"):
+                        @migration.GridFsFilesInserted moved, @migration.GridFsFilesMerged held already, @migration.GridFsFilesFailed failed
+                    </td>
+                    <td>@(migration.StartedDateTime?.ToString("u") ?? "-")</td>
+                    <td>@(migration.CompletedDateTime?.ToString("u") ?? "-")</td>
+                    <td class="font-monospace">@migration.JobId</td>
+                    <td class="text-danger">@migration.FailureReason</td>
+                    <td>
+                        @if (!migration.IsCompleted)
+                        {
+                            @if (migration.StopRequestedDateTime.HasValue)
+                            {
+                                <span class="text-muted">stop asked @migration.StopRequestedDateTime.Value.ToString("u")</span>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Stop">
+                                    <input type="hidden" name="migrationId" value="@migration.Id" />
+                                    <button class="btn btn-outline-danger btn-sm" type="submit">Stop</button>
+                                </form>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

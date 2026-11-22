@@ -28,6 +28,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api
@@ -35,6 +36,7 @@ namespace Etherna.Beehive.Areas.Api
     public sealed class BeehiveApiHandler(
         IBeehiveDbContext beehiveDbContext,
         IBeeNodeLiveManager beeNodeLiveManager,
+        IChunksMigrationService chunksMigrationService,
         ILogger<BeehiveApiHandler> logger,
         INodePinsImportService nodePinsImportService)
         : IBeehiveApiHandler
@@ -56,6 +58,16 @@ namespace Etherna.Beehive.Areas.Api
                     node.IsBatchCreationEnabled);
 
                 return Results.Created();
+            });
+
+        public Task<IResult> CountDeprecatedChunksAsync(CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var count = await chunksMigrationService.CountDeprecatedChunksAsync(cancellationToken);
+
+                return Results.Json(
+                    new DeprecatedChunksDto(count.LegacyChunks, count.GridFsFiles),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
         public Task<IResult> DeleteNodePinsImportsAsync(string id, bool? failed) =>
@@ -117,6 +129,16 @@ namespace Etherna.Beehive.Areas.Api
 
                 return Results.Json(
                     nodeDtos,
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
+            });
+
+        public Task<IResult> GetChunksMigrationsAsync(int page, int take, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var migrations = await chunksMigrationService.GetMigrationsAsync(page, take, cancellationToken);
+
+                return Results.Json(
+                    migrations.Select(m => new ChunksMigrationDto(m)),
                     CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
@@ -186,6 +208,17 @@ namespace Etherna.Beehive.Areas.Api
                 return Results.Ok();
             });
 
+        public Task<IResult> StartChunksMigrationAsync(CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var migration = await chunksMigrationService.StartMigrationAsync(cancellationToken);
+
+                return Results.Json(
+                    new ChunksMigrationDto(migration),
+                    CommonConsts.BeehiveV04JsonSerializerOptions,
+                    statusCode: StatusCodes.Status202Accepted);
+            });
+
         public Task<IResult> StartNodePinsImportAsync(string id, bool unpin, NodePinsImportInput? importInput) =>
             ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
             {
@@ -199,6 +232,18 @@ namespace Etherna.Beehive.Areas.Api
                     BuildNodePinsImportDto(import),
                     CommonConsts.BeehiveV04JsonSerializerOptions,
                     statusCode: StatusCodes.Status202Accepted);
+            });
+
+        public Task<IResult> StopChunksMigrationAsync(string id, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                ArgumentNullException.ThrowIfNull(id);
+
+                var migration = await chunksMigrationService.StopMigrationAsync(id, cancellationToken);
+
+                return Results.Json(
+                    new ChunksMigrationDto(migration),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
         public Task<IResult> UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput) =>

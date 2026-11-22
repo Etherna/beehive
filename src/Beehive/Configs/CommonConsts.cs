@@ -21,6 +21,7 @@ namespace Etherna.Beehive.Configs
 {
     internal static class CommonConsts
     {
+        public const string ChunksMigrationAdminPath = "/admin/chunks-migration";
         public const string DatabaseAdminPath = "/admin/db";
         public const string HangfireAdminPath = "/admin/hangfire";
         public const string PinsImportsAdminPath = "/admin/pins-imports";

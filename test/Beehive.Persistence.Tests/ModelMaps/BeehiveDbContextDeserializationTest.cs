@@ -226,6 +226,66 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             }
         }
 
+        public static IEnumerable<object[]> ChunksMigrationDeserializationTests
+        {
+            get
+            {
+                var tests = new List<DeserializationTestElement<ChunksMigration>>();
+
+                // "a12faa1d-ea6e-4f09-ab6f-0768a3de866d" - v0.4.12, stopped on request
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("6b007ce2603ad1675b016794"),
+                            "_s" : "a12faa1d-ea6e-4f09-ab6f-0768a3de866d",
+                            "CreationDateTime" : ISODate("2026-11-20T17:01:22.352Z"),
+                            "CompletedDateTime" : ISODate("2026-11-20T17:01:24.472Z"),
+                            "FailureReason" : null,
+                            "GridFsFilesFailed" : NumberLong(0),
+                            "GridFsFilesInserted" : NumberLong(0),
+                            "GridFsFilesMerged" : NumberLong(0),
+                            "GridFsFilesRead" : NumberLong(0),
+                            "GridFsFilesTotal" : NumberLong(1),
+                            "IsStopped" : true,
+                            "JobId" : "6b007ce264330bc91b6b3134",
+                            "LegacyChunksFailed" : NumberLong(1),
+                            "LegacyChunksInserted" : NumberLong(5999),
+                            "LegacyChunksMerged" : NumberLong(0),
+                            "LegacyChunksRead" : NumberLong(6000),
+                            "LegacyChunksTotal" : NumberLong(30001),
+                            "StartedDateTime" : ISODate("2026-11-20T17:01:22.444Z"),
+                            "StopRequestedDateTime" : ISODate("2026-11-20T17:01:24.469Z")
+                        }
+                        """;
+
+                    var expectedMigrationMock = new Mock<ChunksMigration>();
+                    expectedMigrationMock.Setup(m => m.Id).Returns("6b007ce2603ad1675b016794");
+                    expectedMigrationMock.Setup(m => m.CreationDateTime).Returns(new DateTime(2026, 11, 20, 17, 01, 22, 352));
+                    expectedMigrationMock.Setup(m => m.CompletedDateTime).Returns(new DateTime(2026, 11, 20, 17, 01, 24, 472));
+                    expectedMigrationMock.Setup(m => m.FailureReason).Returns((string?)null);
+                    expectedMigrationMock.Setup(m => m.GridFsFilesFailed).Returns(0);
+                    expectedMigrationMock.Setup(m => m.GridFsFilesInserted).Returns(0);
+                    expectedMigrationMock.Setup(m => m.GridFsFilesMerged).Returns(0);
+                    expectedMigrationMock.Setup(m => m.GridFsFilesRead).Returns(0);
+                    expectedMigrationMock.Setup(m => m.GridFsFilesTotal).Returns(1);
+                    expectedMigrationMock.Setup(m => m.IsStopped).Returns(true);
+                    expectedMigrationMock.Setup(m => m.JobId).Returns("6b007ce264330bc91b6b3134");
+                    expectedMigrationMock.Setup(m => m.LegacyChunksFailed).Returns(1);
+                    expectedMigrationMock.Setup(m => m.LegacyChunksInserted).Returns(5999);
+                    expectedMigrationMock.Setup(m => m.LegacyChunksMerged).Returns(0);
+                    expectedMigrationMock.Setup(m => m.LegacyChunksRead).Returns(6000);
+                    expectedMigrationMock.Setup(m => m.LegacyChunksTotal).Returns(30001);
+                    expectedMigrationMock.Setup(m => m.StartedDateTime).Returns(new DateTime(2026, 11, 20, 17, 01, 22, 444));
+                    expectedMigrationMock.Setup(m => m.StopRequestedDateTime).Returns(new DateTime(2026, 11, 20, 17, 01, 24, 469));
+
+                    tests.Add(new DeserializationTestElement<ChunksMigration>(sourceDocument, expectedMigrationMock.Object));
+                }
+
+                return tests.Select(t => new object[] { t });
+            }
+        }
+
         public static IEnumerable<object[]> LegacyChunkDeserializationTests
         {
             get
@@ -643,6 +703,43 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             Assert.NotNull(result.Id);
         }
         
+        [Theory, MemberData(nameof(ChunksMigrationDeserializationTests))]
+        public void ChunksMigrationDeserialization(DeserializationTestElement<ChunksMigration> testElement)
+        {
+            ArgumentNullException.ThrowIfNull(testElement);
+
+            // Setup.
+            using var documentReader = new JsonReader(testElement.SourceDocument);
+            var modelMapSerializer = new ModelMapSerializer<ChunksMigration>(dbContext.Engine);
+            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
+            testElement.SetupAction(mongoDatabaseMock, dbContext);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            var result = modelMapSerializer.Deserialize(deserializationContext);
+
+            // Assert.
+            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
+            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
+            Assert.Equal(testElement.ExpectedModel.CompletedDateTime, result.CompletedDateTime);
+            Assert.Equal(testElement.ExpectedModel.FailureReason, result.FailureReason);
+            Assert.Equal(testElement.ExpectedModel.GridFsFilesFailed, result.GridFsFilesFailed);
+            Assert.Equal(testElement.ExpectedModel.GridFsFilesInserted, result.GridFsFilesInserted);
+            Assert.Equal(testElement.ExpectedModel.GridFsFilesMerged, result.GridFsFilesMerged);
+            Assert.Equal(testElement.ExpectedModel.GridFsFilesRead, result.GridFsFilesRead);
+            Assert.Equal(testElement.ExpectedModel.GridFsFilesTotal, result.GridFsFilesTotal);
+            Assert.Equal(testElement.ExpectedModel.IsStopped, result.IsStopped);
+            Assert.Equal(testElement.ExpectedModel.JobId, result.JobId);
+            Assert.Equal(testElement.ExpectedModel.LegacyChunksFailed, result.LegacyChunksFailed);
+            Assert.Equal(testElement.ExpectedModel.LegacyChunksInserted, result.LegacyChunksInserted);
+            Assert.Equal(testElement.ExpectedModel.LegacyChunksMerged, result.LegacyChunksMerged);
+            Assert.Equal(testElement.ExpectedModel.LegacyChunksRead, result.LegacyChunksRead);
+            Assert.Equal(testElement.ExpectedModel.LegacyChunksTotal, result.LegacyChunksTotal);
+            Assert.Equal(testElement.ExpectedModel.StartedDateTime, result.StartedDateTime);
+            Assert.Equal(testElement.ExpectedModel.StopRequestedDateTime, result.StopRequestedDateTime);
+            Assert.Equal(ChunksMigrationState.Stopped, result.State);
+        }
+
         [Theory, MemberData(nameof(LegacyChunkDeserializationTests))]
         public void LegacyChunkDeserialization(DeserializationTestElement<LegacyChunk> testElement)
         {

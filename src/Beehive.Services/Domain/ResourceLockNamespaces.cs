@@ -21,6 +21,7 @@ namespace Etherna.Beehive.Services.Domain
     {
         public const string ChunkPins = "chunkPins";
         public const string ChunkPushes = "chunkPushes";
+        public const string ChunksMigrations = "chunksMigrations";
         public const string NodePinsImports = "nodePinsImports";
         public const string PostageBatches = "postageBatches";
     }

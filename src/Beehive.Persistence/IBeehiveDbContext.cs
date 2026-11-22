@@ -13,11 +13,11 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Persistence.Repositories;
 using Etherna.DomainEvents;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Repositories;
-using Etherna.SwarmSdk.Models;
 using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
 namespace Etherna.Beehive.Persistence
@@ -39,11 +39,16 @@ namespace Etherna.Beehive.Persistence
         /// The deprecated GridFS bucket of the chunks stored before 0.4.0, read until migrated
         /// </summary>
         IGridFSBucket ChunksBucket { get; }
+        IRepository<ChunksMigration, string> ChunksMigrations { get; }
         IRepository<NodePinImport, string> NodePinImports { get; }
         IRepository<NodePinsImport, string> NodePinsImports { get; }
         IRepository<PostageBatchCache, string> PostageBatchesCache { get; }
         IRepository<PostageStamp, string> PostageStamps { get; }
-        IRepository<Chunk, SwarmHash> SwarmChunks { get; }
+
+        /// <summary>
+        /// The chunks keyed by hash: a creation of a chunk held already adds its pins to the held one
+        /// </summary>
+        ISwarmChunksRepository SwarmChunks { get; }
 
         //others
         IEventDispatcher EventDispatcher { get; }

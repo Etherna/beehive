@@ -14,10 +14,8 @@
 
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Persistence;
+using Etherna.Beehive.Persistence.Repositories;
 using Etherna.MongoDB.Driver;
-using Etherna.MongoDB.Driver.Core.Clusters;
-using Etherna.MongoDB.Driver.Core.Connections;
-using Etherna.MongoDB.Driver.Core.Servers;
 using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.ExecContext.AsyncLocal;
@@ -29,8 +27,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Net;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,9 +42,9 @@ namespace Etherna.Beehive.Services.Helpers
         // Constructor.
         public InMemoryBeehiveDb()
         {
-            // SwarmChunks: lookups by hash, queries, creations and the add-to-set of a pin over the list. A creation is
-            // all or nothing, as the transaction of the replica set: a hash held already refuses the whole batch with
-            // the duplicate key of the unique id.
+            // SwarmChunks: lookups by hash, queries, creations and the add-to-set of a pin over the list. A creation
+            // follows the contract of the repository: a chunk held already, or repeated in the batch, takes the pins
+            // of the created one instead of being added again.
             SwarmChunksMock.Setup(r => r.TryFindOneAsync(
                     It.IsAny<SwarmHash>(),
                     It.IsAny<CancellationToken>()))
@@ -67,14 +63,11 @@ namespace Etherna.Beehive.Services.Helpers
             SwarmChunksMock.Setup(r => r.CreateAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
                 .Returns((IEnumerable<Chunk> chunks, CancellationToken _) =>
                 {
-                    var batch = chunks.ToArray();
-                    OnCreatingChunks?.Invoke(batch);
-                    if (batch.Any(c => SwarmChunks.Any(held => held.Id == c.Id)))
-                        return Task.FromException(NewDuplicateKeyException());
-                    foreach (var chunk in batch)
-                        AddChunk(chunk);
+                    CreateOrAddPins(chunks);
                     return Task.CompletedTask;
                 });
+            SwarmChunksMock.Setup(r => r.CreateOrAddPinsAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
+                .Returns((IEnumerable<Chunk> chunks, CancellationToken _) => Task.FromResult(CreateOrAddPins(chunks)));
             SwarmChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
                     It.IsAny<FilterDefinition<Chunk>>(),
                     It.IsAny<Expression<Func<Chunk, IEnumerable<ChunkPin>>>>(),
@@ -166,15 +159,11 @@ namespace Etherna.Beehive.Services.Helpers
         public Mock<IRepository<ChunkPin, string>> ChunkPinsMock { get; } = new();
         public List<Chunk> SwarmChunks { get; } = [];
         public Mock<IGridFSBucket> ChunksBucketMock { get; } = new();
-        public Mock<IRepository<Chunk, SwarmHash>> SwarmChunksMock { get; } = new();
+        public Mock<ISwarmChunksRepository> SwarmChunksMock { get; } = new();
         public IBeehiveDbContext DbContext => DbContextMock.Object;
         public Mock<IBeehiveDbContext> DbContextMock { get; } = new();
         public List<LegacyChunk> Chunks { get; } = [];
 
-        /// <summary>
-        /// Run before a batch of chunks is created: a concurrent writer can create some of them first
-        /// </summary>
-        public Action<IReadOnlyList<Chunk>>? OnCreatingChunks { get; set; }
         public Mock<IRepository<LegacyChunk, string>> ChunksMock { get; } = new();
 
         // Methods.
@@ -188,25 +177,6 @@ namespace Etherna.Beehive.Services.Helpers
             if (SwarmChunks.Any(c => c.Id == chunk.Id))
                 throw new InvalidOperationException($"Duplicate chunk {chunk.Id}");
             SwarmChunks.Add(chunk);
-        }
-
-        /// <summary>
-        /// The driver's refusal of a document whose unique id is held: its write error is built by reflection, the
-        /// driver keeps the constructor internal
-        /// </summary>
-        public static MongoWriteException NewDuplicateKeyException()
-        {
-            var writeError = (WriteError)Activator.CreateInstance(
-                typeof(WriteError),
-                BindingFlags.Instance | BindingFlags.NonPublic,
-                null,
-                [ServerErrorCategory.DuplicateKey, 11000, "E11000 duplicate key error collection: swarmChunks", null],
-                null)!;
-            return new MongoWriteException(
-                new ConnectionId(new ServerId(new ClusterId(), new DnsEndPoint("localhost", 27017))),
-                writeError,
-                null,
-                null);
         }
 
         /// <summary>
@@ -230,6 +200,29 @@ namespace Etherna.Beehive.Services.Helpers
             if (pin.Id is null)
                 ReflectionHelper.SetValue(pin, p => p.Id, Guid.NewGuid().ToString());
             ChunkPins.Add(pin);
+        }
+
+        // Helpers.
+        /// <summary>
+        /// The creation of the chunks by the repository: a chunk held takes the pins of the created one
+        /// </summary>
+        /// <returns>The chunks found held</returns>
+        private int CreateOrAddPins(IEnumerable<Chunk> chunks)
+        {
+            var held = 0;
+            foreach (var chunk in chunks)
+            {
+                var heldChunk = SwarmChunks.FirstOrDefault(c => c.Id == chunk.Id);
+                if (heldChunk is null)
+                {
+                    SwarmChunks.Add(chunk);
+                    continue;
+                }
+                foreach (var pin in chunk.Pins.Where(p => heldChunk.Pins.All(h => h.Id != p.Id)))
+                    heldChunk.AddPin(pin);
+                held++;
+            }
+            return held;
         }
     }
 }
