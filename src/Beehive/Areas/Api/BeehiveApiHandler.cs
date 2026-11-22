@@ -15,8 +15,8 @@
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.InputModels;
 using Etherna.Beehive.Configs;
-using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Utilities;

@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Beehive.Domain\Beehive.Domain.csproj" />
+    <ProjectReference Include="..\Beehive.Persistence\Beehive.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

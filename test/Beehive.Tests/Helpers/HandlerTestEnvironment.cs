@@ -13,8 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api;
-using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
