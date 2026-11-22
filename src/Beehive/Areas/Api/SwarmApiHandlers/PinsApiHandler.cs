@@ -14,8 +14,8 @@
 
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
-using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
+using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services.Domain;
 using Etherna.Beehive.Services.Tasks.Trigger;
 using Etherna.MongoDB.Driver.Linq;

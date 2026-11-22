@@ -20,7 +20,7 @@ using Etherna.Scrinium.Core.Repositories;
 using Etherna.SwarmSdk.Models;
 using PostageStamp = Etherna.Beehive.Domain.Models.PostageStamp;
 
-namespace Etherna.Beehive.Domain
+namespace Etherna.Beehive.Persistence
 {
     public interface IBeehiveDbContext : IDbContext
     {

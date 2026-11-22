@@ -22,7 +22,6 @@ using Etherna.Beehive.Configs;
 using Etherna.Beehive.Configs.DebugPages;
 using Etherna.Beehive.Configs.OpenApi;
 using Etherna.Beehive.Configs.Scrinium;
-using Etherna.Beehive.Domain;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Exceptions;
 using Etherna.Beehive.Extensions;
