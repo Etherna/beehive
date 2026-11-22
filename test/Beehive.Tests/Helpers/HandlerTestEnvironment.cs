@@ -15,6 +15,7 @@
 using Etherna.Beehive.Areas.Api;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Persistence;
+using Etherna.Beehive.Persistence.Repositories;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
@@ -56,7 +57,7 @@ namespace Etherna.Beehive.Helpers
         // Constructor.
         public HandlerTestEnvironment(BeeNodeLiveInstance? node = null)
         {
-            var swarmChunksMock = new Mock<IRepository<Chunk, SwarmHash>>();
+            var swarmChunksMock = new Mock<ISwarmChunksRepository>();
             swarmChunksMock.Setup(r => r.TryFindOneAsync(
                     It.IsAny<SwarmHash>(),
                     It.IsAny<CancellationToken>()))

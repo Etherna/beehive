@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Areas.Api.InputModels;
 using Microsoft.AspNetCore.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.Beehive.Areas.Api
@@ -21,15 +22,19 @@ namespace Etherna.Beehive.Areas.Api
     public interface IBeehiveApiHandler
     {
         Task<IResult> AddBeeNodeAsync(BeeNodeInput nodeInput);
+        Task<IResult> CountDeprecatedChunksAsync(CancellationToken cancellationToken);
         Task<IResult> FindByIdAsync(string id);
         Task<IResult> DeleteNodePinsImportsAsync(string id, bool? failed);
         Task<IResult> GetBeeNodesAsync();
+        Task<IResult> GetChunksMigrationsAsync(int page, int take, CancellationToken cancellationToken);
         Task<IResult> GetNodeNotImportedPinsAsync(string id);
         Task<IResult> GetNodePinImportsAsync(string id, string importId, bool failedOnly, int page, int take);
         Task<IResult> GetNodePinsImportsAsync(string id, int page, int take);
         Task<IResult> GetNodesPinsImportsAsync(int page, int take);
         Task<IResult> RemoveBeeNodeAsync(string id);
+        Task<IResult> StartChunksMigrationAsync(CancellationToken cancellationToken);
         Task<IResult> StartNodePinsImportAsync(string id, bool unpin, NodePinsImportInput? importInput);
+        Task<IResult> StopChunksMigrationAsync(string id, CancellationToken cancellationToken);
         Task<IResult> UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
     }
 }

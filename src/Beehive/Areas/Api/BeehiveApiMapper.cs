@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Routing;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Threading;
 
 namespace Etherna.Beehive.Areas.Api
 {
@@ -40,6 +41,38 @@ namespace Etherna.Beehive.Areas.Api
         // Helpers.
         private static void ConfigureMaps(RouteGroupBuilder builder)
         {
+            //deprecated chunks
+            builder.MapGet("/deprecated-chunks",
+                    (IBeehiveApiHandler handler, CancellationToken cancellationToken) =>
+                        handler.CountDeprecatedChunksAsync(cancellationToken))
+                .WithDescription("The chunks still in the deprecated stores, as estimated by the db: the documents of the chunks collection, and the files of the GridFS bucket. Both at zero when every chunk was migrated.")
+                .Produces<DeprecatedChunksDto>();
+
+            builder.MapGet("/deprecated-chunks/migrations",
+                    (IBeehiveApiHandler handler,
+                            CancellationToken cancellationToken,
+                            [Range(0, int.MaxValue)] int page = 0,
+                            [Range(1, 10000)] int take = 100) =>
+                        handler.GetChunksMigrationsAsync(page, take, cancellationToken))
+                .WithDescription("Every migration of the deprecated chunks, newest first, with its counters per store: the first one is the running or last migration. A migration whose background job ended without completing it is reported as failed.")
+                .Produces<IEnumerable<ChunksMigrationDto>>();
+
+            builder.MapPost("/deprecated-chunks/migrations",
+                    (IBeehiveApiHandler handler, CancellationToken cancellationToken) =>
+                        handler.StartChunksMigrationAsync(cancellationToken))
+                .WithDescription("Starts, as a background job, the migration of the deprecated chunks to the chunks keyed by hash: first the documents of the chunks collection, with their pins, then the files of the GridFS bucket. A chunk held already takes the pins of the migrated one. Every migrated chunk is deleted from its deprecated store, so a new migration goes on with what is left. A chunk that can't be migrated is counted as failed and left in its store. One migration at a time: 423 while one is running.")
+                .Produces<ChunksMigrationDto>(StatusCodes.Status202Accepted)
+                .Produces<string>(StatusCodes.Status423Locked);
+
+            builder.MapPost("/deprecated-chunks/migrations/{id}/stop",
+                    (IBeehiveApiHandler handler,
+                            [FromRoute] string id,
+                            CancellationToken cancellationToken) =>
+                        handler.StopChunksMigrationAsync(id, cancellationToken))
+                .WithDescription("Asks a migration to stop: its job stops at the end of the page of chunks it is migrating, and the migration ends as stopped. A migration already ended is answered as it is.")
+                .Produces<ChunksMigrationDto>()
+                .Produces<string>(StatusCodes.Status404NotFound);
+
             //nodes
             builder.MapGet("/nodes",
                     (IBeehiveApiHandler handler) =>

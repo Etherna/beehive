@@ -40,6 +40,9 @@ namespace Etherna.Beehive.Persistence.ModelMaps
                         ChunkPinMap.ReferenceSerializer(dbContextEngine, OriginDeleteMode.RemoveReference)));
                 });
 
+            dbContextEngine.MapRegistry.AddModelMap<ChunksMigration>(
+                "a12faa1d-ea6e-4f09-ab6f-0768a3de866d"); //v0.4.12
+
             dbContextEngine.MapRegistry.AddModelMap<LegacyChunk>( //v0.4.0
                 "06aaf593-07af-4fca-99a9-bdc3718547d8",
                 mm =>

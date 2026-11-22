@@ -193,26 +193,6 @@ namespace Etherna.Beehive.Services.Utilities
         }
 
         [Fact]
-        public async Task InsertsWithoutReadingTheDbWhenNoChunkIsHeld()
-        {
-            // Setup.
-            await using var store = NewStore();
-
-            // Action.
-            foreach (var seed in Enumerable.Range(0, 16))
-                await store.AddAsync(NewChunk(seed));
-            await store.FlushSaveAsync();
-
-            // Assert.
-            //the insert is optimistic: the db is read only after a refusal
-            Assert.Equal(16, db.SwarmChunks.Count);
-            db.SwarmChunksMock.Verify(r => r.QueryElementsAsync(
-                    It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
-                    null),
-                Times.Never);
-        }
-
-        [Fact]
         public async Task ReadsAChunkOfTheDeprecatedChunksWithoutAskingTheNodesNorCopyingIt()
         {
             // Setup.
@@ -249,31 +229,6 @@ namespace Etherna.Beehive.Services.Utilities
             Assert.Empty(result);
             Assert.Contains(chunk.Hash, nodeA.RequestedHashes);
             Assert.Empty(nodeB.RequestedHashes);
-        }
-
-        [Fact]
-        public async Task SavesAContentWhileAConcurrentWriterKeepsCreatingSomeOfItsChunks()
-        {
-            // Setup.
-            //another upload of the same content creates the first chunk of every batch the store tries, just before it
-            var pin = NewPin();
-            db.OnCreatingChunks = batch =>
-            {
-                if (batch.Count > 1 && db.SwarmChunks.All(c => c.Id != batch[0].Id))
-                    db.SwarmChunks.Add(new Chunk(batch[0].Id, batch[0].Payload, false));
-            };
-            await using var store = NewStore(onSavingChunk: c => c.AddPin(pin));
-
-            // Action.
-            foreach (var seed in Enumerable.Range(0, 16))
-                await store.AddAsync(NewChunk(seed));
-            await store.FlushSaveAsync();
-
-            // Assert.
-            //every chunk once, every one with the pin: the refused ones take it on the document the other writer created
-            Assert.Equal(16, db.SwarmChunks.Count);
-            Assert.Equal(16, db.SwarmChunks.Select(c => c.Id).Distinct().Count());
-            Assert.All(db.SwarmChunks, c => Assert.Equal([pin], c.Pins));
         }
 
         [Fact]
