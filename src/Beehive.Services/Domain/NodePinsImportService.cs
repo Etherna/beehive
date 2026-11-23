@@ -37,7 +37,8 @@ namespace Etherna.Beehive.Services.Domain
         IBeehiveDbContext dbContext,
         IBeeNodeLiveManager beeNodeLiveManager,
         IHangfireJobsMonitor hangfireJobsMonitor,
-        ILogger<NodePinsImportService> logger)
+        ILogger<NodePinsImportService> logger,
+        IPinIntegrityService pinIntegrityService)
         : INodePinsImportService
     {
         // Methods.
@@ -97,6 +98,9 @@ namespace Etherna.Beehive.Services.Domain
             IEnumerable<SwarmReference>? references = null)
         {
             ArgumentNullException.ThrowIfNull(nodeId);
+
+            // An import checks the pins it works on: not while a deprecated store holds chunks.
+            await pinIntegrityService.VerifyPinsCanBeCheckedAsync();
 
             // One import at a time per node.
             var latestImport = await TryGetLatestImportAsync(nodeId);

@@ -24,7 +24,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,6 +33,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         IBeeNodeLiveManager beeNodeLiveManager,
         IBeehiveDbContext dbContext,
         ILogger<ImportNodePinsTask> logger,
+        IPinIntegrityService pinIntegrityService,
         IPinService pinService)
         : IImportNodePinsTask
     {
@@ -134,12 +134,12 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         }
 
         // Helpers.
-        private static string DescribeIncompleteImport(int missingChunks, int invalidChunks) =>
+        private static string DescribeIncompleteImport(int missingChunks, int invalidChunks, string location) =>
             (missingChunks, invalidChunks) switch
             {
-                (> 0, > 0) => $"{missingChunks} chunks missing and {invalidChunks} invalid on the node",
-                (> 0, _) => $"{missingChunks} chunks missing on the node",
-                _ => $"{invalidChunks} invalid chunks on the node"
+                (> 0, > 0) => $"{missingChunks} chunks missing and {invalidChunks} invalid {location}",
+                (> 0, _) => $"{missingChunks} chunks missing {location}",
+                _ => $"{invalidChunks} invalid chunks {location}"
             };
 
         /// <summary>
@@ -165,56 +165,81 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                 await dbContext.ChunkPins.CreateAsync(pin, cancellationToken);
             }
 
-            // Pin the chunks read from the node, unless beehive already holds them all.
-            var isComplete = pin.IsSucceeded;
-            if (isComplete)
+            // Pin the chunks read from the node, unless beehive already holds them all. A pin declared succeeded is
+            // checked on beehive's own chunks first: one found incomplete is reset, and imported again.
+            bool isComplete;
+            try
             {
-                record.SetAlreadyPinned(pin.TotPinnedChunks);
-                import.PinSkipped();
-            }
-            else
-            {
-                PinChunksResult result;
-                try
+                if (pin.IsSucceeded)
                 {
-                    result = await pinService.PinChunksAsync(pin.Id, node, cancellationToken); //the chunks are read from the node itself
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw; //a shutdown, not a failure of the pin
-                }
-                catch (ResourceLockException) when (deferOnLock)
-                {
-                    logger.NodePinImportDeferred(node.Id, reference);
-                    return false;
-                }
-                catch (Exception e)
-                {
-                    logger.NodePinImportFailed(node.Id, reference, e);
-                    record.SetFailed(e.Message);
-                    import.PinFailed();
-                    await dbContext.NodePinImports.CreateAsync(record, cancellationToken);
-                    return true;
+                    var pinnedCheckResult = await pinIntegrityService.CheckPinAsync(pin, cancellationToken);
+                    if (pinnedCheckResult.IsComplete)
+                    {
+                        record.SetAlreadyPinned(pinnedCheckResult.TotalChunks);
+                        import.PinSkipped();
+                    }
+                    else
+                    {
+                        pin = await pinIntegrityService.ResetPinAsync(pin.Id, pinnedCheckResult, cancellationToken);
+                    }
                 }
 
-                pin = result.Pin;
-                isComplete = pin.IsSucceeded && result.InvalidChunks.Count == 0;
-                if (isComplete)
+                isComplete = pin.IsSucceeded;
+                if (!isComplete)
                 {
-                    record.SetImported(pin.TotPinnedChunks);
-                    import.PinImported();
+                    var result = await pinService.PinChunksAsync(pin.Id, node, cancellationToken); //the chunks are read from the node itself
+                    pin = result.Pin;
+                    IReadOnlyCollection<SwarmHash> missingChunks = [.. pin.MissingChunks];
+                    var invalidChunks = result.InvalidChunks;
+                    var location = "on the node";
+
+                    // The content is held only when its check finds it whole on beehive's own chunks.
+                    if (pin.IsSucceeded && invalidChunks.Count == 0)
+                    {
+                        var checkResult = await pinIntegrityService.CheckPinAsync(pin, cancellationToken);
+                        if (!checkResult.IsComplete)
+                        {
+                            pin = await pinIntegrityService.ResetPinAsync(pin.Id, checkResult, cancellationToken);
+                            missingChunks = checkResult.MissingChunks;
+                            invalidChunks = checkResult.InvalidChunks;
+                            location = "in beehive after the import";
+                        }
+                    }
+
+                    isComplete = pin.IsSucceeded && invalidChunks.Count == 0;
+                    if (isComplete)
+                    {
+                        record.SetImported(pin.TotPinnedChunks);
+                        import.PinImported();
+                    }
+                    else
+                    {
+                        logger.NodePinImportIncomplete(node.Id, reference, missingChunks.Count, invalidChunks.Count);
+                        record.SetFailed(
+                            DescribeIncompleteImport(missingChunks.Count, invalidChunks.Count, location),
+                            missingChunks,
+                            invalidChunks,
+                            pin.TotPinnedChunks);
+                        import.PinFailed();
+                    }
                 }
-                else
-                {
-                    var missingChunks = pin.MissingChunks.ToArray();
-                    logger.NodePinImportIncomplete(node.Id, reference, missingChunks.Length, result.InvalidChunks.Count);
-                    record.SetFailed(
-                        DescribeIncompleteImport(missingChunks.Length, result.InvalidChunks.Count),
-                        missingChunks,
-                        result.InvalidChunks,
-                        pin.TotPinnedChunks);
-                    import.PinFailed();
-                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw; //a shutdown, not a failure of the pin
+            }
+            catch (ResourceLockException) when (deferOnLock)
+            {
+                logger.NodePinImportDeferred(node.Id, reference);
+                return false;
+            }
+            catch (Exception e)
+            {
+                logger.NodePinImportFailed(node.Id, reference, e);
+                record.SetFailed(e.Message);
+                import.PinFailed();
+                await dbContext.NodePinImports.CreateAsync(record, cancellationToken);
+                return true;
             }
 
             // Unpin on the node, only a content beehive holds in full.

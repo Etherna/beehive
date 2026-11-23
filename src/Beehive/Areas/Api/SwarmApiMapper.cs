@@ -298,6 +298,16 @@ namespace Etherna.Beehive.Areas.Api
                     .Produces<IEnumerable<BeehivePinDto>>();
             }
             
+            builder.MapGet("/pins/check",
+                    (IPinsApiHandler handler,
+                            HttpContext httpContext,
+                            [FromQuery(Name = "ref")] SwarmReference? reference = null) =>
+                        handler.CheckPinsAsync(reference, httpContext))
+                .Produces<BeePinCheckDto>(contentType: BeehiveHttpConsts.ApplicationNdjsonContentType)
+                .Produces(StatusCodes.Status400BadRequest)
+                .Produces<BeeErrorDto>(StatusCodes.Status409Conflict)
+                .Produces<BeeErrorDto>(StatusCodes.Status429TooManyRequests);
+            
             builder.MapGet("/pins/{reference}",
                     (IPinsApiHandler handler,
                             [FromRoute] SwarmReference reference) =>

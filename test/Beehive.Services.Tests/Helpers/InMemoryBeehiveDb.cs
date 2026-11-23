@@ -42,7 +42,7 @@ namespace Etherna.Beehive.Services.Helpers
         // Constructor.
         public InMemoryBeehiveDb()
         {
-            // SwarmChunks: lookups by hash, queries, creations and the add-to-set of a pin over the list. A creation
+            // SwarmChunks: lookups by hash, queries, creations, deletions and the add-to-set of a pin over the list. A creation
             // follows the contract of the repository: a chunk held already, or repeated in the batch, takes the pins
             // of the created one instead of being added again.
             SwarmChunksMock.Setup(r => r.TryFindOneAsync(
@@ -68,6 +68,9 @@ namespace Etherna.Beehive.Services.Helpers
                 });
             SwarmChunksMock.Setup(r => r.CreateOrAddPinsAsync(It.IsAny<IEnumerable<Chunk>>(), It.IsAny<CancellationToken>()))
                 .Returns((IEnumerable<Chunk> chunks, CancellationToken _) => Task.FromResult(CreateOrAddPins(chunks)));
+            SwarmChunksMock.Setup(r => r.DeleteManyAsync(It.IsAny<Expression<Func<Chunk, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Expression<Func<Chunk, bool>> filter, CancellationToken _) =>
+                    (long)SwarmChunks.RemoveAll(new Predicate<Chunk>(filter.Compile())));
             SwarmChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
                     It.IsAny<FilterDefinition<Chunk>>(),
                     It.IsAny<Expression<Func<Chunk, IEnumerable<ChunkPin>>>>(),

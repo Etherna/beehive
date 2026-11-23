@@ -122,6 +122,10 @@ namespace Etherna.Beehive.Pages.Admin
                 Message = $"Node {nodeId}: pins import started, job {import.JobId}" +
                     (requestedReferences.Length > 0 ? $", {requestedReferences.Length} requested contents" : "");
             }
+            catch (DeprecatedChunksNotMigratedException e)
+            {
+                Message = $"Node {nodeId}: {e.Message}";
+            }
             catch (ResourceLockException)
             {
                 Message = $"Node {nodeId}: an import is still running";

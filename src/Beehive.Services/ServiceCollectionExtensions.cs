@@ -48,6 +48,7 @@ namespace Etherna.Beehive.Services
             services.AddScoped<IChunksMigrationService, ChunksMigrationService>();
             services.AddScoped<IDataService, DataService>();
             services.AddScoped<INodePinsImportService, NodePinsImportService>();
+            services.AddScoped<IPinIntegrityService, PinIntegrityService>();
             services.AddScoped<IPinService, PinService>();
             services.AddScoped<IPostageBatchService, PostageBatchService>();
 

@@ -144,6 +144,7 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<NodePinsImportDto>(StatusCodes.Status202Accepted)
                 .Produces<string>(StatusCodes.Status400BadRequest)
                 .Produces<string>(StatusCodes.Status404NotFound)
+                .Produces<string>(StatusCodes.Status409Conflict)
                 .Produces<string>(StatusCodes.Status423Locked);
 
             builder.MapGet("/nodes/{id}/pins/imports/{importId}/pins",

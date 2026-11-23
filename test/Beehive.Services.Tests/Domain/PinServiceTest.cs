@@ -19,12 +19,7 @@ using Etherna.Beehive.Services.Utilities;
 using Etherna.MongoDB.Driver;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
 using Etherna.Scrinium.Core.Utility;
-using Etherna.SwarmSdk.Hashing;
-using Etherna.SwarmSdk.Hashing.Pipeline;
-using Etherna.SwarmSdk.Hashing.Postage;
-using Etherna.SwarmSdk.Hashing.Signer;
 using Etherna.SwarmSdk.Models;
-using Etherna.SwarmSdk.Stores;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
@@ -42,9 +37,6 @@ namespace Etherna.Beehive.Services.Domain
         // Consts.
         private const string NodeId = "nodeA";
         private const string NodeOverlay = "aa00000000000000000000000000000000000000000000000000000000000001";
-        private const string PrivateKeyHex = "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d";
-        //three levels: 150 data chunks under 2 intermediate chunks under the root
-        private const int ContentLength = 600 * 1024;
 
         // Fields.
         private readonly InMemoryBeehiveDb db = new();
@@ -104,7 +96,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //a data chunk document deleted between its fetch and the pinning: the add-to-set finds nothing
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
             var goneHash = node.Chunks.AllChunks.Keys.First(h => h != reference.Hash);
             db.SwarmChunksMock.Setup(r => r.TryFindOneAndAddToSetAsync(
@@ -149,7 +141,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //beehive holds the content already, and the add-to-set answers the documents without writing the pin
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             foreach (var chunk in node.Chunks.AllChunks.Values)
                 db.AddChunk(new Chunk(chunk.Hash, chunk.GetFullPayload(), false));
             var pin = NewPin(reference);
@@ -182,7 +174,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //the shutdown arrives while the chunks are read from the node: the token reaches the reads, which stop
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
             using var shutdown = new CancellationTokenSource();
             await shutdown.CancelAsync();
@@ -201,7 +193,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //the lease is lost when the traversal is over, while the pinned documents are read back
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
             db.SwarmChunksMock.Setup(r => r.QueryElementsAsync(
                     It.IsAny<Func<IQueryable<Chunk>, Task<List<SwarmHash>>>>(),
@@ -238,7 +230,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //the lease is lost once the pin is loaded: its token reaches the reads of the node, which stop
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
             db.ChunkPinsMock.Setup(r => r.FindOneAsync(pin.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
@@ -263,7 +255,7 @@ namespace Etherna.Beehive.Services.Domain
         public async Task PinsAContentReadFromTheHealthyNodesWithoutASourceNode()
         {
             // Setup.
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
 
             // Action.
@@ -277,7 +269,7 @@ namespace Etherna.Beehive.Services.Domain
         public async Task PinsAContentReadFromTheSourceNodeSavingEveryChunkWithThePin()
         {
             // Setup.
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var pin = NewPin(reference);
 
             // Action.
@@ -292,7 +284,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //beehive holds the content, one data chunk of it in the chunks of 0.4.0 only, not migrated yet
-            var reference = await UploadContentAsync(node.Chunks);
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
             var legacyChunk = node.Chunks.AllChunks.Values.First(c => c.Hash != reference.Hash);
             foreach (var chunk in node.Chunks.AllChunks.Values.Where(c => c.Hash != legacyChunk.Hash))
                 db.AddChunk(new Chunk(chunk.Hash, chunk.GetFullPayload(), false));
@@ -316,7 +308,7 @@ namespace Etherna.Beehive.Services.Domain
         {
             // Setup.
             //a soc pinned on the node, nothing in the db: as bee, the wrapped chunk is not entered
-            var soc = NewSignedSoc();
+            var soc = TestContents.NewSignedSoc();
             await node.Chunks.AddAsync(soc);
             var pin = NewPin(new SwarmReference(soc.Hash, null));
 
@@ -355,44 +347,6 @@ namespace Etherna.Beehive.Services.Domain
             var pin = new ChunkPin(reference);
             db.AddPin(pin);
             return pin;
-        }
-
-        private static SwarmSoc NewSignedSoc()
-        {
-            var bmt = new SwarmChunkBmt();
-            var spanData = SwarmCac.BuildFromData(SwarmHash.Zero, Enumerable.Range(0, 42).Select(i => (byte)i).ToArray()).SpanData;
-            var innerChunk = new SwarmCac(bmt.Hash(spanData), spanData);
-            var signer = new PrivateKeySigner(new EthPrivateKey(PrivateKeyHex));
-            SwarmSocIdentifier identifier = Enumerable.Range(0, SwarmSocIdentifier.IdentifierSize).Select(i => (byte)i).ToArray();
-            var soc = new SwarmSoc(identifier, signer.PublicAddress, innerChunk);
-            soc.Sign(signer, new Hasher());
-            return soc;
-        }
-
-        /// <summary>
-        /// Build a content with the sdk hasher pipeline into the given store, as an upload would: deterministic
-        /// pseudo-random data, so that no two data chunks are the same
-        /// </summary>
-        private static async Task<SwarmReference> UploadContentAsync(IChunkStore chunkStore)
-        {
-            var data = new byte[ContentLength];
-            var state = 2463534242u; //xorshift32
-            for (var i = 0; i < data.Length; i++)
-            {
-                state ^= state << 13;
-                state ^= state >> 17;
-                state ^= state << 5;
-                data[i] = (byte)state;
-            }
-
-            using var hasherPipeline = HasherPipelineBuilder.BuildNewHasherPipeline(
-                chunkStore,
-                new FakePostageStamper(),
-                RedundancyLevel.None,
-                false,
-                0,
-                null);
-            return await hasherPipeline.HashDataAsync(data);
         }
     }
 }

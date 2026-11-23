@@ -170,6 +170,24 @@ namespace Etherna.Beehive.Areas.Api
             }
         }
 
+        [Fact]
+        public async Task DeprecatedChunksNotMigratedAnswersConflictWithItsMessage()
+        {
+            // Setup.
+            const string message = "the deprecated chunk stores are not empty: migrate their chunks first";
+
+            // Action.
+            var result = await ExceptionHandler.RunAsync(
+                ApiVersion.Swarm,
+                () => throw new DeprecatedChunksNotMigratedException(message));
+            var (statusCode, body) = await ExecuteResultAsync(result);
+
+            // Assert.
+            Assert.Equal(StatusCodes.Status409Conflict, statusCode);
+            Assert.Equal(409, body.GetProperty("code").GetInt32());
+            Assert.Equal(message, body.GetProperty("message").GetString());
+        }
+
         [Theory, MemberData(nameof(PostageBatchVerificationTests))]
         public async Task PostageBatchVerificationAnswersBeeStatusAndMessage(
             Exception exception,

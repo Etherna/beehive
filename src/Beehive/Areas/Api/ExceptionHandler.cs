@@ -76,6 +76,8 @@ namespace Etherna.Beehive.Areas.Api
                  * instead of a server error. */
                 MongoException mongoException when mongoException.HasErrorLabel("TransientTransactionError") =>
                     ErrorResults.GetErrorResult(apiVersion, StatusCodes.Status409Conflict, ErrorResults.WriteConflictErrorMessage),
+                DeprecatedChunksNotMigratedException => //an operation asked before the deprecated chunk stores are emptied: the message says so
+                    ErrorResults.GetErrorResult(apiVersion, StatusCodes.Status409Conflict, exception.Message),
 
                 // Error code 422.
                 PostageBatchNotUsableException => //bee's upload answer for a batch not usable yet
