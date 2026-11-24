@@ -15,6 +15,7 @@
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Persistence.Helpers;
 using Etherna.DomainEvents;
+using Etherna.MongoDB.Bson;
 using Etherna.MongoDB.Bson.IO;
 using Etherna.MongoDB.Bson.Serialization;
 using Etherna.MongoDB.Driver;
@@ -533,6 +534,199 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             }
         }
 
+        public static IEnumerable<object[]> PinCheckDeserializationTests
+        {
+            get
+            {
+                var tests = new List<DeserializationTestElement<PinCheck>>();
+
+                // "b3e245e7-4685-4b7e-9e00-226d5e04b285" - v0.4.12, a content with missing and invalid chunks
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("6922f1b2c4d5e6f708192b01"),
+                            "_s" : "b3e245e7-4685-4b7e-9e00-226d5e04b285",
+                            "CreationDateTime" : ISODate("2026-11-23T10:01:00.000+0000"),
+                            "ParentCheck" : {
+                                "_s" : "71627fbd-87d3-46f2-9f48-bfa786655758",
+                                "_id" : ObjectId("6922f1b2c4d5e6f708192b00")
+                            },
+                            "FailureReason" : null,
+                            "InvalidChunks" : NumberLong(1),
+                            "MissingChunks" : NumberLong(2),
+                            "Reference" : "496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde",
+                            "TotalChunks" : NumberLong(153)
+                        }
+                        """;
+
+                    var expectedMock = new Mock<PinCheck>();
+                    expectedMock.Setup(c => c.Id).Returns("6922f1b2c4d5e6f708192b01");
+                    expectedMock.Setup(c => c.CreationDateTime).Returns(new DateTime(2026, 11, 23, 10, 01, 00, 000));
+                    var checkMock = new Mock<PinsCheck>();
+                    checkMock.Setup(c => c.Id).Returns("6922f1b2c4d5e6f708192b00");
+                    expectedMock.Setup(c => c.ParentCheck).Returns(checkMock.Object);
+                    expectedMock.Setup(c => c.FailureReason).Returns((string?)null);
+                    expectedMock.Setup(c => c.InvalidChunks).Returns(1);
+                    expectedMock.Setup(c => c.MissingChunks).Returns(2);
+                    expectedMock.Setup(c => c.Outcome).Returns(PinCheckOutcome.Invalid);
+                    expectedMock.Setup(c => c.Reference).Returns("496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde");
+                    expectedMock.Setup(c => c.TotalChunks).Returns(153);
+
+                    tests.Add(new DeserializationTestElement<PinCheck>(sourceDocument, expectedMock.Object));
+                }
+
+                // "b3e245e7-4685-4b7e-9e00-226d5e04b285" - v0.4.12, a reference that could not be checked
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("6922f1b2c4d5e6f708192b02"),
+                            "_s" : "b3e245e7-4685-4b7e-9e00-226d5e04b285",
+                            "CreationDateTime" : ISODate("2026-11-23T10:01:30.000+0000"),
+                            "ParentCheck" : {
+                                "_s" : "71627fbd-87d3-46f2-9f48-bfa786655758",
+                                "_id" : ObjectId("6922f1b2c4d5e6f708192b00")
+                            },
+                            "FailureReason" : "The reference is not pinned",
+                            "InvalidChunks" : NumberLong(0),
+                            "MissingChunks" : NumberLong(0),
+                            "Reference" : "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f",
+                            "TotalChunks" : NumberLong(0)
+                        }
+                        """;
+
+                    var expectedMock = new Mock<PinCheck>();
+                    expectedMock.Setup(c => c.Id).Returns("6922f1b2c4d5e6f708192b02");
+                    expectedMock.Setup(c => c.CreationDateTime).Returns(new DateTime(2026, 11, 23, 10, 01, 30, 000));
+                    var checkMock = new Mock<PinsCheck>();
+                    checkMock.Setup(c => c.Id).Returns("6922f1b2c4d5e6f708192b00");
+                    expectedMock.Setup(c => c.ParentCheck).Returns(checkMock.Object);
+                    expectedMock.Setup(c => c.FailureReason).Returns("The reference is not pinned");
+                    expectedMock.Setup(c => c.InvalidChunks).Returns(0);
+                    expectedMock.Setup(c => c.MissingChunks).Returns(0);
+                    expectedMock.Setup(c => c.Outcome).Returns(PinCheckOutcome.Failed);
+                    expectedMock.Setup(c => c.Reference).Returns("7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f");
+                    expectedMock.Setup(c => c.TotalChunks).Returns(0);
+
+                    tests.Add(new DeserializationTestElement<PinCheck>(sourceDocument, expectedMock.Object));
+                }
+
+                return tests.Select(t => new object[] { t });
+            }
+        }
+
+        public static IEnumerable<object[]> PinsCheckDeserializationTests
+        {
+            get
+            {
+                var tests = new List<DeserializationTestElement<PinsCheck>>();
+
+                // "0a71148a-6fb7-4a97-8b8d-51e87b866870" - v0.4.12, completed, on the pins not succeeded
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("6922f1b2c4d5e6f708192b00"),
+                            "_s" : "0a71148a-6fb7-4a97-8b8d-51e87b866870",
+                            "CreationDateTime" : ISODate("2026-11-23T10:00:00.000+0000"),
+                            "CompletedDateTime" : ISODate("2026-11-23T10:30:00.000+0000"),
+                            "CompletePins" : NumberLong(12),
+                            "FailedPins" : NumberLong(1),
+                            "FailureReason" : null,
+                            "IncompletePins" : NumberLong(3),
+                            "InvalidPins" : NumberLong(2),
+                            "IsStopped" : false,
+                            "JobId" : "6922f1b2c4d5e6f708192b0a",
+                            "RequestedPinStates" : ["Incomplete", "Unprocessed"],
+                            "RequestedReferences" : [],
+                            "RunningReference" : null,
+                            "StartedDateTime" : ISODate("2026-11-23T10:00:01.000+0000"),
+                            "StopRequestedDateTime" : null,
+                            "TotalPins" : NumberLong(18)
+                        }
+                        """;
+
+                    var expectedMock = new Mock<PinsCheck>();
+                    expectedMock.Setup(c => c.Id).Returns("6922f1b2c4d5e6f708192b00");
+                    expectedMock.Setup(c => c.CreationDateTime).Returns(new DateTime(2026, 11, 23, 10, 00, 00, 000));
+                    expectedMock.Setup(c => c.CompletedDateTime).Returns(new DateTime(2026, 11, 23, 10, 30, 00, 000));
+                    expectedMock.Setup(c => c.CompletePins).Returns(12);
+                    expectedMock.Setup(c => c.FailedPins).Returns(1);
+                    expectedMock.Setup(c => c.FailureReason).Returns((string?)null);
+                    expectedMock.Setup(c => c.IncompletePins).Returns(3);
+                    expectedMock.Setup(c => c.InvalidPins).Returns(2);
+                    expectedMock.Setup(c => c.IsStopped).Returns(false);
+                    expectedMock.Setup(c => c.JobId).Returns("6922f1b2c4d5e6f708192b0a");
+                    expectedMock.Setup(c => c.RequestedPinStates).Returns([ChunkPinState.Incomplete, ChunkPinState.Unprocessed]);
+                    expectedMock.Setup(c => c.RequestedReferences).Returns([]);
+                    expectedMock.Setup(c => c.RunningReference).Returns((SwarmReference?)null);
+                    expectedMock.Setup(c => c.StartedDateTime).Returns(new DateTime(2026, 11, 23, 10, 00, 01, 000));
+                    expectedMock.Setup(c => c.State).Returns(PinsCheckState.Completed);
+                    expectedMock.Setup(c => c.StopRequestedDateTime).Returns((DateTime?)null);
+                    expectedMock.Setup(c => c.TotalPins).Returns(18);
+
+                    tests.Add(new DeserializationTestElement<PinsCheck>(sourceDocument, expectedMock.Object));
+                }
+
+                // "0a71148a-6fb7-4a97-8b8d-51e87b866870" - v0.4.12, running on two requested contents, asked to stop
+                {
+                    var sourceDocument =
+                        """
+                        {
+                            "_id" : ObjectId("6922f1b2c4d5e6f708192b10"),
+                            "_s" : "0a71148a-6fb7-4a97-8b8d-51e87b866870",
+                            "CreationDateTime" : ISODate("2026-11-23T11:00:00.000+0000"),
+                            "CompletedDateTime" : null,
+                            "CompletePins" : NumberLong(1),
+                            "FailedPins" : NumberLong(0),
+                            "FailureReason" : null,
+                            "IncompletePins" : NumberLong(0),
+                            "InvalidPins" : NumberLong(0),
+                            "IsStopped" : false,
+                            "JobId" : "6922f1b2c4d5e6f708192b1a",
+                            "RequestedPinStates" : [],
+                            "RequestedReferences" : [
+                                "496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde",
+                                "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f"
+                            ],
+                            "RunningReference" : "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f",
+                            "StartedDateTime" : ISODate("2026-11-23T11:00:01.000+0000"),
+                            "StopRequestedDateTime" : ISODate("2026-11-23T11:00:05.000+0000"),
+                            "TotalPins" : NumberLong(2)
+                        }
+                        """;
+
+                    var expectedMock = new Mock<PinsCheck>();
+                    expectedMock.Setup(c => c.Id).Returns("6922f1b2c4d5e6f708192b10");
+                    expectedMock.Setup(c => c.CreationDateTime).Returns(new DateTime(2026, 11, 23, 11, 00, 00, 000));
+                    expectedMock.Setup(c => c.CompletedDateTime).Returns((DateTime?)null);
+                    expectedMock.Setup(c => c.CompletePins).Returns(1);
+                    expectedMock.Setup(c => c.FailedPins).Returns(0);
+                    expectedMock.Setup(c => c.FailureReason).Returns((string?)null);
+                    expectedMock.Setup(c => c.IncompletePins).Returns(0);
+                    expectedMock.Setup(c => c.InvalidPins).Returns(0);
+                    expectedMock.Setup(c => c.IsStopped).Returns(false);
+                    expectedMock.Setup(c => c.JobId).Returns("6922f1b2c4d5e6f708192b1a");
+                    expectedMock.Setup(c => c.RequestedPinStates).Returns([]);
+                    expectedMock.Setup(c => c.RequestedReferences).Returns(
+                    [
+                        "496575f289a974f5888e734e36f81067f9917df636683c0b307c8c4aeba71dde",
+                        "7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f"
+                    ]);
+                    expectedMock.Setup(c => c.RunningReference).Returns("7518e1c0e9c1eb44f716b830753b24afff7aea42d51ae6ac94679f9aae118e9f");
+                    expectedMock.Setup(c => c.StartedDateTime).Returns(new DateTime(2026, 11, 23, 11, 00, 01, 000));
+                    expectedMock.Setup(c => c.State).Returns(PinsCheckState.Running);
+                    expectedMock.Setup(c => c.StopRequestedDateTime).Returns(new DateTime(2026, 11, 23, 11, 00, 05, 000));
+                    expectedMock.Setup(c => c.TotalPins).Returns(2);
+
+                    tests.Add(new DeserializationTestElement<PinsCheck>(sourceDocument, expectedMock.Object));
+                }
+
+                return tests.Select(t => new object[] { t });
+            }
+        }
+
         public static IEnumerable<object[]> PostageBatchCacheDeserializationTests
         {
             get
@@ -827,6 +1021,88 @@ namespace Etherna.Beehive.Persistence.ModelMaps
             Assert.Equal(testElement.ExpectedModel.UnpinImported, result.UnpinImported);
             Assert.Equal(testElement.ExpectedModel.UnpinnedPins, result.UnpinnedPins);
             Assert.NotNull(result.Id);
+        }
+
+        [Theory, MemberData(nameof(PinCheckDeserializationTests))]
+        public void PinCheckDeserialization(DeserializationTestElement<PinCheck> testElement)
+        {
+            ArgumentNullException.ThrowIfNull(testElement);
+
+            // Setup.
+            using var documentReader = new JsonReader(testElement.SourceDocument);
+            var modelMapSerializer = new ModelMapSerializer<PinCheck>(dbContext.Engine);
+            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
+            testElement.SetupAction(mongoDatabaseMock, dbContext);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            var result = modelMapSerializer.Deserialize(deserializationContext);
+
+            // Assert.
+            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
+            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
+            Assert.Equal(testElement.ExpectedModel.ParentCheck.Id, result.ParentCheck.Id);
+            Assert.Equal(testElement.ExpectedModel.FailureReason, result.FailureReason);
+            Assert.Equal(testElement.ExpectedModel.InvalidChunks, result.InvalidChunks);
+            Assert.Equal(testElement.ExpectedModel.MissingChunks, result.MissingChunks);
+            Assert.Equal(testElement.ExpectedModel.Outcome, result.Outcome);
+            Assert.Equal(testElement.ExpectedModel.Reference, result.Reference);
+            Assert.Equal(testElement.ExpectedModel.TotalChunks, result.TotalChunks);
+            Assert.NotNull(result.Id);
+        }
+
+        [Theory, MemberData(nameof(PinsCheckDeserializationTests))]
+        public void PinsCheckDeserialization(DeserializationTestElement<PinsCheck> testElement)
+        {
+            ArgumentNullException.ThrowIfNull(testElement);
+
+            // Setup.
+            using var documentReader = new JsonReader(testElement.SourceDocument);
+            var modelMapSerializer = new ModelMapSerializer<PinsCheck>(dbContext.Engine);
+            var deserializationContext = BsonDeserializationContext.CreateRoot(documentReader);
+            testElement.SetupAction(mongoDatabaseMock, dbContext);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            var result = modelMapSerializer.Deserialize(deserializationContext);
+
+            // Assert.
+            Assert.Equal(testElement.ExpectedModel.Id, result.Id);
+            Assert.Equal(testElement.ExpectedModel.CreationDateTime, result.CreationDateTime);
+            Assert.Equal(testElement.ExpectedModel.CompletedDateTime, result.CompletedDateTime);
+            Assert.Equal(testElement.ExpectedModel.CompletePins, result.CompletePins);
+            Assert.Equal(testElement.ExpectedModel.FailedPins, result.FailedPins);
+            Assert.Equal(testElement.ExpectedModel.FailureReason, result.FailureReason);
+            Assert.Equal(testElement.ExpectedModel.IncompletePins, result.IncompletePins);
+            Assert.Equal(testElement.ExpectedModel.InvalidPins, result.InvalidPins);
+            Assert.Equal(testElement.ExpectedModel.IsStopped, result.IsStopped);
+            Assert.Equal(testElement.ExpectedModel.JobId, result.JobId);
+            Assert.Equal(testElement.ExpectedModel.RequestedPinStates, result.RequestedPinStates);
+            Assert.Equal(testElement.ExpectedModel.RequestedReferences, result.RequestedReferences);
+            Assert.Equal(testElement.ExpectedModel.RunningReference, result.RunningReference);
+            Assert.Equal(testElement.ExpectedModel.StartedDateTime, result.StartedDateTime);
+            Assert.Equal(testElement.ExpectedModel.State, result.State);
+            Assert.Equal(testElement.ExpectedModel.StopRequestedDateTime, result.StopRequestedDateTime);
+            Assert.Equal(testElement.ExpectedModel.TotalPins, result.TotalPins);
+            Assert.NotNull(result.Id);
+        }
+
+        [Fact]
+        public void PinsCheckStoresTheRequestedPinStatesByName()
+        {
+            // Setup.
+            var check = new PinsCheck([ChunkPinState.Incomplete, ChunkPinState.Unprocessed]);
+            var modelMapSerializer = new ModelMapSerializer<PinsCheck>(dbContext.Engine);
+            var document = new BsonDocument();
+            using var documentWriter = new BsonDocumentWriter(document);
+
+            // Action.
+            using var dbExecutionContext = new DbExecutionContextHandler(dbContext); //run into a db execution context
+            modelMapSerializer.Serialize(BsonSerializationContext.CreateRoot(documentWriter), check);
+
+            // Assert.
+            //by name: the members of an enum are in alphabetical order, a new one would shift the numbers stored
+            Assert.Equal(new BsonArray { "Incomplete", "Unprocessed" }, document["RequestedPinStates"]);
         }
 
         [Theory, MemberData(nameof(PostageBatchCacheDeserializationTests))]

@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Models;
 using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
@@ -23,13 +24,24 @@ namespace Etherna.Beehive.Areas.Api.DtoModels
         DateTimeOffset creationTime,
         IEnumerable<SwarmHash> missingChunks,
         bool processed,
-        bool succeeded,
+        ChunkPinState state,
         long pinnedChunks)
     {
         public SwarmReference Reference { get; } = reference;
         public DateTimeOffset CreationTime { get; } = creationTime;
+
+        /// <summary>
+        /// What the pin declares of its content: unprocessed, incomplete or succeeded
+        /// </summary>
+        public ChunkPinState State { get; } = state;
+
         public bool Processed { get; } = processed;
-        public bool Succeeded { get; } = succeeded;
+
+        /// <summary>
+        /// Whether the state is succeeded: kept for the clients that read it
+        /// </summary>
+        public bool Succeeded { get; } = state == ChunkPinState.Succeeded;
+
         public IEnumerable<SwarmHash> MissingChunks { get; } = missingChunks;
         public long PinnedChunks { get; } = pinnedChunks;
     }

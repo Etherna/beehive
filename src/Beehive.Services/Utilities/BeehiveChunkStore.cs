@@ -45,7 +45,9 @@ namespace Etherna.Beehive.Services.Utilities
     /// read after it, never written but for the pins of the chunks they hold.
     /// A chunk the db refuses fails the operation writing it: the write exception propagates, the chunks stay in
     /// the saving buffer, readable, and the store doesn't write again: every further add or flush throws the same
-    /// failure at once, without a db round trip, and its dispose leaves the buffer alone
+    /// failure at once, without a db round trip, and its dispose leaves the buffer alone.
+    /// With <paramref name="readFromNodes"/> false the store reads beehive's own chunks only: a chunk the db doesn't
+    /// hold is not found, and no node is asked
     /// </summary>
     [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
     public sealed class BeehiveChunkStore(
@@ -55,7 +57,8 @@ namespace Etherna.Beehive.Services.Utilities
         ISerializerModifierAccessor serializerModifierAccessor,
         int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
         Action<Chunk>? onSavingChunk = null,
-        BeeNodeLiveInstance? sourceNode = null)
+        BeeNodeLiveInstance? sourceNode = null,
+        bool readFromNodes = true)
         : ReadOnlyChunkStoreBase, IAsyncDisposable, IChunkStore, IDisposable
     {
         // Consts.
@@ -221,6 +224,8 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // If it's not found, search on a healthy bee node.
+            if (!readFromNodes)
+                throw new KeyNotFoundException($"Chunk {hash} is not held by beehive");
             return await GetFromBeeNodeAsync(hash, cancellationToken);
         }
 
@@ -291,6 +296,8 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // If it's not found, search on healthy bee nodes.
+            if (!readFromNodes)
+                return results;
             var fromBeeNodes = await GetFromBeeNodesAsync(missingHashes, cancellationToken);
             foreach (var (hash, chunk) in fromBeeNodes)
                 results.TryAdd(hash, chunk);
@@ -331,6 +338,8 @@ namespace Etherna.Beehive.Services.Utilities
             }
             
             // If it's not found, search on the source node, or on a healthy bee node.
+            if (!readFromNodes)
+                return false;
             var node = sourceNode ?? beeNodeLiveManager.SelectNearestHealthyNode(hash);
             return await node.ChunkStore.HasChunkAsync(hash, cancellationToken);
         }

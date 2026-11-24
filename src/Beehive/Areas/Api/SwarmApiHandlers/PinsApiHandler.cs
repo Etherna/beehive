@@ -14,17 +14,23 @@
 
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Configs;
+using Etherna.Beehive.Domain.Exceptions;
 using Etherna.Beehive.Domain.Models;
 using Etherna.Beehive.Persistence;
 using Etherna.Beehive.Services.Domain;
+using Etherna.Beehive.Services.Extensions;
 using Etherna.Beehive.Services.Tasks.Trigger;
+using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Extensions;
 using Etherna.SwarmSdk.Models;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,10 +39,98 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
     public sealed class PinsApiHandler(
         IBackgroundJobClient backgroundJobClient,
         IBeehiveDbContext dbContext,
+        ILogger<PinsApiHandler> logger,
         IPinChunksTask pinChunksTask,
+        IPinIntegrityService pinIntegrityService,
         IPinService pinService)
         : IPinsApiHandler
     {
+        // Consts.
+        private const string AllPinsCheckRunningErrorMessage = "pin integrity check of all pins already running";
+
+        // Methods.
+        public Task<IResult> CheckPinsAsync(SwarmReference? reference, bool dry, HttpContext httpContext) =>
+            ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
+            {
+                ArgumentNullException.ThrowIfNull(httpContext);
+                var cancellationToken = httpContext.RequestAborted;
+
+                // No check while a deprecated store holds chunks: the check reads the chunks keyed by hash only.
+                await pinIntegrityService.VerifyPinsCanBeCheckedAsync(cancellationToken);
+
+                // One check of many pins at a time, as bee, whichever way it runs: not while another check of every
+                // pin is being answered, nor while a background run of the check is running.
+                if (!reference.HasValue)
+                {
+                    var allPinsCheckLease = await pinIntegrityService.TryAcquirePinsCheckLockAsync();
+                    if (allPinsCheckLease is null)
+                        return Results.Json(
+                            new BeeErrorDto(StatusCodes.Status429TooManyRequests, AllPinsCheckRunningErrorMessage),
+                            CommonConsts.SwarmJsonSerializerOptions,
+                            statusCode: StatusCodes.Status429TooManyRequests);
+                    httpContext.Response.RegisterForDisposeAsync(allPinsCheckLease);
+                }
+
+                // A stream with a json object per line, written as each reference is checked, as bee: for the
+                // given reference, or for every pinned one, by the age of its first pin.
+                return Results.Stream(async stream =>
+                    {
+                        IEnumerable<SwarmReference> references = reference.HasValue ?
+                            [reference.Value] :
+                            (await dbContext.ChunkPins.QueryElementsAsync(elements =>
+                                elements.Where(p => p.Reference.HasValue)
+                                    .OrderBy(p => p.CreationDateTime)
+                                    .Select(p => p.Reference!.Value)
+                                    .ToListAsync(cancellationToken))).Distinct();
+
+                        foreach (var pinnedReference in references)
+                        {
+                            // A content uploaded more than once with its pin has a pin per upload: the content is
+                            // checked once, for the one line of its reference, and each pin is brought to what the
+                            // check finds, as a background run of the check does. Bee answers the same line and has
+                            // nothing to bring to it: its pin declares no state. A dry check writes nothing.
+                            var pins = await dbContext.ChunkPins.QueryElementsAsync(elements =>
+                                elements.Where(p => p.Reference == pinnedReference)
+                                    .OrderBy(p => p.CreationDateTime)
+                                    .ToListAsync(cancellationToken));
+                            var checkResult = pins.Count > 0 ?
+                                await pinIntegrityService.CheckPinsAsync(pinnedReference, dry, cancellationToken) :
+                                null;
+                            if (checkResult is not null && !dry)
+                                foreach (var pin in pins)
+                                {
+                                    try
+                                    {
+                                        await pinIntegrityService.CorrectPinAsync(pin, checkResult, cancellationToken);
+                                    }
+                                    catch (ResourceLockException)
+                                    {
+                                        // The pin is in the hands of another operation, which writes what it
+                                        // holds: the line is answered all the same.
+                                        logger.PinCorrectionSkipped(pinnedReference);
+                                    }
+                                }
+
+                            // A reference beehive doesn't pin answers every count at zero, as bee answers one it
+                            // doesn't pin. In a check of every pin, one whose pins were deleted meanwhile has no line.
+                            if (checkResult is null && !reference.HasValue)
+                                continue;
+                            await JsonSerializer.SerializeAsync(
+                                stream,
+                                new BeePinCheckDto(
+                                    pinnedReference,
+                                    checkResult?.MissingChunks.Count ?? 0,
+                                    checkResult?.InvalidChunks.Count ?? 0,
+                                    checkResult?.TotalChunks ?? 0),
+                                CommonConsts.SwarmJsonSerializerOptions,
+                                cancellationToken);
+                            await stream.WriteAsync("\n"u8.ToArray(), cancellationToken);
+                            await stream.FlushAsync(cancellationToken);
+                        }
+                    },
+                    BeehiveHttpConsts.ApplicationNdjsonContentType);
+            });
+
         public Task<IResult> CreatePinBeeAsync(SwarmReference reference) =>
             ExceptionHandler.RunAsync(ApiVersion.Swarm, async () =>
             {
@@ -49,7 +143,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                 // Verify pin result.
                 var pin = await dbContext.ChunkPins.FindOneAsync(p => p.Reference == reference);
             
-                if (pin.IsSucceeded)
+                if (pin.State == ChunkPinState.Succeeded)
                     return Results.Json(
                         new BeeStatusDto(StatusCodes.Status201Created, "Created"),
                         CommonConsts.SwarmJsonSerializerOptions,
@@ -101,7 +195,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         p.CreationDateTime,
                         p.MissingChunks,
                         p.IsProcessed,
-                        p.IsSucceeded,
+                        p.State,
                         p.TotPinnedChunks)),
                     CommonConsts.SwarmJsonSerializerOptions);
             });
@@ -130,7 +224,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
                         pin.CreationDateTime,
                         pin.MissingChunks,
                         pin.IsProcessed,
-                        pin.IsSucceeded,
+                        pin.State,
                         pin.TotPinnedChunks),
                     CommonConsts.SwarmJsonSerializerOptions);
             });
@@ -150,7 +244,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
             }
             else
             {
-                if (pin.IsSucceeded)
+                if (pin.State == ChunkPinState.Succeeded)
                     return true;
             }
             

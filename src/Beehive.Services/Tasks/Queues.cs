@@ -19,6 +19,7 @@ namespace Etherna.Beehive.Services.Tasks
         public const string DB_MAINTENANCE = "db_maintenance";
         public const string DOMAIN_MAINTENANCE = "domain_maintenance";
         public const string NODE_MAINTENANCE = "node_maintenance";
+        public const string PIN_CHECKS = "pin_checks";
         public const string PIN_CONTENTS = "pin_contents";
     }
 }

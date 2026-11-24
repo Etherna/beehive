@@ -47,12 +47,21 @@ namespace Etherna.Beehive.Domain.Models
             !Reference.HasValue &&
             CreationDateTime + provisionalTtl < DateTime.UtcNow;
         public virtual bool IsProcessed { get; protected set; }
-        public virtual bool IsSucceeded => IsProcessed && missingChunks.Count == 0;
         public virtual IEnumerable<SwarmHash> MissingChunks
         {
             get => missingChunks;
             protected set => missingChunks = new HashSet<SwarmHash>(value ?? []);
         }
+
+        /// <summary>
+        /// What the pin declares of its content: not processed yet, processed with missing chunks, or processed
+        /// with every chunk
+        /// </summary>
+        public virtual ChunkPinState State =>
+            !IsProcessed ? ChunkPinState.Unprocessed :
+            missingChunks.Count > 0 ? ChunkPinState.Incomplete :
+            ChunkPinState.Succeeded;
+
         public virtual long TotPinnedChunks { get; protected set; }
         
         // Methods.

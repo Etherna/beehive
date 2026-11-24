@@ -53,6 +53,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         private readonly List<FakeResourceLockLease> importLeases = [];
         private readonly BeeNodeLiveInstance node;
         private readonly Mock<ISwarmClient> nodeClientMock = new();
+        private readonly Mock<IPinIntegrityService> pinIntegrityServiceMock = new();
         private readonly List<NodePinImport> pinRecords = [];
         private readonly Mock<IPinService> pinServiceMock = new();
         private readonly ImportNodePinsTask task;
@@ -125,10 +126,25 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                     return Task.FromResult(new PinChunksResult(pin, []));
                 });
 
+            // The check, asked as one that writes, never as a dry run, finds whole every content beehive declares
+            // pinned, unless a test has it find otherwise; a reset leaves the pin not succeeded with the missing and
+            // the invalid chunks of the check.
+            pinIntegrityServiceMock.Setup(s => s.CheckPinsAsync(It.IsAny<SwarmReference>(), false, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SwarmReference reference, bool _, CancellationToken _) =>
+                    new PinCheckResult(reference, chunkPins.Single(p => p.Reference == reference).TotPinnedChunks, [], [], 0));
+            pinIntegrityServiceMock.Setup(s => s.ResetPinAsync(It.IsAny<string>(), It.IsAny<PinCheckResult>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string pinId, PinCheckResult checkResult, CancellationToken _) =>
+                {
+                    var pin = chunkPins.Single(p => p.Id == pinId);
+                    pin.UpdateProcessed(checkResult.MissingChunks.Concat(checkResult.InvalidChunks), 0);
+                    return pin;
+                });
+
             task = new ImportNodePinsTask(
                 beeNodeLiveManagerMock.Object,
                 dbContextMock.Object,
                 NullLogger<ImportNodePinsTask>.Instance,
+                pinIntegrityServiceMock.Object,
                 pinServiceMock.Object)
             {
                 ImportLeaseRetryPeriod = TimeSpan.FromMilliseconds(1)
@@ -136,6 +152,65 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
         }
 
         // Tests.
+
+        [Fact]
+        public async Task ChecksAPinDeclaredSucceededAndImportsItAgainWhenItsCheckFindsItIncomplete()
+        {
+            // Setup.
+            //the pin of 2026-10-19: declared succeeded, holding none of its chunks until it is pinned again
+            import = NewImport(unpinImported: true);
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferencePinned]);
+            AddSucceededPin(ReferencePinned);
+            var pinnedAgain = false;
+            pinIntegrityServiceMock.Setup(s => s.CheckPinsAsync(ReferencePinned, false, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new PinCheckResult(ReferencePinned, 3, pinnedAgain ? [] : [MissingChunkHash], [], 0));
+            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
+                {
+                    var pin = chunkPins.Single(p => p.Id == pinId);
+                    Assert.NotEqual(ChunkPinState.Succeeded, pin.State); //reset before the pinning, which skips a succeeded pin
+                    pin.UpdateProcessed([], totPinnedChunks: 3);
+                    pinnedAgain = true;
+                    return Task.FromResult(new PinChunksResult(pin, []));
+                });
+
+            // Action.
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            Assert.True(pinnedAgain);
+            Assert.Equal(1, import.ImportedPins);
+            Assert.Equal(0, import.SkippedPins);
+            Assert.Equal(NodePinImportOutcome.Imported, Assert.Single(pinRecords).Outcome);
+            nodeClientMock.Verify(c => c.DeletePinAsync(ReferencePinned, It.IsAny<CancellationToken>()), Times.Once); //whole at the final check
+        }
+
+        [Fact]
+        public async Task KeepsOnTheNodeAContentWhoseCheckFindsItIncompleteAfterItsPinning()
+        {
+            // Setup.
+            //the pinning declares the pin succeeded, while its check finds a chunk missing in beehive
+            import = NewImport(unpinImported: true);
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete]);
+            pinIntegrityServiceMock.Setup(s => s.CheckPinsAsync(It.IsAny<SwarmReference>(), false, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SwarmReference reference, bool _, CancellationToken _) =>
+                    new PinCheckResult(reference, 3, [MissingChunkHash], [], 0));
+
+            // Action.
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            Assert.Equal(1, import.FailedPins);
+            Assert.Equal(0, import.UnpinnedPins);
+            var record = Assert.Single(pinRecords);
+            Assert.Equal(NodePinImportOutcome.Failed, record.Outcome);
+            Assert.Equal("1 chunks missing in beehive after the import", record.FailureReason);
+            Assert.Equal([MissingChunkHash], record.MissingChunks);
+            Assert.NotEqual(ChunkPinState.Succeeded, chunkPins.Single().State); //reset by the check, for a new import to complete it
+            nodeClientMock.Verify(c => c.DeletePinAsync(It.IsAny<SwarmReference>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
 
         [Fact]
         public async Task CountsAPinWhosePinningThrowsAsFailedAndGoesOn()
@@ -405,8 +480,8 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             Assert.Equal(1, import.SkippedPins);
             Assert.Equal(1, import.FailedPins);
             Assert.Equal(0, import.UnpinnedPins);
-            Assert.True(chunkPins.Single(p => p.Reference == ReferenceComplete).IsSucceeded);
-            Assert.False(chunkPins.Single(p => p.Reference == ReferenceIncomplete).IsSucceeded);
+            Assert.Equal(ChunkPinState.Succeeded, chunkPins.Single(p => p.Reference == ReferenceComplete).State);
+            Assert.NotEqual(ChunkPinState.Succeeded, chunkPins.Single(p => p.Reference == ReferenceIncomplete).State);
             pinServiceMock.Verify(s => s.PinChunksAsync(It.IsAny<string>(), node, It.IsAny<CancellationToken>()), Times.Exactly(2)); //read from the node itself
             nodeClientMock.Verify(c => c.DeletePinAsync(It.IsAny<SwarmReference>(), It.IsAny<CancellationToken>()), Times.Never);
 
@@ -493,6 +568,35 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             Assert.Equal(NodePinImportOutcome.Failed, record.Outcome);
             Assert.Equal("1 invalid chunks on the node", record.FailureReason);
             Assert.Equal([MissingChunkHash], record.InvalidChunks);
+            nodeClientMock.Verify(c => c.DeletePinAsync(It.IsAny<SwarmReference>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DescribesAContentWithChunksMissingAndInvalidOnTheNodeByBoth()
+        {
+            // Setup.
+            //the pinning leaves a chunk missing, and finds another one invalid
+            SwarmHash invalidChunkHash = "bb0000000000000000000000000000000000000000000000000000000000000a";
+            import = NewImport(unpinImported: true);
+            nodeClientMock.Setup(c => c.GetAllPinsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync([ReferenceComplete]);
+            pinServiceMock.Setup(s => s.PinChunksAsync(It.IsAny<string>(), It.IsAny<BeeNodeLiveInstance?>(), It.IsAny<CancellationToken>()))
+                .Returns((string pinId, BeeNodeLiveInstance? _, CancellationToken _) =>
+                {
+                    var pin = chunkPins.Single(p => p.Id == pinId);
+                    pin.UpdateProcessed([MissingChunkHash], totPinnedChunks: 2);
+                    return Task.FromResult(new PinChunksResult(pin, [invalidChunkHash]));
+                });
+
+            // Action.
+            await task.RunAsync(ImportId, CancellationToken.None);
+
+            // Assert.
+            var record = Assert.Single(pinRecords);
+            Assert.Equal(NodePinImportOutcome.Failed, record.Outcome);
+            Assert.Equal("1 chunks missing and 1 invalid on the node", record.FailureReason);
+            Assert.Equal([MissingChunkHash], record.MissingChunks);
+            Assert.Equal([invalidChunkHash], record.InvalidChunks);
             nodeClientMock.Verify(c => c.DeletePinAsync(It.IsAny<SwarmReference>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 

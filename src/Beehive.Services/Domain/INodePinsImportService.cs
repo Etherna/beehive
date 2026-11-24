@@ -45,6 +45,7 @@ namespace Etherna.Beehive.Services.Domain
         /// Start the import of the pins of a node, as a background job
         /// </summary>
         /// <param name="references">The contents to import: null or empty for every pin of the node</param>
+        /// <exception cref="Etherna.Beehive.Domain.Exceptions.DeprecatedChunksNotMigratedException">A deprecated chunk store still holds chunks: the import checks the pins on the chunks keyed by hash only</exception>
         /// <exception cref="Etherna.Beehive.Domain.Exceptions.ResourceLockException">An import of the node is still running</exception>
         Task<NodePinsImport> StartImportAsync(
             string nodeId,

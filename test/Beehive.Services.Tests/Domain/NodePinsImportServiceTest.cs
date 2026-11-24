@@ -53,6 +53,7 @@ namespace Etherna.Beehive.Services.Domain
         private readonly Mock<IHangfireJobsMonitor> hangfireJobsMonitorMock = new();
         private readonly List<NodePinsImport> imports = [];
         private readonly Mock<ISwarmClient> nodeClientMock = new();
+        private readonly Mock<IPinIntegrityService> pinIntegrityServiceMock = new();
         private readonly NodePinsImportService service;
 
         // Constructor.
@@ -103,7 +104,8 @@ namespace Etherna.Beehive.Services.Domain
                 dbContextMock.Object,
                 beeNodeLiveManagerMock.Object,
                 hangfireJobsMonitorMock.Object,
-                NullLogger<NodePinsImportService>.Instance);
+                NullLogger<NodePinsImportService>.Instance,
+                pinIntegrityServiceMock.Object);
         }
 
         // Tests.
@@ -238,6 +240,21 @@ namespace Etherna.Beehive.Services.Domain
             // Assert.
             Assert.False(import.ImportsEveryPin);
             Assert.Equal([ReferenceNew, ReferenceIncomplete], import.RequestedReferences);
+        }
+
+        [Fact]
+        public async Task StartImportRefusesWhileADeprecatedStoreHoldsChunks()
+        {
+            // Setup.
+            //the import checks the pins on the chunks keyed by hash only
+            pinIntegrityServiceMock.Setup(s => s.VerifyPinsCanBeCheckedAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DeprecatedChunksNotMigratedException("the deprecated chunk stores are not empty"));
+
+            // Action & assert.
+            await Assert.ThrowsAsync<DeprecatedChunksNotMigratedException>(
+                () => service.StartImportAsync(NodeId, unpinImported: false));
+            Assert.Empty(imports);
+            backgroundJobClientMock.Verify(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()), Times.Never);
         }
 
         [Fact]

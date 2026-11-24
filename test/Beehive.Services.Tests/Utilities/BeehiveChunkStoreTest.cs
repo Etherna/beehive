@@ -254,6 +254,33 @@ namespace Etherna.Beehive.Services.Utilities
             Assert.Equal([heldPin, savedPin], document.Pins);
         }
 
+        [Fact]
+        public async Task WithoutReadingFromNodesAChunkOnlyTheNodesHoldIsNotFoundAndNoNodeIsAsked()
+        {
+            // Setup.
+            //every node holds the chunk, beehive doesn't; another chunk is held by beehive
+            var chunk = NewChunk();
+            await nodeA.Chunks.AddAsync(chunk);
+            await nodeB.Chunks.AddAsync(chunk);
+            var heldChunk = NewChunk(1);
+            db.AddChunk(new Chunk(heldChunk.Hash, heldChunk.GetFullPayloadToByteArray(), false));
+            await using var store = NewStore(readFromNodes: false);
+
+            // Action.
+            var foundChunks = await store.GetAsync([chunk.Hash, heldChunk.Hash]);
+            var isHeld = await store.HasChunkAsync(chunk.Hash);
+
+            // Assert.
+            //by each way of reading: the chunks asked together, the single one, and whether it is held
+            Assert.Equal(heldChunk.Hash, Assert.Single(foundChunks).Key);
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => store.GetAsync(chunk.Hash));
+            Assert.False(isHeld);
+            Assert.True(await store.HasChunkAsync(heldChunk.Hash));
+            Assert.Empty(nodeA.RequestedHashes);
+            Assert.Empty(nodeB.RequestedHashes);
+            Assert.Equal(heldChunk.Hash, Assert.Single(db.SwarmChunks).Id); //nothing saved
+        }
+
         // Helpers.
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async Task AddAndDisposeAsync(int savingBufferLength)
@@ -283,7 +310,8 @@ namespace Etherna.Beehive.Services.Utilities
         private BeehiveChunkStore NewStore(
             int savingBufferLength = BeehiveChunkStore.DefaultSavingBufferLength,
             FakeBeeNode? sourceNode = null,
-            Action<Chunk>? onSavingChunk = null) =>
+            Action<Chunk>? onSavingChunk = null,
+            bool readFromNodes = true) =>
             new(
                 beeNodeLiveManagerMock.Object,
                 db.DbContext,
@@ -291,7 +319,8 @@ namespace Etherna.Beehive.Services.Utilities
                 new Mock<ISerializerModifierAccessor>().Object,
                 savingBufferLength,
                 onSavingChunk,
-                sourceNode?.Instance);
+                sourceNode?.Instance,
+                readFromNodes);
 
         private FakeBeeNode OtherNodeOf(SwarmHash hash) =>
             PartitionNodeOf(hash) == nodeA ? nodeB : nodeA;

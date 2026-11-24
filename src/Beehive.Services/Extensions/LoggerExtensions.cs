@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Beehive.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Beehive.Domain.Models;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging;
 using System;
@@ -21,7 +22,7 @@ namespace Etherna.Beehive.Services.Extensions
 {
     /*
      * Always group similar log delegates by type, always use incremental event ids.
-     * Last event id is: 75
+     * Last event id is: 93
      */
     public static class LoggerExtensions
     {
@@ -68,6 +69,24 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Debug,
                 new EventId(58, nameof(NodePinImportDeferred)),
                 "Pins import of node {NodeId}: pin {Reference} is locked by another operation, deferred to the end of the import");
+
+        private static readonly Action<ILogger, SwarmReference, Exception> _pinCheckDeferred =
+            LoggerMessage.Define<SwarmReference>(
+                LogLevel.Debug,
+                new EventId(80, nameof(PinCheckDeferred)),
+                "Pins check: pin of {Reference} is locked by another operation, deferred to the end of the run");
+
+        private static readonly Action<ILogger, SwarmReference, long, int, int, Exception> _pinChecked =
+            LoggerMessage.Define<SwarmReference, long, int, int>(
+                LogLevel.Debug,
+                new EventId(76, nameof(PinChecked)),
+                "Pin of {Reference} checked, {TotalChunks} chunks, {MissingChunks} missing, {InvalidChunks} invalid");
+
+        private static readonly Action<ILogger, SwarmReference, Exception> _pinCorrectionSkipped =
+            LoggerMessage.Define<SwarmReference>(
+                LogLevel.Debug,
+                new EventId(93, nameof(PinCorrectionSkipped)),
+                "Pin of {Reference} is locked by another operation: its check leaves it to that operation");
 
         private static readonly Action<ILogger, PostageBatchId, string, Exception> _postageBatchPushesDeferredOnNodeNotAlive =
             LoggerMessage.Define<PostageBatchId, string>(
@@ -202,6 +221,18 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(43, nameof(NodesChequebookMaintainerTaskCompleted)),
                 "Nodes chequebook maintainer task completed with {Deposits} deposits and {Withdraws} withdraws");
 
+        private static readonly Action<ILogger, SwarmReference, long, Exception> _pinChunksReferenced =
+            LoggerMessage.Define<SwarmReference, long>(
+                LogLevel.Information,
+                new EventId(77, nameof(PinChunksReferenced)),
+                "Pin of {Reference} attached to {ReferencedChunks} chunks held without it");
+
+        private static readonly Action<ILogger, SwarmReference, long, Exception> _pinConfirmed =
+            LoggerMessage.Define<SwarmReference, long>(
+                LogLevel.Information,
+                new EventId(92, nameof(PinConfirmed)),
+                "Pin of {Reference} declared succeeded by its check, {PinnedChunks} chunks held");
+
         private static readonly Action<ILogger, SwarmReference, Exception> _pinDeleted =
             LoggerMessage.Define<SwarmReference>(
                 LogLevel.Information,
@@ -213,6 +244,42 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Information,
                 new EventId(45, nameof(PinProcessed)),
                 "Pin of {Reference} processed, {PinnedChunks} chunks pinned, {MissingChunks} missing, {InvalidChunks} invalid");
+
+        private static readonly Action<ILogger, SwarmReference, int, int, Exception> _pinReset =
+            LoggerMessage.Define<SwarmReference, int, int>(
+                LogLevel.Information,
+                new EventId(78, nameof(PinReset)),
+                "Pin of {Reference} reset to not succeeded by its check, {MissingChunks} chunks missing, {InvalidChunks} invalid");
+
+        private static readonly Action<ILogger, string, long, long, long, long, Exception> _pinsCheckCompleted =
+            LoggerMessage.Define<string, long, long, long, long>(
+                LogLevel.Information,
+                new EventId(81, nameof(PinsCheckCompleted)),
+                "Pins check {CheckId} completed: {CompletePins} complete, {IncompletePins} incomplete, {InvalidPins} with invalid chunks, {FailedPins} not checked");
+
+        private static readonly Action<ILogger, string, string, IEnumerable<ChunkPinState>, int, Exception> _pinsCheckEnqueued =
+            LoggerMessage.Define<string, string, IEnumerable<ChunkPinState>, int>(
+                LogLevel.Information,
+                new EventId(82, nameof(PinsCheckEnqueued)),
+                "Pins check {CheckId} enqueued as job {JobId}, requested pin states: {RequestedPinStates}, requested references: {RequestedReferences}");
+
+        private static readonly Action<ILogger, int, Exception> _pinsChecksDeleted =
+            LoggerMessage.Define<int>(
+                LogLevel.Information,
+                new EventId(83, nameof(PinsChecksDeleted)),
+                "{DeletedChecks} finished pins checks deleted with their pin records");
+
+        private static readonly Action<ILogger, string, long, long, Exception> _pinsCheckStarted =
+            LoggerMessage.Define<string, long, long>(
+                LogLevel.Information,
+                new EventId(84, nameof(PinsCheckStarted)),
+                "Pins check {CheckId} started on {TotalPins} pins, {RecordedPins} of them checked by a previous run of its job");
+
+        private static readonly Action<ILogger, string, long, long, Exception> _pinsCheckStopped =
+            LoggerMessage.Define<string, long, long>(
+                LogLevel.Information,
+                new EventId(85, nameof(PinsCheckStopped)),
+                "Pins check {CheckId} stopped on request after {CheckedPins} of {TotalPins} pins");
 
         private static readonly Action<ILogger, PostageBatchId, string, int, BzzValue, bool, EthTxHash, Exception> _postageBatchBought =
             LoggerMessage.Define<PostageBatchId, string, int, BzzValue, bool, EthTxHash>(
@@ -341,6 +408,12 @@ namespace Etherna.Beehive.Services.Extensions
                 new EventId(73, nameof(GridFsChunkFileMigrationFailed)),
                 "GridFS file {FileId} named {FileName} could not be migrated, it stays in the bucket: {Reason}");
 
+        private static readonly Action<ILogger, SwarmReference, IEnumerable<SwarmHash>, Exception> _invalidChunksDeleted =
+            LoggerMessage.Define<SwarmReference, IEnumerable<SwarmHash>>(
+                LogLevel.Warning,
+                new EventId(79, nameof(InvalidChunksDeleted)),
+                "Pin of {Reference}: chunks {Hashes} deleted, their payload is not the chunk at their address");
+
         private static readonly Action<ILogger, string, string, Exception> _legacyChunkMigrationFailed =
             LoggerMessage.Define<string, string>(
                 LogLevel.Warning,
@@ -388,6 +461,36 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Warning,
                 new EventId(28, nameof(NodePinUnpinFailed)),
                 "Node {NodeId}: unpin of {Reference} failed after its import");
+
+        private static readonly Action<ILogger, SwarmReference, Exception> _pinCheckFailed =
+            LoggerMessage.Define<SwarmReference>(
+                LogLevel.Warning,
+                new EventId(86, nameof(PinCheckFailed)),
+                "Pins check: the pin of {Reference} could not be checked");
+
+        private static readonly Action<ILogger, string, Exception> _pinsCheckHeldByAnotherRun =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(87, nameof(PinsCheckHeldByAnotherRun)),
+                "Pins check {CheckId}: another check of the pins is running, this run waits for it to leave");
+
+        private static readonly Action<ILogger, string, long, Exception> _pinsCheckInterrupted =
+            LoggerMessage.Define<string, long>(
+                LogLevel.Warning,
+                new EventId(88, nameof(PinsCheckInterrupted)),
+                "Pins check {CheckId} interrupted after {CheckedPins} pins: its job was cancelled, by a shutdown or because another worker took it. It goes on at the next run");
+
+        private static readonly Action<ILogger, string, string, Exception> _pinsCheckJobGone =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(89, nameof(PinsCheckJobGone)),
+                "Pins check {CheckId} failed, its job {JobId} ended before completing it");
+
+        private static readonly Action<ILogger, string, Exception> _pinsCheckLeaseLost =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(90, nameof(PinsCheckLeaseLost)),
+                "The run of pins check {CheckId} lost its lease and stops without writing the check");
 
         private static readonly Action<ILogger, PostageBatchId, Exception> _postageBatchNotFound =
             LoggerMessage.Define<PostageBatchId>(
@@ -461,6 +564,12 @@ namespace Etherna.Beehive.Services.Extensions
                 LogLevel.Error,
                 new EventId(29, nameof(NodePinsImportFailed)),
                 "Node {NodeId}: pins import failed");
+
+        private static readonly Action<ILogger, string, Exception> _pinsCheckFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(91, nameof(PinsCheckFailed)),
+                "Pins check {CheckId} failed");
 
         private static readonly Action<ILogger, Exception> _unhandledExceptionPushingChunksToNode =
             LoggerMessage.Define(
@@ -568,6 +677,9 @@ namespace Etherna.Beehive.Services.Extensions
         public static void GridFsChunkFileMigrationFailed(this ILogger logger, string fileId, string fileName, string reason) =>
             _gridFsChunkFileMigrationFailed(logger, fileId, fileName, reason, null!);
 
+        public static void InvalidChunksDeleted(this ILogger logger, SwarmReference reference, IEnumerable<SwarmHash> hashes) =>
+            _invalidChunksDeleted(logger, reference, hashes, null!);
+
         public static void LegacyChunkMigrationFailed(this ILogger logger, string documentId, string reason) =>
             _legacyChunkMigrationFailed(logger, documentId, reason, null!);
 
@@ -631,11 +743,62 @@ namespace Etherna.Beehive.Services.Extensions
         public static void NodesChequebookMaintainerTaskCompleted(this ILogger logger, int deposits, int withdraws) =>
             _nodesChequebookMaintainerTaskCompleted(logger, deposits, withdraws, null!);
 
+        public static void PinCheckDeferred(this ILogger logger, SwarmReference reference) =>
+            _pinCheckDeferred(logger, reference, null!);
+
+        public static void PinChecked(this ILogger logger, SwarmReference reference, long totalChunks, int missingChunks, int invalidChunks) =>
+            _pinChecked(logger, reference, totalChunks, missingChunks, invalidChunks, null!);
+
+        public static void PinCheckFailed(this ILogger logger, SwarmReference reference, Exception exception) =>
+            _pinCheckFailed(logger, reference, exception);
+
+        public static void PinChunksReferenced(this ILogger logger, SwarmReference reference, long referencedChunks) =>
+            _pinChunksReferenced(logger, reference, referencedChunks, null!);
+
+        public static void PinConfirmed(this ILogger logger, SwarmReference reference, long pinnedChunks) =>
+            _pinConfirmed(logger, reference, pinnedChunks, null!);
+
+        public static void PinCorrectionSkipped(this ILogger logger, SwarmReference reference) =>
+            _pinCorrectionSkipped(logger, reference, null!);
+
         public static void PinDeleted(this ILogger logger, SwarmReference reference) =>
             _pinDeleted(logger, reference, null!);
 
         public static void PinProcessed(this ILogger logger, SwarmReference reference, int pinnedChunks, int missingChunks, int invalidChunks) =>
             _pinProcessed(logger, reference, pinnedChunks, missingChunks, invalidChunks, null!);
+
+        public static void PinReset(this ILogger logger, SwarmReference reference, int missingChunks, int invalidChunks) =>
+            _pinReset(logger, reference, missingChunks, invalidChunks, null!);
+
+        public static void PinsCheckCompleted(this ILogger logger, string checkId, long completePins, long incompletePins, long invalidPins, long failedPins) =>
+            _pinsCheckCompleted(logger, checkId, completePins, incompletePins, invalidPins, failedPins, null!);
+
+        public static void PinsCheckEnqueued(this ILogger logger, string checkId, string jobId, IEnumerable<ChunkPinState> requestedPinStates, int requestedReferences) =>
+            _pinsCheckEnqueued(logger, checkId, jobId, requestedPinStates, requestedReferences, null!);
+
+        public static void PinsCheckFailed(this ILogger logger, string checkId, Exception exception) =>
+            _pinsCheckFailed(logger, checkId, exception);
+
+        public static void PinsCheckHeldByAnotherRun(this ILogger logger, string checkId) =>
+            _pinsCheckHeldByAnotherRun(logger, checkId, null!);
+
+        public static void PinsCheckInterrupted(this ILogger logger, string checkId, long checkedPins) =>
+            _pinsCheckInterrupted(logger, checkId, checkedPins, null!);
+
+        public static void PinsCheckJobGone(this ILogger logger, string checkId, string jobId) =>
+            _pinsCheckJobGone(logger, checkId, jobId, null!);
+
+        public static void PinsCheckLeaseLost(this ILogger logger, string checkId) =>
+            _pinsCheckLeaseLost(logger, checkId, null!);
+
+        public static void PinsChecksDeleted(this ILogger logger, int deletedChecks) =>
+            _pinsChecksDeleted(logger, deletedChecks, null!);
+
+        public static void PinsCheckStarted(this ILogger logger, string checkId, long totalPins, long recordedPins) =>
+            _pinsCheckStarted(logger, checkId, totalPins, recordedPins, null!);
+
+        public static void PinsCheckStopped(this ILogger logger, string checkId, long checkedPins, long totalPins) =>
+            _pinsCheckStopped(logger, checkId, checkedPins, totalPins, null!);
 
         public static void PostageBatchBought(this ILogger logger, PostageBatchId batchId, string nodeId, int depth, BzzValue amount, bool immutable, EthTxHash txHash) =>
             _postageBatchBought(logger, batchId, nodeId, depth, amount, immutable, txHash, null!);
