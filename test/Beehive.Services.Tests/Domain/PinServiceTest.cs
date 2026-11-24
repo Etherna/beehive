@@ -129,7 +129,7 @@ namespace Etherna.Beehive.Services.Domain
             var result = await service.PinChunksAsync(pin.Id, node.Instance);
 
             // Assert.
-            Assert.False(result.Pin.IsSucceeded);
+            Assert.NotEqual(ChunkPinState.Succeeded, result.Pin.State);
             Assert.Equal([goneHash], result.Pin.MissingChunks);
             Assert.Equal(node.Chunks.AllChunks.Count - 1, result.Pin.TotPinnedChunks);
             Assert.DoesNotContain(db.SwarmChunks, c => c.Id == goneHash);
@@ -163,7 +163,7 @@ namespace Etherna.Beehive.Services.Domain
             var result = await service.PinChunksAsync(pin.Id, node.Instance);
 
             // Assert.
-            Assert.False(result.Pin.IsSucceeded);
+            Assert.NotEqual(ChunkPinState.Succeeded, result.Pin.State);
             Assert.Equal(0, result.Pin.TotPinnedChunks);
             Assert.Equal(node.Chunks.AllChunks.Count, result.Pin.MissingChunks.Count());
             Assert.Empty(node.RequestedHashes); //nothing was read from the node
@@ -252,6 +252,27 @@ namespace Etherna.Beehive.Services.Domain
         }
 
         [Fact]
+        public async Task PinChunksLeavesAPinDeclaredSucceededAsItIsWithoutReadingItsContent()
+        {
+            // Setup.
+            //the node holds the content, beehive none of its chunks: the pin says otherwise, and is trusted
+            var reference = await TestContents.UploadContentAsync(node.Chunks);
+            var pin = NewPin(reference);
+            pin.UpdateProcessed([], 3);
+
+            // Action.
+            var result = await service.PinChunksAsync(pin.Id, null);
+
+            // Assert.
+            Assert.Same(pin, result.Pin);
+            Assert.Empty(result.InvalidChunks);
+            Assert.Equal(3, pin.TotPinnedChunks);
+            Assert.Empty(node.RequestedHashes);
+            Assert.Empty(db.SwarmChunks);
+            Assert.True(Assert.Single(pinLeases).IsReleased);
+        }
+
+        [Fact]
         public async Task PinsAContentReadFromTheHealthyNodesWithoutASourceNode()
         {
             // Setup.
@@ -296,7 +317,7 @@ namespace Etherna.Beehive.Services.Domain
             var result = await service.PinChunksAsync(pin.Id, node.Instance);
 
             // Assert.
-            Assert.True(result.Pin.IsSucceeded);
+            Assert.Equal(ChunkPinState.Succeeded, result.Pin.State);
             Assert.Equal(node.Chunks.AllChunks.Count, result.Pin.TotPinnedChunks);
             Assert.Equal([pin], legacyDocument.Pins); //its migration moves the pin
             Assert.DoesNotContain(db.SwarmChunks, c => c.Id == legacyChunk.Hash);
@@ -316,7 +337,7 @@ namespace Etherna.Beehive.Services.Domain
             var result = await service.PinChunksAsync(pin.Id, node.Instance);
 
             // Assert.
-            Assert.True(result.Pin.IsSucceeded);
+            Assert.Equal(ChunkPinState.Succeeded, result.Pin.State);
             Assert.Equal(1, result.Pin.TotPinnedChunks);
             Assert.Empty(result.InvalidChunks);
             var chunk = Assert.Single(db.SwarmChunks);
@@ -332,7 +353,7 @@ namespace Etherna.Beehive.Services.Domain
             Assert.True(contentHashes.Count > 130); //a three level content, not a tiny one
 
             Assert.Same(pin, result.Pin);
-            Assert.True(result.Pin.IsSucceeded);
+            Assert.Equal(ChunkPinState.Succeeded, result.Pin.State);
             Assert.Empty(result.InvalidChunks);
             Assert.Equal(contentHashes.Count, result.Pin.TotPinnedChunks);
 

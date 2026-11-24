@@ -49,6 +49,7 @@ namespace Etherna.Beehive.Services
             services.AddScoped<IDataService, DataService>();
             services.AddScoped<INodePinsImportService, NodePinsImportService>();
             services.AddScoped<IPinIntegrityService, PinIntegrityService>();
+            services.AddScoped<IPinsCheckService, PinsCheckService>();
             services.AddScoped<IPinService, PinService>();
             services.AddScoped<IPostageBatchService, PostageBatchService>();
 
@@ -59,6 +60,7 @@ namespace Etherna.Beehive.Services
 
             // Tasks.
             services.AddTransient<ICashoutAllNodesChequesTask, CashoutAllNodesChequesTask>();
+            services.AddTransient<ICheckPinsTask, CheckPinsTask>();
             services.AddTransient<ICleanupOldFailedTasksTask, CleanupOldFailedTasksTask>();
             services.AddTransient<IImportNodePinsTask, ImportNodePinsTask>();
             services.AddTransient<IMigrateChunksTask, MigrateChunksTask>();

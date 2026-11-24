@@ -170,9 +170,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
             bool isComplete;
             try
             {
-                if (pin.IsSucceeded)
+                if (pin.State == ChunkPinState.Succeeded)
                 {
-                    var pinnedCheckResult = await pinIntegrityService.CheckPinAsync(pin, cancellationToken);
+                    var pinnedCheckResult = await pinIntegrityService.CheckPinsAsync(reference, dryRun: false, cancellationToken);
                     if (pinnedCheckResult.IsComplete)
                     {
                         record.SetAlreadyPinned(pinnedCheckResult.TotalChunks);
@@ -184,7 +184,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                     }
                 }
 
-                isComplete = pin.IsSucceeded;
+                isComplete = pin.State == ChunkPinState.Succeeded;
                 if (!isComplete)
                 {
                     var result = await pinService.PinChunksAsync(pin.Id, node, cancellationToken); //the chunks are read from the node itself
@@ -194,9 +194,9 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                     var location = "on the node";
 
                     // The content is held only when its check finds it whole on beehive's own chunks.
-                    if (pin.IsSucceeded && invalidChunks.Count == 0)
+                    if (pin.State == ChunkPinState.Succeeded && invalidChunks.Count == 0)
                     {
-                        var checkResult = await pinIntegrityService.CheckPinAsync(pin, cancellationToken);
+                        var checkResult = await pinIntegrityService.CheckPinsAsync(reference, dryRun: false, cancellationToken);
                         if (!checkResult.IsComplete)
                         {
                             pin = await pinIntegrityService.ResetPinAsync(pin.Id, checkResult, cancellationToken);
@@ -206,7 +206,7 @@ namespace Etherna.Beehive.Services.Tasks.Trigger
                         }
                     }
 
-                    isComplete = pin.IsSucceeded && invalidChunks.Count == 0;
+                    isComplete = pin.State == ChunkPinState.Succeeded && invalidChunks.Count == 0;
                     if (isComplete)
                     {
                         record.SetImported(pin.TotPinnedChunks);

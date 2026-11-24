@@ -20,7 +20,6 @@ using Etherna.MongoDB.Driver.GridFS;
 using Etherna.Scrinium.Core;
 using Etherna.Scrinium.Core.Repositories;
 using Etherna.Scrinium.Core.Serialization;
-using Etherna.SwarmSdk.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +56,9 @@ namespace Etherna.Beehive.Persistence
             {
                 IndexBuilders =
                 [
+                    //the pins by age: the references of a check of every pin, the pages of the pins list
+                    (Builders<ChunkPin>.IndexKeys.Ascending(p => p.CreationDateTime),
+                        new CreateIndexOptions<ChunkPin>()),
                     (Builders<ChunkPin>.IndexKeys.Ascending(p => p.Reference),
                         new CreateIndexOptions<ChunkPin>())
                 ]
@@ -122,6 +124,15 @@ namespace Etherna.Beehive.Persistence
                             .Ascending(i => i.NodeId)
                             .Descending(i => i.CreationDateTime),
                         new CreateIndexOptions<NodePinsImport>())
+                ]
+            });
+        public IRepository<PinCheck, string> PinChecks { get; } = new Repository<PinCheck, string>("pinChecks");
+        public IRepository<PinsCheck, string> PinsChecks { get; } =
+            new Repository<PinsCheck, string>(new RepositoryOptions<PinsCheck>("pinsChecks")
+            {
+                IndexBuilders =
+                [
+                    (Builders<PinsCheck>.IndexKeys.Descending(c => c.CreationDateTime), new CreateIndexOptions<PinsCheck>())
                 ]
             });
         public IRepository<PostageBatchCache, string> PostageBatchesCache { get; } = new Repository<PostageBatchCache, string>(

@@ -21,6 +21,7 @@ using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.MongoDB.Driver;
 using Etherna.MongoDB.Driver.Linq;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Chunks;
 using Etherna.SwarmSdk.Exceptions;
 using Etherna.SwarmSdk.Models;
@@ -42,16 +43,15 @@ namespace Etherna.Beehive.Services.Domain
         ISerializerModifierAccessor serializerModifierAccessor)
         : IPinIntegrityService
     {
+        // Consts.
+        private const string PinsCheckLockId = "all";
+
         // Methods.
-        public async Task<PinCheckResult> CheckPinAsync(
-            ChunkPin pin,
+        public async Task<PinCheckResult> CheckPinsAsync(
+            SwarmReference reference,
+            bool dryRun,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(pin);
-            if (!pin.Reference.HasValue)
-                throw new InvalidOperationException("Pin doesn't have an hash");
-            var reference = pin.Reference.Value;
-
             // Traverse the content on beehive's own chunks: a chunk only a node holds is a chunk beehive doesn't.
             HashSet<SwarmHash> foundChunksHash = [];
             HashSet<SwarmHash> invalidChunksHash = [];
@@ -100,25 +100,34 @@ namespace Etherna.Beehive.Services.Domain
                 }
             }
 
-            // Every valid chunk found must carry the pin on its document, in the chunks keyed by hash: the ones held
-            // without it take it now. A chunk found in a deprecated store has no document there, and is missing.
-            var referencingChunksHash = await dbContext.SwarmChunks.QueryElementsAsync(elements =>
-                elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
-                    .Select(c => c.Id)
-                    .ToListAsync(cancellationToken));
+            // Every valid chunk found must carry each pin of the reference on its document, in the chunks keyed by
+            // hash: the ones held without a pin take it now, unless the check is a dry run. A chunk found in a
+            // deprecated store has no document there, and is missing.
             long referencedChunks = 0;
-            foreach (var hash in foundChunksHash.Except(referencingChunksHash))
+            var pins = dryRun ?
+                [] :
+                await dbContext.ChunkPins.QueryElementsAsync(elements =>
+                    elements.Where(p => p.Reference == reference)
+                        .ToListAsync(cancellationToken));
+            foreach (var pin in pins)
             {
-                var chunkDocument = await dbContext.SwarmChunks.TryFindOneAndAddToSetAsync(
-                    new ExpressionFilterDefinition<Chunk>(c => c.Id == hash),
-                    c => c.Pins,
-                    pin,
-                    new FindOneAndUpdateOptions<Chunk>(),
-                    cancellationToken);
-                if (chunkDocument is null)
-                    missingChunksHash.Add(hash);
-                else
-                    referencedChunks++;
+                var referencingChunksHash = await dbContext.SwarmChunks.QueryElementsAsync(elements =>
+                    elements.Where(c => c.Pins.Any(p => p.Id == pin.Id))
+                        .Select(c => c.Id)
+                        .ToListAsync(cancellationToken));
+                foreach (var hash in foundChunksHash.Except(referencingChunksHash))
+                {
+                    var chunkDocument = await dbContext.SwarmChunks.TryFindOneAndAddToSetAsync(
+                        new ExpressionFilterDefinition<Chunk>(c => c.Id == hash),
+                        c => c.Pins,
+                        pin,
+                        new FindOneAndUpdateOptions<Chunk>(),
+                        cancellationToken);
+                    if (chunkDocument is null)
+                        missingChunksHash.Add(hash);
+                    else
+                        referencedChunks++;
+                }
             }
             if (referencedChunks > 0)
                 logger.PinChunksReferenced(reference, referencedChunks);
@@ -138,6 +147,30 @@ namespace Etherna.Beehive.Services.Domain
                 malformedChunkHash);
         }
 
+        public async Task<ChunkPin> CorrectPinAsync(
+            ChunkPin pin,
+            PinCheckResult checkResult,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(pin);
+            ArgumentNullException.ThrowIfNull(checkResult);
+
+            if (!checkResult.IsComplete)
+                return await ResetPinAsync(pin.Id, checkResult, cancellationToken);
+            if (pin.State == ChunkPinState.Succeeded) //as it says: nothing to write, no lock to take
+                return pin;
+
+            // A pin declared not succeeded holds its whole content all the same: every chunk the check met carries
+            // it, the ones held without it took it from the check.
+            await using var pinLockLease = await pinService.AcquireLockAsync(pin.Id, true);
+            pinLockLease.LeaseLostToken.ThrowIfCancellationRequested();
+            pin.UpdateProcessed([], checkResult.TotalChunks);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            logger.PinConfirmed(checkResult.Reference, checkResult.TotalChunks);
+
+            return pin;
+        }
+
         public async Task<ChunkPin> ResetPinAsync(
             string chunkPinId,
             PinCheckResult checkResult,
@@ -152,11 +185,9 @@ namespace Etherna.Beehive.Services.Domain
             // corrupt copy again instead of reading the chunk from the nodes. A malformed chunk stays: its payload
             // is the chunk at its address, a node would serve the same one.
             var corruptChunksHash = checkResult.InvalidChunks.Where(h => h != checkResult.MalformedChunk).ToArray();
-            if (corruptChunksHash.Length > 0)
-            {
-                await dbContext.SwarmChunks.DeleteManyAsync(c => corruptChunksHash.Contains(c.Id), cancellationToken);
+            if (corruptChunksHash.Length > 0 && //none left to delete when another pin of the reference was reset before
+                await dbContext.SwarmChunks.DeleteManyAsync(c => corruptChunksHash.Contains(c.Id), cancellationToken) > 0)
                 logger.InvalidChunksDeleted(checkResult.Reference, corruptChunksHash);
-            }
 
             // The pin holds every chunk of its content but the missing and the invalid ones.
             pinLockLease.LeaseLostToken.ThrowIfCancellationRequested();
@@ -168,6 +199,9 @@ namespace Etherna.Beehive.Services.Domain
 
             return pin;
         }
+
+        public Task<IResourceLockLease?> TryAcquirePinsCheckLockAsync() =>
+            dbContext.TryAcquireResourceLockAsync(ResourceLockNamespaces.PinChecks, PinsCheckLockId);
 
         public async Task VerifyPinsCanBeCheckedAsync(CancellationToken cancellationToken = default)
         {

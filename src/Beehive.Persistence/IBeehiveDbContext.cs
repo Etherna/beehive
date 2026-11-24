@@ -42,6 +42,8 @@ namespace Etherna.Beehive.Persistence
         IRepository<ChunksMigration, string> ChunksMigrations { get; }
         IRepository<NodePinImport, string> NodePinImports { get; }
         IRepository<NodePinsImport, string> NodePinsImports { get; }
+        IRepository<PinCheck, string> PinChecks { get; }
+        IRepository<PinsCheck, string> PinsChecks { get; }
         IRepository<PostageBatchCache, string> PostageBatchesCache { get; }
         IRepository<PostageStamp, string> PostageStamps { get; }
 

@@ -20,7 +20,7 @@ namespace Etherna.Beehive.Areas.Api.SwarmApiHandlers
 {
     public interface IPinsApiHandler
     {
-        Task<IResult> CheckPinsAsync(SwarmReference? reference, HttpContext httpContext);
+        Task<IResult> CheckPinsAsync(SwarmReference? reference, bool dry, HttpContext httpContext);
         Task<IResult> CreatePinBeeAsync(SwarmReference reference);
         Task<IResult> CreatePinBeehiveAsync(SwarmReference reference);
         Task<IResult> DeletePinAsync(SwarmReference reference);

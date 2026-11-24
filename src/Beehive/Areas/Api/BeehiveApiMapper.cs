@@ -14,6 +14,7 @@
 
 using Etherna.Beehive.Areas.Api.DtoModels;
 using Etherna.Beehive.Areas.Api.InputModels;
+using Etherna.Beehive.Domain.Models;
 using Etherna.SwarmSdk.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -174,6 +175,66 @@ namespace Etherna.Beehive.Areas.Api
                 .Produces<IEnumerable<SwarmReference>>()
                 .Produces<string>(StatusCodes.Status404NotFound)
                 .Produces<string>(StatusCodes.Status503ServiceUnavailable);
+
+            //runs of the pins check
+            builder.MapGet("/pins/check/runs",
+                    (IBeehiveApiHandler handler,
+                            CancellationToken cancellationToken,
+                            [Range(0, int.MaxValue)] int page = 0,
+                            [Range(1, 10000)] int take = 100) =>
+                        handler.GetPinsChecksAsync(page, take, cancellationToken))
+                .WithDescription("Every background run of the pins check, newest first, with its pins by outcome: the first one is the running or last run. A run whose background job ended without completing it is reported as failed.")
+                .Produces<IEnumerable<PinsCheckDto>>();
+
+            builder.MapGet("/pins/check/runs/{id}",
+                    (IBeehiveApiHandler handler,
+                            [FromRoute] string id,
+                            CancellationToken cancellationToken) =>
+                        handler.GetPinsCheckAsync(id, cancellationToken))
+                .WithDescription("A background run of the pins check, by id: what it checks, the content it is on, its pins by outcome against the total, its job and its times.")
+                .Produces<PinsCheckDto>()
+                .Produces<string>(StatusCodes.Status404NotFound);
+
+            builder.MapPost("/pins/check/runs",
+                    (IBeehiveApiHandler handler,
+                            CancellationToken cancellationToken,
+                            [FromQuery] ChunkPinState[]? state = null,
+                            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] PinsCheckInput? checkInput = null) =>
+                        handler.StartPinsCheckAsync(state, checkInput, cancellationToken))
+                .WithDescription("Starts a background run of the pins check: the check GET /pins/check answers as a stream, run as a job that records the outcome of every pinned content, since a check of a whole cluster takes hours. It takes every pin, the pins of the given states, or the references given in the body only; a state and a body together are refused. A pin is in one state: succeeded (processed, with every chunk of its content), incomplete (processed, with chunks beehive doesn't hold) or unprocessed (its pinning didn't run, or didn't end); state is given once per state to take, so state=incomplete&state=unprocessed takes every pin not succeeded. Every pin is brought to what its check finds: one found whole is declared succeeded when it was not; one found incomplete goes back to not succeeded with its missing chunks, and its invalid chunks are deleted. Refused with 409 while a deprecated chunk store still holds chunks. One check of many pins at a time: 423 while a run is running, or while GET /pins/check is answering a check of every pin.")
+                .Produces<PinsCheckDto>(StatusCodes.Status202Accepted)
+                .Produces<string>(StatusCodes.Status400BadRequest)
+                .Produces<string>(StatusCodes.Status409Conflict)
+                .Produces<string>(StatusCodes.Status423Locked);
+
+            builder.MapGet("/pins/check/runs/{id}/pins",
+                    (IBeehiveApiHandler handler,
+                            [FromRoute] string id,
+                            CancellationToken cancellationToken,
+                            [FromQuery] PinCheckOutcome? outcome = null,
+                            [Range(0, int.MaxValue)] int page = 0,
+                            [Range(1, 10000)] int take = 500) =>
+                        handler.GetPinsCheckPinsAsync(id, outcome, page, take, cancellationToken))
+                .WithDescription("One record per pinned content of the run, newest first: its outcome (complete, incomplete, invalid, failed), the chunks beehive doesn't hold, the invalid ones and every chunk of the content, as the check of a pin counts them, and why it could not be checked. With outcome, the records of that outcome only.")
+                .Produces<IEnumerable<PinCheckDto>>()
+                .Produces<string>(StatusCodes.Status400BadRequest);
+
+            builder.MapPost("/pins/check/runs/{id}/stop",
+                    (IBeehiveApiHandler handler,
+                            [FromRoute] string id,
+                            CancellationToken cancellationToken) =>
+                        handler.StopPinsCheckAsync(id, cancellationToken))
+                .WithDescription("Asks a run to stop: its job stops at the end of the pin it is checking, and the run ends as stopped. The pins it checked keep their correction. A run already ended is answered as it is.")
+                .Produces<PinsCheckDto>()
+                .Produces<string>(StatusCodes.Status404NotFound);
+
+            builder.MapDelete("/pins/check/runs",
+                    (IBeehiveApiHandler handler,
+                            CancellationToken cancellationToken,
+                            [FromQuery] bool? failed = null) =>
+                        handler.DeletePinsChecksAsync(failed, cancellationToken))
+                .WithDescription("Deletes the finished runs, with their pin records: with failed=true the failed ones only, with failed=false the completed and the stopped ones only, with no filter both. A running one is never deleted. Answers the number of deleted runs.")
+                .Produces<long>();
         }
     }
 }

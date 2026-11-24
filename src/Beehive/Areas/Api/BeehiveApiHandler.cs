@@ -38,7 +38,8 @@ namespace Etherna.Beehive.Areas.Api
         IBeeNodeLiveManager beeNodeLiveManager,
         IChunksMigrationService chunksMigrationService,
         ILogger<BeehiveApiHandler> logger,
-        INodePinsImportService nodePinsImportService)
+        INodePinsImportService nodePinsImportService,
+        IPinsCheckService pinsCheckService)
         : IBeehiveApiHandler
     {
         public Task<IResult> AddBeeNodeAsync(BeeNodeInput nodeInput) =>
@@ -79,6 +80,16 @@ namespace Etherna.Beehive.Areas.Api
 
                 return Results.Json(
                     deletedImports,
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
+            });
+
+        public Task<IResult> DeletePinsChecksAsync(bool? failed, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var deletedChecks = await pinsCheckService.DeleteChecksAsync(failed, cancellationToken);
+
+                return Results.Json(
+                    deletedChecks,
                     CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
@@ -196,6 +207,50 @@ namespace Etherna.Beehive.Areas.Api
                     CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 
+        public Task<IResult> GetPinsCheckAsync(string id, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var check = await pinsCheckService.GetCheckAsync(id, cancellationToken);
+
+                return Results.Json(
+                    new PinsCheckDto(check),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
+            });
+
+        public Task<IResult> GetPinsCheckPinsAsync(string id, PinCheckOutcome? outcome, int page, int take, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                ArgumentNullException.ThrowIfNull(id);
+
+                // An outcome is read from what its record stores.
+                var records = await beehiveDbContext.PinChecks.QueryElementsAsync(elements =>
+                    (outcome switch
+                    {
+                        PinCheckOutcome.Complete => elements.Where(r => r.FailureReason == null && r.InvalidChunks == 0 && r.MissingChunks == 0),
+                        PinCheckOutcome.Failed => elements.Where(r => r.FailureReason != null),
+                        PinCheckOutcome.Incomplete => elements.Where(r => r.FailureReason == null && r.InvalidChunks == 0 && r.MissingChunks > 0),
+                        PinCheckOutcome.Invalid => elements.Where(r => r.FailureReason == null && r.InvalidChunks > 0),
+                        _ => elements
+                    })
+                    .Where(r => r.ParentCheck.Id == id)
+                    .PaginateDescending(r => r.CreationDateTime, page, take)
+                    .ToListAsync(cancellationToken));
+
+                return Results.Json(
+                    records.Select(r => new PinCheckDto(r)),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
+            });
+
+        public Task<IResult> GetPinsChecksAsync(int page, int take, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var checks = await pinsCheckService.GetChecksAsync(page, take, cancellationToken);
+
+                return Results.Json(
+                    checks.Select(c => new PinsCheckDto(c)),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
+            });
+
         public Task<IResult> RemoveBeeNodeAsync(string id) =>
             ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
             {
@@ -234,6 +289,18 @@ namespace Etherna.Beehive.Areas.Api
                     statusCode: StatusCodes.Status202Accepted);
             });
 
+        public Task<IResult> StartPinsCheckAsync(ChunkPinState[]? pinStates, PinsCheckInput? checkInput, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var references = (checkInput?.References ?? []).Select(r => new SwarmReference(r)).ToArray(); //400 on a bad one
+                var check = await pinsCheckService.StartCheckAsync(pinStates, references, cancellationToken);
+
+                return Results.Json(
+                    new PinsCheckDto(check),
+                    CommonConsts.BeehiveV04JsonSerializerOptions,
+                    statusCode: StatusCodes.Status202Accepted);
+            });
+
         public Task<IResult> StopChunksMigrationAsync(string id, CancellationToken cancellationToken) =>
             ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
             {
@@ -243,6 +310,16 @@ namespace Etherna.Beehive.Areas.Api
 
                 return Results.Json(
                     new ChunksMigrationDto(migration),
+                    CommonConsts.BeehiveV04JsonSerializerOptions);
+            });
+
+        public Task<IResult> StopPinsCheckAsync(string id, CancellationToken cancellationToken) =>
+            ExceptionHandler.RunAsync(ApiVersion.BeehiveV04, async () =>
+            {
+                var check = await pinsCheckService.StopCheckAsync(id, cancellationToken);
+
+                return Results.Json(
+                    new PinsCheckDto(check),
                     CommonConsts.BeehiveV04JsonSerializerOptions);
             });
 

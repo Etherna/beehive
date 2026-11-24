@@ -18,6 +18,7 @@ using Etherna.Beehive.Services.Helpers;
 using Etherna.Beehive.Services.Utilities;
 using Etherna.Beehive.Services.Utilities.Models;
 using Etherna.Scrinium.Core.Serialization.Modifiers;
+using Etherna.Scrinium.Core.Utility;
 using Etherna.SwarmSdk.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -72,6 +73,28 @@ namespace Etherna.Beehive.Services.Domain
         // Tests.
 
         [Fact]
+        public async Task ADryRunLeavesWithoutThePinAChunkHeldWithoutItAndCountsItHeld()
+        {
+            // Setup.
+            var (pin, contentHashes) = await NewPinnedContentAsync();
+            //a data chunk document held without the pin among its references
+            var pinnedChunk = db.SwarmChunks.First(c => IsDataChunk(c.Payload));
+            db.SwarmChunks.Remove(pinnedChunk);
+            var unreferencedChunk = NewChunkDocument(pinnedChunk.Id, pinnedChunk.Payload.ToArray(), false, null);
+            db.AddChunk(unreferencedChunk);
+
+            // Action.
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, true);
+
+            // Assert.
+            //the same counts of a check that writes, and nothing written
+            Assert.True(result.IsComplete);
+            Assert.Equal(contentHashes.Length, result.TotalChunks);
+            Assert.Equal(0, result.ReferencedChunks);
+            Assert.Empty(unreferencedChunk.Pins);
+        }
+
+        [Fact]
         public async Task AttachesThePinToAChunkHeldWithoutIt()
         {
             // Setup.
@@ -83,12 +106,94 @@ namespace Etherna.Beehive.Services.Domain
             db.AddChunk(unreferencedChunk);
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.True(result.IsComplete);
             Assert.Equal(1, result.ReferencedChunks);
             Assert.Equal([pin], unreferencedChunk.Pins);
+        }
+
+        [Fact]
+        public async Task ChecksAContentOnceForEveryPinOfItsReference()
+        {
+            // Setup.
+            //a content uploaded twice with its pin has two pins: the chunks carry the first one only
+            var (pin, contentHashes) = await NewPinnedContentAsync();
+            var secondPin = NewPin(pin.Reference!.Value);
+            NewPin("aa00000000000000000000000000000000000000000000000000000000000007"); //the pin of another content
+
+            // Action.
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
+
+            // Assert.
+            //one result for the reference, and every chunk of it carrying both its pins, and no other one
+            Assert.True(result.IsComplete);
+            Assert.Equal(contentHashes.Length, result.TotalChunks);
+            Assert.Equal(contentHashes.Length, result.ReferencedChunks);
+            Assert.All(db.SwarmChunks, c => Assert.Equal([pin, secondPin], c.Pins));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CorrectPinDeclaresSucceededAPinFoundWholeThatWasNot(bool isProcessed)
+        {
+            // Setup.
+            //the pin of a content beehive holds in full, declared incomplete, or not processed yet
+            var (pin, contentHashes) = await NewPinnedContentAsync();
+            var declaredPin = NewPin(pin.Reference!.Value);
+            if (isProcessed)
+                declaredPin.UpdateProcessed([contentHashes[0]], contentHashes.Length - 1);
+            var checkResult = new PinCheckResult(pin.Reference!.Value, contentHashes.Length, [], [], 0);
+
+            // Action.
+            var correctedPin = await service.CorrectPinAsync(declaredPin, checkResult);
+
+            // Assert.
+            Assert.Same(declaredPin, correctedPin);
+            Assert.Equal(ChunkPinState.Succeeded, declaredPin.State);
+            Assert.Empty(declaredPin.MissingChunks);
+            Assert.Equal(contentHashes.Length, declaredPin.TotPinnedChunks);
+            Assert.True(Assert.Single(pinLeases).IsReleased); //under the pin's lock
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task CorrectPinLeavesASucceededPinFoundWholeAsItIs()
+        {
+            // Setup.
+            var (pin, contentHashes) = await NewPinnedContentAsync();
+            var checkResult = new PinCheckResult(pin.Reference!.Value, contentHashes.Length + 5, [], [], 0); //a total the pin doesn't take
+
+            // Action.
+            var correctedPin = await service.CorrectPinAsync(pin, checkResult);
+
+            // Assert.
+            //nothing to write, no lock to take
+            Assert.Same(pin, correctedPin);
+            Assert.Equal(ChunkPinState.Succeeded, pin.State);
+            Assert.Equal(contentHashes.Length, pin.TotPinnedChunks);
+            Assert.Empty(pinLeases);
+            db.DbContextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CorrectPinResetsAPinFoundIncomplete()
+        {
+            // Setup.
+            var (pin, contentHashes) = await NewPinnedContentAsync();
+            var checkResult = new PinCheckResult(pin.Reference!.Value, contentHashes.Length, [contentHashes[0]], [], 0);
+
+            // Action.
+            var correctedPin = await service.CorrectPinAsync(pin, checkResult);
+
+            // Assert.
+            Assert.Same(pin, correctedPin);
+            Assert.Equal(ChunkPinState.Incomplete, pin.State);
+            Assert.Equal([contentHashes[0]], pin.MissingChunks);
+            Assert.Equal(contentHashes.Length - 1, pin.TotPinnedChunks);
+            Assert.True(Assert.Single(pinLeases).IsReleased);
         }
 
         [Fact]
@@ -104,7 +209,7 @@ namespace Etherna.Beehive.Services.Domain
             db.AddChunk(NewChunkDocument(corruptChunk.Id, corruptPayload, false, pin));
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.False(result.IsComplete);
@@ -126,7 +231,7 @@ namespace Etherna.Beehive.Services.Domain
             db.AddChunk(NewChunkDocument(hash, payload, false, pin));
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.False(result.IsComplete);
@@ -148,7 +253,7 @@ namespace Etherna.Beehive.Services.Domain
             db.AddChunk(NewChunkDocument(soc.Hash, corruptPayload, true, pin));
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.Equal(1, result.TotalChunks);
@@ -168,7 +273,7 @@ namespace Etherna.Beehive.Services.Domain
             db.AddLegacyChunk(legacyDocument);
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.False(result.IsComplete);
@@ -186,7 +291,7 @@ namespace Etherna.Beehive.Services.Domain
             db.SwarmChunks.Remove(goneChunk);
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.False(result.IsComplete);
@@ -204,7 +309,7 @@ namespace Etherna.Beehive.Services.Domain
             var (pin, contentHashes) = await NewPinnedContentAsync();
 
             // Action.
-            var result = await service.CheckPinAsync(pin);
+            var result = await service.CheckPinsAsync(pin.Reference!.Value, false);
 
             // Assert.
             Assert.True(contentHashes.Length > 130); //a three level content, not a tiny one
@@ -231,7 +336,7 @@ namespace Etherna.Beehive.Services.Domain
 
             // Assert.
             Assert.Same(pin, resetPin);
-            Assert.False(pin.IsSucceeded);
+            Assert.NotEqual(ChunkPinState.Succeeded, pin.State);
             Assert.Equal(new HashSet<SwarmHash> { missingHash, invalidHash }, pin.MissingChunks.ToHashSet());
             Assert.Equal(contentHashes.Length - 2, pin.TotPinnedChunks);
             Assert.DoesNotContain(db.SwarmChunks, c => c.Id == invalidHash); //a new pinning reads it from the nodes
@@ -253,10 +358,32 @@ namespace Etherna.Beehive.Services.Domain
             await service.ResetPinAsync(pin.Id, checkResult);
 
             // Assert.
-            Assert.False(pin.IsSucceeded);
+            Assert.NotEqual(ChunkPinState.Succeeded, pin.State);
             Assert.Equal([malformedHash], pin.MissingChunks);
             Assert.Contains(db.SwarmChunks, c => c.Id == malformedHash); //a node would serve the same payload
             Assert.Equal(contentHashes.Length, db.SwarmChunks.Count);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task TryAcquirePinsCheckLockTakesTheLockOfTheChecksOfManyPins(bool isFree)
+        {
+            // Setup.
+            //one lock for every check of many pins, whichever way it runs
+            await using var lease = new FakeResourceLockLease();
+            db.DbContextMock.Setup(c => c.TryAcquireResourceLockAsync(
+                    ResourceLockNamespaces.PinChecks,
+                    "all",
+                    ResourceLockMode.Exclusive,
+                    null))
+                .ReturnsAsync(isFree ? lease : null);
+
+            // Action.
+            var acquiredLease = await service.TryAcquirePinsCheckLockAsync();
+
+            // Assert.
+            Assert.Same(isFree ? lease : null, acquiredLease);
         }
 
         [Fact]

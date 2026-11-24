@@ -77,7 +77,7 @@ namespace Etherna.Beehive.Services.Domain
                 var pin = await dbContext.ChunkPins.FindOneAsync(chunkPinId, workToken);
                 if (!pin.Reference.HasValue)
                     throw new InvalidOperationException("Pin doesn't have an hash");
-                if (pin.IsSucceeded)
+                if (pin.State == ChunkPinState.Succeeded)
                     return new PinChunksResult(pin, []);
 
                 // Traverse chunks. The store saves the chunks it reads from the nodes with the pin attached, so a chunk

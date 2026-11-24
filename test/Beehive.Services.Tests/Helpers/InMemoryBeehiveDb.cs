@@ -125,7 +125,7 @@ namespace Etherna.Beehive.Services.Helpers
                     return Task.FromResult(chunk);
                 });
 
-            // Chunk pins: lookups by id and predicate, creations getting an id.
+            // Chunk pins: lookups by id and predicate, queries, creations getting an id.
             ChunkPinsMock.Setup(r => r.FindOneAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((string id, CancellationToken _) => ChunkPins.Single(p => p.Id == id));
             ChunkPinsMock.Setup(r => r.TryFindOneAsync(
@@ -133,6 +133,11 @@ namespace Etherna.Beehive.Services.Helpers
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Expression<Func<ChunkPin, bool>> predicate, CancellationToken _) =>
                     ChunkPins.FirstOrDefault(predicate.Compile()));
+            ChunkPinsMock.Setup(r => r.QueryElementsAsync(
+                    It.IsAny<Func<IQueryable<ChunkPin>, Task<List<ChunkPin>>>>(),
+                    null))
+                .Returns((Func<IQueryable<ChunkPin>, Task<List<ChunkPin>>> query, AggregateOptions? _) =>
+                    query(InMemoryQueryable.Of(ChunkPins)));
             ChunkPinsMock.Setup(r => r.CreateAsync(It.IsAny<ChunkPin>(), It.IsAny<CancellationToken>()))
                 .Callback((ChunkPin pin, CancellationToken _) => AddPin(pin))
                 .Returns(Task.CompletedTask);

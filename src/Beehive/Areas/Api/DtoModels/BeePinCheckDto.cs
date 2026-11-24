@@ -13,13 +13,12 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.SwarmSdk.Models;
-using System.Text.Json.Serialization;
 
 namespace Etherna.Beehive.Areas.Api.DtoModels
 {
     /// <summary>
     /// The integrity of a pin, in bee's shape: the chunks not held, the invalid ones, and every chunk of its content.
-    /// Serialized in reading order: the reference first, the total after its parts
+    /// Declared in reading order: the reference first, the total after its parts
     /// </summary>
     public sealed class BeePinCheckDto(
         SwarmReference reference,
@@ -27,16 +26,9 @@ namespace Etherna.Beehive.Areas.Api.DtoModels
         long invalid,
         long total)
     {
-        [JsonPropertyOrder(3)]
-        public long Invalid { get; } = invalid;
-
-        [JsonPropertyOrder(2)]
-        public long Missing { get; } = missing;
-
-        [JsonPropertyOrder(1)]
         public SwarmReference Reference { get; } = reference;
-
-        [JsonPropertyOrder(4)]
+        public long Missing { get; } = missing;
+        public long Invalid { get; } = invalid;
         public long Total { get; } = total;
     }
 }

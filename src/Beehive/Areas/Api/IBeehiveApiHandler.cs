@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Beehive.Areas.Api.InputModels;
+using Etherna.Beehive.Domain.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,16 +26,22 @@ namespace Etherna.Beehive.Areas.Api
         Task<IResult> CountDeprecatedChunksAsync(CancellationToken cancellationToken);
         Task<IResult> FindByIdAsync(string id);
         Task<IResult> DeleteNodePinsImportsAsync(string id, bool? failed);
+        Task<IResult> DeletePinsChecksAsync(bool? failed, CancellationToken cancellationToken);
         Task<IResult> GetBeeNodesAsync();
         Task<IResult> GetChunksMigrationsAsync(int page, int take, CancellationToken cancellationToken);
         Task<IResult> GetNodeNotImportedPinsAsync(string id);
         Task<IResult> GetNodePinImportsAsync(string id, string importId, bool failedOnly, int page, int take);
         Task<IResult> GetNodePinsImportsAsync(string id, int page, int take);
         Task<IResult> GetNodesPinsImportsAsync(int page, int take);
+        Task<IResult> GetPinsCheckAsync(string id, CancellationToken cancellationToken);
+        Task<IResult> GetPinsCheckPinsAsync(string id, PinCheckOutcome? outcome, int page, int take, CancellationToken cancellationToken);
+        Task<IResult> GetPinsChecksAsync(int page, int take, CancellationToken cancellationToken);
         Task<IResult> RemoveBeeNodeAsync(string id);
         Task<IResult> StartChunksMigrationAsync(CancellationToken cancellationToken);
         Task<IResult> StartNodePinsImportAsync(string id, bool unpin, NodePinsImportInput? importInput);
+        Task<IResult> StartPinsCheckAsync(ChunkPinState[]? pinStates, PinsCheckInput? checkInput, CancellationToken cancellationToken);
         Task<IResult> StopChunksMigrationAsync(string id, CancellationToken cancellationToken);
+        Task<IResult> StopPinsCheckAsync(string id, CancellationToken cancellationToken);
         Task<IResult> UpdateBeeNodeAsync(string id, BeeNodeInput nodeInput);
     }
 }

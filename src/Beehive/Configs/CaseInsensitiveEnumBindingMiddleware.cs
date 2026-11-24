@@ -29,7 +29,8 @@ namespace Etherna.Beehive.Configs
     /// member name or the integer value bind, while any other casing is rejected with 400. Bee
     /// documents these values in lowercase (and as integers), so to stay compatible this middleware
     /// normalizes enum-typed header/query parameter values to their canonical member name before
-    /// binding, making the binding accept any casing and the integer form.
+    /// binding, making the binding accept any casing and the integer form. A query parameter binding
+    /// an array of enums takes a value per repetition of its name: each one is normalized.
     /// </summary>
     public sealed class CaseInsensitiveEnumBindingMiddleware(RequestDelegate next)
     {
@@ -64,7 +65,10 @@ namespace Etherna.Beehive.Configs
             var result = new List<EnumParameter>();
             foreach (var parameter in method.GetParameters())
             {
-                var enumType = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
+                var valueType = parameter.ParameterType.IsArray ?
+                    parameter.ParameterType.GetElementType()! :
+                    parameter.ParameterType;
+                var enumType = Nullable.GetUnderlyingType(valueType) ?? valueType;
                 if (!enumType.IsEnum)
                     continue;
 
@@ -100,15 +104,26 @@ namespace Etherna.Beehive.Configs
                     break;
 
                 case EnumParameterSource.Query:
-                    if (context.Request.Query.TryGetValue(parameter.Name, out var queryValue))
+                    if (context.Request.Query.TryGetValue(parameter.Name, out var queryValues))
                     {
-                        var (normalized, error) = Resolve(parameter.EnumType, queryValue.ToString());
-                        if (error is not null)
-                            return error;
-                        if (normalized is not null)
+                        // A value per repetition of the parameter name: an array parameter binds them all.
+                        var normalizedValues = queryValues.ToArray();
+                        var isNormalized = false;
+                        for (var i = 0; i < normalizedValues.Length; i++)
+                        {
+                            var (normalized, error) = Resolve(parameter.EnumType, normalizedValues[i] ?? "");
+                            if (error is not null)
+                                return error;
+                            if (normalized is not null)
+                            {
+                                normalizedValues[i] = normalized;
+                                isNormalized = true;
+                            }
+                        }
+                        if (isNormalized)
                         {
                             var query = context.Request.Query.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                            query[parameter.Name] = new StringValues(normalized);
+                            query[parameter.Name] = new StringValues(normalizedValues);
                             context.Request.Query = new QueryCollection(query);
                         }
                     }

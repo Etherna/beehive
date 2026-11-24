@@ -221,6 +221,7 @@ namespace Etherna.Beehive
                         Queues.DB_MAINTENANCE,
                         Queues.PIN_CONTENTS,
                         Queues.NODE_MAINTENANCE,
+                        Queues.PIN_CHECKS,
                         "default"
                     ];
                 });
